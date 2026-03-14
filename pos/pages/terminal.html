@@ -1795,11 +1795,20 @@
         function prepareInvoice(invoiceNo, payload) {
             const container = document.getElementById('invoicePrintContainer');
 
-            const itemsHtml = payload.items.map(item => `
+            const grouped = {};
+            payload.items.forEach(item => {
+                if (grouped[item.id]) {
+                    grouped[item.id].qty += 1;
+                } else {
+                    grouped[item.id] = { ...item, qty: 1 };
+                }
+            });
+
+            const itemsHtml = Object.values(grouped).map(item => `
                 <tr>
                     <td>${item.title}</td>
-                    <td>1</td>
-                    <td style="text-align: right;">৳${item.sell_price}</td>
+                    <td>${item.qty}</td>
+                    <td style="text-align: right;">৳${(parseFloat(item.sell_price) * item.qty).toFixed(2)}</td>
                 </tr>
             `).join('');
 

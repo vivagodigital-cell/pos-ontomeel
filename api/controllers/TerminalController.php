@@ -48,16 +48,30 @@ try {
             
             $order_id = $pdo->lastInsertId();
 
-            // Insert items and decrease stock
+            // Group items to handle duplicates gracefully
+            $groupedItems = [];
             foreach ($data['items'] as $item) {
+                $bId = $item['id'];
+                if (!isset($groupedItems[$bId])) {
+                    $groupedItems[$bId] = $item;
+                    $groupedItems[$bId]['purchase_qty'] = 0;
+                }
+                $groupedItems[$bId]['purchase_qty']++;
+            }
+
+            // Insert items and decrease stock
+            foreach ($groupedItems as $item) {
                 $price = $item['sell_price'] ?? $item['price'] ?? 0;
+                $qty = $item['purchase_qty'];
+                $total_price = $price * $qty;
+                
                 // Insert order item
                 $stmt = $pdo->prepare("INSERT INTO order_items (order_id, book_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$order_id, $item['id'], 1, $price, $price]);
+                $stmt->execute([$order_id, $item['id'], $qty, $price, $total_price]);
 
                 // Update stock
-                $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - 1 WHERE id = ?");
-                $stmt->execute([$item['id']]);
+                $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - ? WHERE id = ?");
+                $stmt->execute([$qty, $item['id']]);
             }
 
             // Record transaction for members OR handling Guest Email Notification
