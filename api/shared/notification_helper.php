@@ -62,6 +62,21 @@ function send_notification_instantly($to, $type, $data)
             ";
             break;
 
+        case 'account_created':
+            $subject = "Welcome to Ontomeel Bookshop - Your Membership ID: " . $data['invoice_no'];
+            $title = "Welcome Aboard!";
+            $color = "#2563eb";
+            $content = "
+                <p>Dear <strong>" . htmlspecialchars($data['name']) . "</strong>,</p>
+                <p>Your membership account has been successfully created at our POS terminal.</p>
+                <div style='background: #eff6ff; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #bfdbfe;'>
+                    <p style='margin: 5px 0;'><strong>Membership ID:</strong> " . htmlspecialchars($data['invoice_no']) . "</p>
+                    <p style='margin: 5px 0;'><strong>" . htmlspecialchars($data['address']) . "</strong></p>
+                </div>
+                <p>You can now use your Membership ID to borrow books or earn rewards on every purchase.</p>
+            ";
+            break;
+
         default:
             $subject = "Ontomeel Bookshop - Notification";
             $title = "Account Update";

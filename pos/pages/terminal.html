@@ -357,16 +357,6 @@
         .result-name { font-weight: 700; color: var(--text-header); font-size: 0.9rem; }
         .result-id { font-size: 0.75rem; color: var(--text-muted); }
 
-        .selected-member-display {
-            background: var(--primary-blue-soft);
-            padding: 12px 15px;
-            border-radius: 12px;
-            margin-top: 10px;
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            border: 1px solid rgba(37, 99, 235, 0.1);
-        }
         /* Checkout Workflow Enhancements */
         .customer-tabs {
             display: flex;
@@ -399,6 +389,45 @@
             flex-direction: column;
             gap: 12px;
         }
+
+        .selected-member-display { 
+            display: none; 
+            margin-top: 15px; 
+            padding: 15px; 
+            background: #f0f7ff; 
+            border-radius: 16px; 
+            border: 1px solid #dbeafe;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .member-detail-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .btn-quick-add {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-quick-add:hover { background: #dcfce7; transform: translateY(-1px); }
 
         .checkout-input {
             width: 100%;
@@ -622,6 +651,12 @@
                     </div>
 
                     <div id="memberSection">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">MEMBER SEARCH</div>
+                            <button class="btn-quick-add" onclick="openMemberModal()">
+                                <i class="fa-solid fa-plus-circle"></i> QUICK ADD
+                            </button>
+                        </div>
                         <div style="position: relative;">
                             <div class="search-box" style="width: 100%; padding: 0.6rem 1rem;">
                                 <i class="fa-solid fa-user-tag" style="color: var(--primary-blue);"></i>
@@ -631,17 +666,31 @@
                         </div>
                         
                         <div id="selectedMember" class="selected-member-display">
-                            <div>
-                                <div id="selMemberName" style="font-weight: 700; color: var(--primary-blue); font-size: 0.9rem;"></div>
-                                <div id="selMemberId" style="font-size: 0.75rem; color: var(--text-muted);"></div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                    <span id="selMemberName" style="font-weight: 700; color: var(--primary-blue); font-size: 0.95rem;"></span>
+                                    <span id="selMemberPlan" class="member-detail-badge"></span>
+                                </div>
+                                <div id="selMemberId" style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;"></div>
+                                <div style="margin-top: 8px; display: flex; gap: 15px; border-top: 1px dashed #bfdbfe; padding-top: 8px;">
+                                    <div>
+                                        <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">Balance</div>
+                                        <div id="selMemberBal" style="font-weight: 700; color: #16a34a; font-size: 0.85rem;"></div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">Expiry</div>
+                                        <div id="selMemberExpiry" style="font-weight: 600; color: #e11d48; font-size: 0.85rem;"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <button onclick="clearMember()" style="background: none; border: none; color: #ef4444; cursor: pointer;"><i class="fa-solid fa-times-circle"></i></button>
+                            <button onclick="clearMember()" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 10px;"><i class="fa-solid fa-times-circle fa-lg"></i></button>
                         </div>
                     </div>
 
                     <div id="guestSection" class="guest-inputs">
                         <input type="text" id="guestName" class="checkout-input" placeholder="Guest Name">
                         <input type="text" id="guestPhone" class="checkout-input" placeholder="Phone Number">
+                        <input type="email" id="guestEmail" class="checkout-input" placeholder="Email Address (Optional)">
                     </div>
                 </div>
 
@@ -721,6 +770,38 @@
             <button class="btn-action" style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);" onclick="closeCheckout()">
                 CANCEL
             </button>
+        </div>
+    </div>
+    <!-- Member Modal -->
+    <div class="modal-overlay" id="memberModal">
+        <div class="borrow-modal" style="width: 400px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; font-size: 1.25rem; color: var(--primary-blue); font-weight: 800;">Register Member</h2>
+                <button onclick="closeMemberModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">FULL NAME *</label>
+                    <input type="text" id="newMemberName" class="checkout-input" placeholder="Enter Full Name">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">PHONE NUMBER *</label>
+                    <input type="text" id="newMemberPhone" class="checkout-input" placeholder="e.g. 01700000000">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">EMAIL ADDRESS</label>
+                    <input type="email" id="newMemberEmail" class="checkout-input" placeholder="Enter Email (Optional)">
+                </div>
+                <div style="background: #fffbeb; padding: 10px; border-radius: 10px; border: 1px solid #fef3c7; margin-top: 5px;">
+                    <div style="font-size: 0.7rem; color: #92400e; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-info-circle"></i>
+                        Default password for the user is <strong>123456</strong>
+                    </div>
+                </div>
+                <button onclick="saveNewMember()" class="btn-action btn-sell" id="btnSaveMember" style="width: 100%; margin-top: 10px;">
+                    <i class="fa-solid fa-user-plus"></i> CREATE MEMBER
+                </button>
+            </div>
         </div>
     </div>
 
@@ -992,8 +1073,64 @@
             document.getElementById('memberSearchResults').style.display = 'none';
             
             document.getElementById('selMemberName').innerText = member.full_name;
-            document.getElementById('selMemberId').innerText = `ID: ${member.membership_id} | Bal: ৳${member.acc_balance}`;
+            document.getElementById('selMemberPlan').innerText = member.membership_plan || 'None';
+            document.getElementById('selMemberPlan').style.display = member.membership_plan === 'None' ? 'none' : 'inline-block';
+            document.getElementById('selMemberId').innerText = `MEMBERSHIP ID: ${member.membership_id}`;
+            document.getElementById('selMemberBal').innerText = `৳${member.acc_balance}`;
+            
+            const expiry = member.plan_expire_date ? new Date(member.plan_expire_date).toLocaleDateString() : 'N/A';
+            document.getElementById('selMemberExpiry').innerText = expiry;
+            document.getElementById('selMemberExpiry').style.color = expiry === 'N/A' ? '#94a3b8' : '#e11d48';
+
             document.getElementById('selectedMember').style.display = 'flex';
+        }
+
+        function openMemberModal() {
+            document.getElementById('memberModal').style.display = 'flex';
+        }
+
+        function closeMemberModal() {
+            document.getElementById('memberModal').style.display = 'none';
+            document.getElementById('newMemberName').value = '';
+            document.getElementById('newMemberPhone').value = '';
+            document.getElementById('newMemberEmail').value = '';
+        }
+
+        async function saveNewMember() {
+            const name = document.getElementById('newMemberName').value;
+            const phone = document.getElementById('newMemberPhone').value;
+            const email = document.getElementById('newMemberEmail').value;
+
+            if (!name || !phone) {
+                showToast('Name and Phone are required.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveMember');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> SAVING...';
+
+            try {
+                const response = await fetch('../../api/controllers/TerminalController.php?action=registerMember', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_name: name, phone: phone, email: email })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('✓ Member Registered Successfully!', 'success');
+                    selectMember(result.member);
+                    closeMemberModal();
+                } else {
+                    showToast('Error: ' + result.error, 'error');
+                }
+            } catch (e) {
+                showToast('Failed to register member.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> CREATE MEMBER';
+            }
         }
 
         function clearMember() {
@@ -1070,6 +1207,7 @@
                 memberId: selectedMember ? selectedMember.id : null,
                 guestName: document.getElementById('guestName').value,
                 guestPhone: document.getElementById('guestPhone').value,
+                guestEmail: document.getElementById('guestEmail').value,
                 paymentMethod: paymentMethod,
                 items: cart.map(item => ({
                     id: item.id,
@@ -1095,6 +1233,7 @@
                     if (customerType === 'guest') {
                         document.getElementById('guestName').value = '';
                         document.getElementById('guestPhone').value = '';
+                        document.getElementById('guestEmail').value = '';
                     } else {
                         clearMember();
                     }

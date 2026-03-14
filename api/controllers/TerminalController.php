@@ -15,7 +15,7 @@ try {
     } 
     elseif ($action === 'searchMembers') {
         $query = $_GET['q'] ?? '';
-        $stmt = $pdo->prepare("SELECT id, membership_id, full_name, acc_balance FROM members WHERE full_name LIKE ? OR membership_id LIKE ? LIMIT 10");
+        $stmt = $pdo->prepare("SELECT id, membership_id, full_name, acc_balance, email, phone, membership_plan, plan_expire_date FROM members WHERE full_name LIKE ? OR membership_id LIKE ? LIMIT 10");
         $stmt->execute(["%$query%", "%$query%"]);
         $members = $stmt->fetchAll();
         echo json_encode($members);
@@ -33,7 +33,7 @@ try {
             $invoice_no = 'OTM-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
             
             // Insert into orders table
-            $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone, guest_email) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?, ?)");
             $stmt->execute([
                 $invoice_no,
                 $data['memberId'],
@@ -42,7 +42,8 @@ try {
                 $data['total'],
                 $data['paymentMethod'],
                 $data['guestName'],
-                $data['guestPhone']
+                $data['guestPhone'],
+                $data['guestEmail'] ?? null
             ]);
             
             $order_id = $pdo->lastInsertId();
@@ -58,7 +59,7 @@ try {
                 $stmt->execute([$item['id']]);
             }
 
-            // Record transaction for members
+            // Record transaction for members OR handling Guest Email Notification
             if ($data['memberId']) {
                 $stmt = $pdo->prepare("INSERT INTO transactions (member_id, amount, type, description, reference_id) VALUES (?, ?, 'Purchase', 'Book purchase at terminal', ?)");
                 $stmt->execute([$data['memberId'], $data['total'], $invoice_no]);
@@ -78,7 +79,7 @@ try {
                     $stmt->execute([$data['total'], $data['memberId']]);
                 }
 
-                // Send Email Notification
+                // Send Email Notification for Members
                 $mStmt = $pdo->prepare("SELECT full_name, email FROM members WHERE id = ?");
                 $mStmt->execute([$data['memberId']]);
                 $member = $mStmt->fetch();
@@ -91,6 +92,17 @@ try {
                         'address' => 'In-person purchase at POS Terminal'
                     ];
                     queueNotification($pdo, $member['email'], 'order_placed', $notif_payload);
+                }
+            } else {
+                // Guest Email Notification
+                if (!empty($data['guestEmail'])) {
+                    $notif_payload = [
+                        'name' => $data['guestName'],
+                        'invoice_no' => $invoice_no,
+                        'amount' => $data['total'],
+                        'address' => 'In-person purchase at POS Terminal'
+                    ];
+                    queueNotification($pdo, $data['guestEmail'], 'order_placed', $notif_payload);
                 }
             }
 
@@ -160,6 +172,62 @@ try {
             $pdo->rollBack();
             throw $e;
         }
+    }
+    elseif ($action === 'registerMember') {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (empty($data['full_name']) || empty($data['phone'])) {
+            throw new Exception("Name and Phone are required.");
+        }
+
+        // Check if phone already exists
+        $stmt = $pdo->prepare("SELECT id FROM members WHERE phone = ?");
+        $stmt->execute([$data['phone']]);
+        if ($stmt->fetch()) {
+            throw new Exception("A member with this phone number already exists.");
+        }
+
+        // Generate Membership ID (OM-RANDOM)
+        $membership_id = 'OM-' . strtoupper(substr(md5(uniqid()), 0, 8));
+        $temp_password = password_hash('123456', PASSWORD_DEFAULT); // Default temp password
+
+        $stmt = $pdo->prepare("INSERT INTO members (membership_id, full_name, email, phone, password, membership_plan, acc_balance) VALUES (?, ?, ?, ?, ?, 'None', 0)");
+        $stmt->execute([
+            $membership_id,
+            $data['full_name'],
+            $data['email'] ?? '',
+            $data['phone'],
+            $temp_password
+        ]);
+        
+        $memberId = $pdo->lastInsertId();
+
+        // Send Welcome Email if email is provided
+        if (!empty($data['email'])) {
+            $notif_payload = [
+                'name' => $data['full_name'],
+                'invoice_no' => $membership_id, // Using this for ID display in email
+                'amount' => 0,
+                'address' => 'Temporary Password: 123456. Please change it after login.'
+            ];
+            // Reusing order_placed for now or we could add a new template, but order_placed is generic enough with name.
+            // Better to use generic update
+            queueNotification($pdo, $data['email'], 'account_created', $notif_payload);
+        }
+
+        echo json_encode([
+            'success' => true, 
+            'member' => [
+                'id' => $memberId,
+                'membership_id' => $membership_id,
+                'full_name' => $data['full_name'],
+                'acc_balance' => 0,
+                'email' => $data['email'] ?? '',
+                'phone' => $data['phone'],
+                'membership_plan' => 'None',
+                'plan_expire_date' => null
+            ]
+        ]);
     }
 } catch (Exception $e) {
     http_response_code(500);
