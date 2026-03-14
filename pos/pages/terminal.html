@@ -375,29 +375,28 @@
             const grid = document.getElementById('browseGrid');
             grid.innerHTML = '';
             
-            // Image base path: Going out of /pos/pages/ and /ontomeel-pos/ to reach /admin/
-            const imageBasePath = '../../../admin/assets/book-images/';
+            // Image base path: bookshop is a sibling of ontomeel-pos
+            const imageBasePath = '../../../bookshop/admin/assets/book-images/';
             
             books.forEach(book => {
                 const pill = document.createElement('div');
                 pill.className = 'book-pill fade-in';
-                pill.onclick = () => addToCart(book);
                 
-                // Determine image source
-                let imgSrc = '';
+                // Determine and store image source
+                book.displayImage = '';
                 if (book.cover_image) {
-                    if (book.cover_image.startsWith('http')) {
-                        imgSrc = book.cover_image;
-                    } else {
-                        imgSrc = imageBasePath + book.cover_image;
-                    }
+                    book.displayImage = book.cover_image.startsWith('http') 
+                        ? book.cover_image 
+                        : imageBasePath + book.cover_image;
                 }
+
+                pill.onclick = () => addToCart(book);
 
                 pill.innerHTML = `
                     <div class="stock-badge" style="color: ${book.stock_qty > 5 ? 'var(--accent-mint)' : '#ef4444'}">${book.stock_qty} in stock</div>
                     <div class="book-thumbnail">
-                        ${imgSrc 
-                            ? `<img src="${imgSrc}" loading="lazy" alt="${book.title}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(book.title)}&background=eff6ff&color=2563eb&bold=true'">` 
+                        ${book.displayImage 
+                            ? `<img src="${book.displayImage}" loading="lazy" alt="${book.title}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(book.title)}&background=eff6ff&color=2563eb&bold=true'">` 
                             : '<i class="fa-solid fa-book-open" style="font-size: 2rem; color: #cbd5e1;"></i>'}
                     </div>
                     <div class="book-info-compact">
@@ -449,8 +448,8 @@
                 const row = document.createElement('div');
                 row.className = 'cart-row';
                 row.innerHTML = `
-                    <div class="cart-img" style="background-image: url('${item.cover_image}'); background-size: cover;">
-                        ${!item.cover_image ? '<i class="fa-solid fa-book" style="margin: 10px; color: #cbd5e1;"></i>' : ''}
+                    <div class="cart-img" style="background-image: url('${item.displayImage}'); background-size: cover; background-position: center;">
+                        ${!item.displayImage ? '<i class="fa-solid fa-book" style="margin: 10px; color: #cbd5e1;"></i>' : ''}
                     </div>
                     <div class="cart-details">
                         <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);">${item.title}</div>
