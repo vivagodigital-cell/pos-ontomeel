@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="../assets/auth-guard.js"></script>
     <style>
         /* Modern Glassmorphism & Refined UI */
         :root {
@@ -65,12 +67,12 @@
             flex-direction: column;
             gap: 12px;
             position: relative;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
         .book-pill:hover {
             border-color: var(--primary-blue);
-            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.1);
+            box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.1);
             transform: translateY(-5px);
         }
 
@@ -78,23 +80,40 @@
             width: 100%;
             aspect-ratio: 3/4;
             border-radius: 12px;
-            background: var(--primary-blue-soft);
+            background: #f1f5f9;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.02);
+            position: relative;
         }
 
         .book-thumbnail img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s ease;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .book-pill:hover .book-thumbnail img {
-            transform: scale(1.05);
+            transform: scale(1.08);
+        }
+
+        .stock-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(4px);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #1e293b;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-light);
+            z-index: 2;
         }
 
         .book-info-compact {
@@ -116,7 +135,7 @@
         }
 
         .book-meta {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
             white-space: nowrap;
             overflow: hidden;
@@ -131,24 +150,10 @@
         }
 
         .book-price-tag {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 800;
             color: var(--primary-blue);
-            margin-top: 6px;
-        }
-
-        .stock-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            font-weight: 800;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-light);
-            z-index: 2;
+            margin-top: 4px;
         }
 
         /* Right side: Modern Cart */
@@ -211,7 +216,7 @@
             border-radius: 8px;
             background: var(--primary-blue-soft);
             object-fit: cover;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .cart-details {
@@ -222,8 +227,8 @@
         }
 
         .cart-total-sect {
-            background: #f8fafc;
-            padding: 2rem;
+            background: #fcfdfe;
+            padding: 1.5rem 2rem 2rem;
             border-top: 1px solid var(--border-light);
         }
 
@@ -248,16 +253,45 @@
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .btn-sell { background: var(--primary-blue); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-        .btn-issue { background: #0f172a; color: white; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2); }
-        .btn-action:hover { transform: scale(1.02); opacity: 0.95; }
-        .btn-action:active { transform: scale(0.98); }
+        .btn-sell {
+            background: var(--primary-blue);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-issue {
+            background: #0f172a;
+            color: white;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        }
+
+        .btn-action:hover {
+            transform: scale(1.02);
+            opacity: 0.95;
+        }
+
+        .btn-action:active {
+            transform: scale(0.98);
+        }
 
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
         /* Sticky Modern Header */
         header {
             position: sticky;
@@ -324,6 +358,7 @@
             font-weight: 500;
             opacity: 0.7;
         }
+
         /* Member Search Dropdown */
         .search-results-dropdown {
             position: absolute;
@@ -333,7 +368,7 @@
             background: white;
             border-radius: 12px;
             border: 1px solid var(--border-light);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             margin-top: 8px;
             z-index: 100;
             max-height: 300px;
@@ -351,11 +386,24 @@
             gap: 2px;
         }
 
-        .result-item:last-child { border-bottom: none; }
-        .result-item:hover { background: var(--primary-blue-soft); }
+        .result-item:last-child {
+            border-bottom: none;
+        }
 
-        .result-name { font-weight: 700; color: var(--text-header); font-size: 0.9rem; }
-        .result-id { font-size: 0.75rem; color: var(--text-muted); }
+        .result-item:hover {
+            background: var(--primary-blue-soft);
+        }
+
+        .result-name {
+            font-weight: 700;
+            color: var(--text-header);
+            font-size: 0.9rem;
+        }
+
+        .result-id {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
 
         /* Checkout Workflow Enhancements */
         .customer-tabs {
@@ -381,7 +429,7 @@
         .cust-tab.active {
             background: white;
             color: var(--primary-blue);
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
         .guest-inputs {
@@ -390,12 +438,12 @@
             gap: 12px;
         }
 
-        .selected-member-display { 
-            display: none; 
-            margin-top: 15px; 
-            padding: 15px; 
-            background: #f0f7ff; 
-            border-radius: 16px; 
+        .selected-member-display {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 16px;
             border: 1px solid #dbeafe;
             justify-content: space-between;
             align-items: center;
@@ -412,22 +460,95 @@
             text-transform: uppercase;
         }
 
-        .btn-quick-add {
-            background: #f0fdf4;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-            padding: 4px 10px;
-            border-radius: 8px;
+        .btn-quick-add:hover {
+            background: #dcfce7;
+            transform: translateY(-1px);
+        }
+
+        /* Terminal Specific Action Buttons */
+        .terminal-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .terminal-btn {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 10px 5px;
             font-size: 0.75rem;
             font-weight: 700;
+            color: #64748b;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 5px;
+            justify-content: center;
+            gap: 6px;
+            position: relative;
         }
 
-        .btn-quick-add:hover { background: #dcfce7; transform: translateY(-1px); }
+        .terminal-btn i {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+
+        .terminal-btn:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            background: #f0f7ff;
+            transform: translateY(-2px);
+        }
+
+        .terminal-btn:hover i {
+            color: var(--primary-blue);
+        }
+
+        .terminal-btn.danger:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .terminal-btn.danger:hover i {
+            color: #ef4444;
+        }
+
+        .parked-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--primary-blue);
+            color: white;
+            font-size: 0.65rem;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+            border: 2px solid white;
+        }
+
+        .search-container-pos {
+            position: relative;
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 14px;
+            padding: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .search-container-pos:focus-within {
+            border-color: var(--primary-blue);
+            box-shadow: 0 8px 20px -5px rgba(37, 99, 235, 0.1);
+        }
 
         .checkout-input {
             width: 100%;
@@ -464,13 +585,20 @@
             width: 500px;
             border-radius: 24px;
             padding: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         @keyframes modalPop {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         .pay-method-grid {
@@ -500,6 +628,7 @@
             background: var(--primary-blue-soft);
             color: var(--primary-blue);
         }
+
         /* Skeleton Loading Effect */
         .skeleton {
             background: linear-gradient(90deg, #f0f2f5 25%, #e6e8eb 50%, #f0f2f5 75%);
@@ -509,13 +638,30 @@
         }
 
         @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
         }
 
-        .skeleton-thumb { width: 100%; aspect-ratio: 3/4; margin-bottom: 12px; }
-        .skeleton-text { height: 16px; width: 85%; margin-bottom: 8px; }
-        .skeleton-text.short { width: 45%; }
+        .skeleton-thumb {
+            width: 100%;
+            aspect-ratio: 3/4;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-text {
+            height: 16px;
+            width: 85%;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-text.short {
+            width: 45%;
+        }
 
         /* Fade-in Animation */
         .fade-in {
@@ -524,8 +670,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Borrow Modal Specifics */
@@ -534,7 +687,7 @@
             width: 450px;
             border-radius: 24px;
             padding: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
@@ -555,30 +708,56 @@
             color: white;
             padding: 16px 24px;
             border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             display: flex;
             align-items: center;
             gap: 12px;
             font-size: 0.9rem;
             font-weight: 600;
             min-width: 300px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             animation: toastSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transition: all 0.3s ease;
         }
 
-        .toast.success { border-left: 4px solid var(--accent-mint); }
-        .toast.error { border-left: 4px solid #ef4444; }
-        .toast.info { border-left: 4px solid var(--primary-blue); }
+        .toast.success {
+            border-left: 4px solid var(--accent-mint);
+        }
 
-        .toast i { font-size: 1.2rem; }
-        .toast.success i { color: var(--accent-mint); }
-        .toast.error i { color: #ef4444; }
-        .toast.info i { color: var(--primary-blue); }
+        .toast.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--primary-blue);
+        }
+
+        .toast i {
+            font-size: 1.2rem;
+        }
+
+        .toast.success i {
+            color: var(--accent-mint);
+        }
+
+        .toast.error i {
+            color: #ef4444;
+        }
+
+        .toast.info i {
+            color: var(--primary-blue);
+        }
 
         @keyframes toastSlideIn {
-            from { transform: translateX(100%) scale(0.8); opacity: 0; }
-            to { transform: translateX(0) scale(1); opacity: 1; }
+            from {
+                transform: translateX(100%) scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
         }
 
         .toast.fade-out {
@@ -586,23 +765,130 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        /* Invoice Print Styles (80mm) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #invoicePrintContainer,
+            #invoicePrintContainer * {
+                visibility: visible;
+            }
+
+            #invoicePrintContainer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                padding: 5mm;
+                color: black !important;
+                background: white !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        .invoice-receipt {
+            font-family: 'Inter', sans-serif;
+            width: 80mm;
+            background: white;
+            padding: 20px;
+            font-size: 13px;
+            margin: 0 auto;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .receipt-header img {
+            width: 50px;
+            margin-bottom: 5px;
+        }
+
+        .receipt-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .receipt-info {
+            margin-bottom: 15px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .receipt-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .receipt-items th {
+            text-align: left;
+            font-size: 11px;
+            padding: 5px 0;
+            border-bottom: 1px solid #000;
+        }
+
+        .receipt-items td {
+            padding: 8px 0;
+            font-size: 12px;
+            vertical-align: top;
+        }
+
+        .receipt-totals {
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+        }
+
+        .total-bold {
+            font-weight: 800;
+            font-size: 15px;
+        }
     </style>
 </head>
+
 <body>
 
     <nav class="sidebar">
         <div class="logo-wrapper">
-            <div class="logo-icon"><i class="fa-solid fa-book-open"></i></div>
+            <div class="logo-icon" style="background: none; box-shadow: none;">
+                <img src="../assets/logo.webp" alt="Logo" style="width: 32px; height: 32px; object-fit: contain;">
+            </div>
             <span class="logo-text">ONTOMEEL</span>
         </div>
         <ul class="nav-links">
-            <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span class="nav-text">Dashboard</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-cash-register"></i><span class="nav-text">Terminal</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-book"></i><span class="nav-text">Inventory</span></a></li>
-            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span class="nav-text">Members</span></a></li>
-            <li class="nav-item"><a href="supplier.html" class="nav-link"><i class="fa-solid fa-truck-ramp-box"></i><span class="nav-text">Suppliers</span></a></li>
-            <li class="nav-item"><a href="report.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span class="nav-text">Reports</span></a></li>
+            <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span
+                        class="nav-text">Dashboard</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-cash-register"></i><span
+                        class="nav-text">Terminal</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-book"></i><span
+                        class="nav-text">Inventory</span></a></li>
+            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span
+                        class="nav-text">Members</span></a></li>
+            <li class="nav-item"><a href="supplier.html" class="nav-link"><i
+                        class="fa-solid fa-truck-ramp-box"></i><span class="nav-text">Suppliers</span></a></li>
+            <li class="nav-item"><a href="orders.html" class="nav-link"><i class="fa-solid fa-history"></i><span
+                        class="nav-text">Orders</span></a></li>
         </ul>
+        <div style="margin-top: auto; padding: 1rem;">
+            <a href="javascript:void(0)" onclick="logout()" class="nav-link" style="color: #ef4444;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="nav-text">Logout</span>
+            </a>
+        </div>
     </nav>
 
     <div class="main-wrapper">
@@ -615,17 +901,24 @@
             <div class="header-center-search">
                 <div class="main-search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="bookSearch" placeholder="Search by book title, author, or ISBN..." onkeyup="filterBooks()">
+                    <input type="text" id="bookSearch" placeholder="Search by book title, author, or ISBN..."
+                        onkeyup="filterBooks()">
                 </div>
             </div>
 
-            <div class="header-tools" style="min-width: 250px; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+            <div class="header-tools"
+                style="min-width: 250px; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
                 <div class="user-profile" style="display: flex; align-items: center; gap: 12px;">
                     <div style="text-align: right;">
-                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);">System Admin</div>
-                        <div style="font-size: 0.7rem; color: var(--accent-mint); font-weight: 800; text-transform: uppercase;">Online</div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);"
+                            class="user-name-display">System Admin</div>
+                        <div
+                            style="font-size: 0.7rem; color: var(--accent-mint); font-weight: 800; text-transform: uppercase;">
+                            Online</div>
                     </div>
-                    <img src="https://ui-avatars.com/api/?name=Admin&background=eff6ff&color=2563eb&bold=true" alt="Admin" style="width: 44px; height: 44px; border-radius: 14px; border: 2px solid white; box-shadow: var(--shadow-sm);">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=eff6ff&color=2563eb&bold=true"
+                        alt="Admin"
+                        style="width: 44px; height: 44px; border-radius: 14px; border: 2px solid white; box-shadow: var(--shadow-sm);">
                 </div>
             </div>
         </header>
@@ -644,65 +937,114 @@
 
             <!-- Cart -->
             <div class="cart-pane">
-                <div class="member-card">
-                    <div class="customer-tabs">
+                <div class="member-card" style="padding: 1.2rem;">
+                    <div class="customer-tabs" style="margin-bottom: 1.2rem;">
                         <div class="cust-tab active" onclick="switchCustomerTab('member')">Registered Member</div>
                         <div class="cust-tab" onclick="switchCustomerTab('guest')">Walk-in Guest</div>
                     </div>
 
                     <div id="memberSection">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">MEMBER SEARCH</div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div
+                                style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                                Session Control</div>
                             <button class="btn-quick-add" onclick="openMemberModal()">
-                                <i class="fa-solid fa-plus-circle"></i> QUICK ADD
+                                <i class="fa-solid fa-user-plus"></i> QUICK ADD
                             </button>
                         </div>
-                        <div style="position: relative;">
-                            <div class="search-box" style="width: 100%; padding: 0.6rem 1rem;">
-                                <i class="fa-solid fa-user-tag" style="color: var(--primary-blue);"></i>
-                                <input type="text" id="memberSearch" placeholder="Scan Member ID or Search..." style="font-size: 0.85rem;" onkeyup="searchMembers()" autocomplete="off">
+
+                        <div class="terminal-actions-grid">
+                            <button class="terminal-btn" id="btnHoldCart" onclick="holdCart()">
+                                <i class="fa-solid fa-pause"></i>
+                                HOLD
+                            </button>
+                            <div id="parkedContainer" style="position: relative; width: 100%;">
+                                <button class="terminal-btn" onclick="toggleParked()" style="width: 100%;">
+                                    <i class="fa-solid fa-box-archive"></i>
+                                    PARKED
+                                    <span id="parkedCountBadge" class="parked-badge" style="display: none;">0</span>
+                                </button>
+                                <div id="parkedList"
+                                    style="display:none; position:absolute; top:105%; right:0; background:white; width:280px; border-radius:16px; box-shadow:var(--shadow-xl); z-index:100; border:1px solid #e2e8f0; max-height:350px; overflow-y:auto;">
+                                    <!-- Parked items -->
+                                </div>
                             </div>
-                            <div id="memberSearchResults" class="search-results-dropdown"></div>
+                            <button class="terminal-btn danger" onclick="clearCart()">
+                                <i class="fa-solid fa-trash-can"></i>
+                                CLEAR
+                            </button>
                         </div>
-                        
+
+                        <div class="search-container-pos">
+                            <div class="search-box" style="width: 100%; border: none; box-shadow: none;">
+                                <i class="fa-solid fa-magnifying-glass"
+                                    style="color: var(--primary-blue); font-size: 0.9rem;"></i>
+                                <input type="text" id="memberSearch" placeholder="Scan ID or search name..."
+                                    style="font-size: 0.85rem;" onkeyup="searchMembers()" autocomplete="off">
+                            </div>
+                            <div id="memberSearchResults" class="search-results-dropdown"
+                                style="border-radius: 0 0 14px 14px; margin-top: 0; border-top: none;"></div>
+                        </div>
+
                         <div id="selectedMember" class="selected-member-display">
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                    <span id="selMemberName" style="font-weight: 700; color: var(--primary-blue); font-size: 0.95rem;"></span>
+                                    <span id="selMemberName"
+                                        style="font-weight: 700; color: var(--primary-blue); font-size: 0.95rem;"></span>
                                     <span id="selMemberPlan" class="member-detail-badge"></span>
                                 </div>
-                                <div id="selMemberId" style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;"></div>
-                                <div style="margin-top: 8px; display: flex; gap: 15px; border-top: 1px dashed #bfdbfe; padding-top: 8px;">
+                                <div id="selMemberId"
+                                    style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;"></div>
+                                <div
+                                    style="margin-top: 8px; display: flex; gap: 15px; border-top: 1px dashed #bfdbfe; padding-top: 8px;">
                                     <div>
-                                        <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">Balance</div>
-                                        <div id="selMemberBal" style="font-weight: 700; color: #16a34a; font-size: 0.85rem;"></div>
+                                        <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">
+                                            Balance</div>
+                                        <div id="selMemberBal"
+                                            style="font-weight: 700; color: #16a34a; font-size: 0.85rem;"></div>
                                     </div>
                                     <div>
-                                        <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">Expiry</div>
-                                        <div id="selMemberExpiry" style="font-weight: 600; color: #e11d48; font-size: 0.85rem;"></div>
+                                        <div style="font-size: 0.6rem; color: #64748b; text-transform: uppercase;">
+                                            Expiry</div>
+                                        <div id="selMemberExpiry"
+                                            style="font-weight: 600; color: #e11d48; font-size: 0.85rem;"></div>
                                     </div>
                                 </div>
                             </div>
-                            <button onclick="clearMember()" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 10px;"><i class="fa-solid fa-times-circle fa-lg"></i></button>
+                            <button onclick="clearMember()"
+                                style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 10px;"><i
+                                    class="fa-solid fa-circle-xmark fa-lg"></i></button>
                         </div>
                     </div>
 
                     <div id="guestSection" class="guest-inputs">
                         <input type="text" id="guestName" class="checkout-input" placeholder="Guest Name">
                         <input type="text" id="guestPhone" class="checkout-input" placeholder="Phone Number">
-                        <input type="email" id="guestEmail" class="checkout-input" placeholder="Email Address (Optional)">
+                        <input type="email" id="guestEmail" class="checkout-input"
+                            placeholder="Email Address (Optional)">
                     </div>
                 </div>
 
                 <div class="pos-cart">
                     <div class="cart-header">
-                        <span style="font-weight: 800; color: var(--text-header); font-size: 1.1rem;">Order Details</span>
-                        <div id="cartStatus" style="font-size: 0.8rem; color: var(--accent-mint); font-weight: 700; display: none;"><i class="fa-solid fa-check-circle"></i> Item Added</div>
+                        <span style="font-weight: 800; color: var(--text-header); font-size: 1.1rem;">Order
+                            Details</span>
+                        <div id="cartStatus"
+                            style="font-size: 0.8rem; color: var(--accent-mint); font-weight: 700; display: none;"><i
+                                class="fa-solid fa-check-circle"></i> Item Added</div>
                     </div>
                     <div class="cart-list" id="cartList">
-                        <div style="text-align: center; color: var(--text-muted); margin-top: 3rem;">
-                            <i class="fa-solid fa-basket-shopping" style="font-size: 2.5rem; opacity: 0.1; display: block; margin-bottom: 1rem;"></i>
-                            No books selected
+                        <div style="text-align: center; color: var(--text-muted); margin-top: 5rem; padding: 2rem;">
+                            <div style="position: relative; display: inline-block;">
+                                <i class="fa-solid fa-basket-shopping"
+                                    style="font-size: 3.5rem; opacity: 0.05; display: block; margin-bottom: 1.5rem;"></i>
+                                <i class="fa-solid fa-plus"
+                                    style="position: absolute; bottom: 15px; right: -5px; font-size: 1.2rem; opacity: 0.2; color: var(--primary-blue);"></i>
+                            </div>
+                            <div style="font-weight: 700; font-size: 0.9rem; opacity: 0.4;">Your cart is empty</div>
+                            <div style="font-size: 0.75rem; opacity: 0.4; margin-top: 4px;">Search and add books to
+                                start</div>
                         </div>
                     </div>
                     <div class="cart-total-sect">
@@ -710,14 +1052,27 @@
                             <span style="color: var(--text-muted);">Selected Items</span>
                             <span id="cartCount" style="font-weight: 700;">0</span>
                         </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                            <span style="color: var(--text-muted);">Subtotal</span>
+                            <span id="cartSubtotal" style="font-weight: 700;">৳0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                            <span style="color: var(--text-muted);">Discount (৳)</span>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" id="cartDiscount" class="checkout-input" style="width: 80px; padding: 4px 8px; text-align: right; height: 30px; margin: 0; font-size: 0.85rem;" value="0" min="0" step="any" onkeyup="updateCartUI()" onchange="updateCartUI()">
+                            </div>
+                        </div>
+
                         <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 800; color: var(--text-header); margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-light);">
                             <span>Total</span>
                             <span id="cartTotal">৳0.00</span>
                         </div>
 
                         <div class="action-btns">
-                            <button class="btn-action btn-issue" onclick="finalize('issue')"><i class="fa-solid fa-hand-holding"></i> ISSUE</button>
-                            <button class="btn-action btn-sell" onclick="finalize('sell')"><i class="fa-solid fa-receipt"></i> SELL</button>
+                            <button class="btn-action btn-issue" onclick="finalize('issue')"><i
+                                    class="fa-solid fa-hand-holding"></i> ISSUE</button>
+                            <button class="btn-action btn-sell" onclick="finalize('sell')"><i
+                                    class="fa-solid fa-receipt"></i> SELL</button>
                         </div>
                     </div>
                 </div>
@@ -729,22 +1084,29 @@
     <div class="modal-overlay" id="borrowModal">
         <div class="borrow-modal">
             <h2 style="font-weight: 800; margin-bottom: 0.5rem;">Issue Books</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">Borrowing <span id="borrowCountText" style="color: var(--primary-blue); font-weight: 800;">0</span> books for member.</p>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Borrowing <span id="borrowCountText"
+                    style="color: var(--primary-blue); font-weight: 800;">0</span> books for member.</p>
 
             <div style="margin-bottom: 1.5rem;">
-                <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-header); display: block; margin-bottom: 8px;">Expected Return Date</label>
+                <label
+                    style="font-size: 0.85rem; font-weight: 700; color: var(--text-header); display: block; margin-bottom: 8px;">Expected
+                    Return Date</label>
                 <input type="date" id="dueDate" class="checkout-input" value="">
             </div>
 
-            <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 12px; border-radius: 12px; margin-bottom: 1.5rem; display: flex; gap: 10px; align-items: flex-start;">
+            <div
+                style="background: #fffbeb; border: 1px solid #fef3c7; padding: 12px; border-radius: 12px; margin-bottom: 1.5rem; display: flex; gap: 10px; align-items: flex-start;">
                 <i class="fa-solid fa-circle-info" style="color: #d97706; margin-top: 3px;"></i>
-                <div style="font-size: 0.8rem; color: #92400e; line-height: 1.4;">Members must return books within the due date to avoid fines. Stock will be decreased automatically.</div>
+                <div style="font-size: 0.8rem; color: #92400e; line-height: 1.4;">Members must return books within the
+                    due date to avoid fines. Stock will be decreased automatically.</div>
             </div>
 
             <button class="btn-action btn-issue" style="width: 100%; margin-top: 1rem;" onclick="processBorrow()">
                 <i class="fa-solid fa-book-bookmark"></i> CONFIRM BORROWING
             </button>
-            <button class="btn-action" style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);" onclick="closeBorrowModal()">
+            <button class="btn-action"
+                style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);"
+                onclick="closeBorrowModal()">
                 CANCEL
             </button>
         </div>
@@ -754,20 +1116,29 @@
     <div class="modal-overlay" id="checkoutModal">
         <div class="checkout-modal">
             <h2 style="font-weight: 800; margin-bottom: 0.5rem;">Finalize Payment</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">Total payable: <span id="modalTotal" style="color: var(--primary-blue); font-weight: 800; font-size: 1.25rem;">৳0.00</span></p>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Total payable: <span id="modalTotal"
+                    style="color: var(--primary-blue); font-weight: 800; font-size: 1.25rem;">৳0.00</span></p>
 
-            <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);">Select Payment Method</label>
+            <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);">Select Payment
+                Method</label>
             <div class="pay-method-grid">
-                <div class="pay-btn selected" onclick="setPayMethod('Cash', this)"><i class="fa-solid fa-money-bill-wave"></i> Cash</div>
-                <div class="pay-btn" onclick="setPayMethod('Bkash', this)"><i class="fa-solid fa-wallet"></i> bKash</div>
-                <div class="pay-btn" onclick="setPayMethod('Nagad', this)"><i class="fa-solid fa-mobile-screen"></i> Nagad</div>
-                <div class="pay-btn" onclick="setPayMethod('Wallet', this)"><i class="fa-solid fa-user-shield"></i> Member Fund</div>
+                <div class="pay-btn selected" onclick="setPayMethod('Cash', this)"><i
+                        class="fa-solid fa-money-bill-wave"></i> Cash</div>
+                <div class="pay-btn" onclick="setPayMethod('Bkash', this)"><i class="fa-solid fa-wallet"></i> bKash
+                </div>
+                <div class="pay-btn" onclick="setPayMethod('Nagad', this)"><i class="fa-solid fa-mobile-screen"></i>
+                    Nagad</div>
+                <div class="pay-btn" onclick="setPayMethod('Wallet', this)"><i class="fa-solid fa-user-shield"></i>
+                    Member Fund</div>
             </div>
 
-            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem;" onclick="processOrder()">
+            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem;" onclick="processOrder()"
+                id="btnFinalOrder">
                 <i class="fa-solid fa-shield-check"></i> CONFIRM TRANSACTION
             </button>
-            <button class="btn-action" style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);" onclick="closeCheckout()">
+            <button class="btn-action"
+                style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);"
+                onclick="closeCheckout()">
                 CANCEL
             </button>
         </div>
@@ -776,29 +1147,39 @@
     <div class="modal-overlay" id="memberModal">
         <div class="borrow-modal" style="width: 400px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0; font-size: 1.25rem; color: var(--primary-blue); font-weight: 800;">Register Member</h2>
-                <button onclick="closeMemberModal()" style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
+                <h2 style="margin: 0; font-size: 1.25rem; color: var(--primary-blue); font-weight: 800;">Register Member
+                </h2>
+                <button onclick="closeMemberModal()"
+                    style="background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer;">&times;</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 15px;">
                 <div>
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">FULL NAME *</label>
+                    <label
+                        style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">FULL
+                        NAME *</label>
                     <input type="text" id="newMemberName" class="checkout-input" placeholder="Enter Full Name">
                 </div>
                 <div>
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">PHONE NUMBER *</label>
+                    <label
+                        style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">PHONE
+                        NUMBER *</label>
                     <input type="text" id="newMemberPhone" class="checkout-input" placeholder="e.g. 01700000000">
                 </div>
                 <div>
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">EMAIL ADDRESS</label>
+                    <label
+                        style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px;">EMAIL
+                        ADDRESS</label>
                     <input type="email" id="newMemberEmail" class="checkout-input" placeholder="Enter Email (Optional)">
                 </div>
-                <div style="background: #fffbeb; padding: 10px; border-radius: 10px; border: 1px solid #fef3c7; margin-top: 5px;">
+                <div
+                    style="background: #fffbeb; padding: 10px; border-radius: 10px; border: 1px solid #fef3c7; margin-top: 5px;">
                     <div style="font-size: 0.7rem; color: #92400e; display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-info-circle"></i>
                         Default password for the user is <strong>123456</strong>
                     </div>
                 </div>
-                <button onclick="saveNewMember()" class="btn-action btn-sell" id="btnSaveMember" style="width: 100%; margin-top: 10px;">
+                <button onclick="saveNewMember()" class="btn-action btn-sell" id="btnSaveMember"
+                    style="width: 100%; margin-top: 10px;">
                     <i class="fa-solid fa-user-plus"></i> CREATE MEMBER
                 </button>
             </div>
@@ -810,19 +1191,41 @@
         <div class="checkout-modal" style="width: 550px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h2 style="margin:0; font-weight: 800;">Process Returns</h2>
-                <button onclick="closeReturnModal()" style="border:none; background:none; cursor:pointer; font-size:1.5rem; color:#94a3b8;">&times;</button>
+                <button onclick="closeReturnModal()"
+                    style="border:none; background:none; cursor:pointer; font-size:1.5rem; color:#94a3b8;">&times;</button>
             </div>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Active borrows for <span id="returnMemberName" style="color: var(--primary-blue); font-weight: 800;">Member</span></p>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Active borrows for <span id="returnMemberName"
+                    style="color: var(--primary-blue); font-weight: 800;">Member</span></p>
 
             <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1.5rem;" id="borrowListContainer">
                 <!-- Borrowed items will be loaded here -->
             </div>
 
-            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem; background: #10b981;" onclick="processReturn()">
+            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem; background: #10b981;"
+                onclick="processReturn()">
                 <i class="fa-solid fa-rotate-left"></i> CONFIRM RETURN
             </button>
-            <button class="btn-action" style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);" onclick="closeReturnModal()">
+            <button class="btn-action"
+                style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);"
+                onclick="closeReturnModal()">
                 CANCEL
+            </button>
+        </div>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div class="modal-overlay" id="invoiceModal">
+        <div class="borrow-modal" style="width: 350px; padding: 1rem;">
+            <div id="invoicePrintContainer">
+                <!-- Invoice content will be loaded here -->
+            </div>
+            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem;" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> PRINT INVOICE
+            </button>
+            <button class="btn-action"
+                style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);"
+                onclick="closeInvoiceModal()">
+                CLOSE
             </button>
         </div>
     </div>
@@ -839,7 +1242,7 @@
             customerType = type;
             const tabs = document.querySelectorAll('.cust-tab');
             tabs.forEach(t => t.classList.remove('active'));
-            
+
             if (type === 'member') {
                 tabs[0].classList.add('active');
                 document.getElementById('memberSection').style.display = 'block';
@@ -861,18 +1264,20 @@
         async function init() {
             renderSkeletons();
             await fetchBooks(false); // First fetch with skeletons
-            
+
             // Handle URL Actions (from dashboard)
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
-            if(action === 'return') {
+            if (action === 'return') {
                 showToast("Please select a member to process their return.", "info");
-            } else if(action === 'issue') {
+            } else if (action === 'issue') {
                 showToast("Select a member and add books to issue them.", "info");
             }
 
             // Continuous Background Sync (every 30 seconds)
             setInterval(() => fetchBooks(true), 30000);
+
+            updateParkedUI(); // Initialize parked carts UI on load
         }
 
         async function fetchBooks(isSync = false) {
@@ -881,7 +1286,7 @@
                 const apiPath = '../../api/controllers/TerminalController.php?action=getBooks';
                 const response = await fetch(apiPath);
                 if (!response.ok) throw new Error('Sync failed');
-                
+
                 const data = await response.json();
                 allBooks = data;
 
@@ -907,7 +1312,7 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
+
             let icon = 'fa-circle-info';
             if (type === 'success') icon = 'fa-circle-check';
             if (type === 'error') icon = 'fa-circle-exclamation';
@@ -944,22 +1349,22 @@
         function renderBooks(books) {
             const grid = document.getElementById('browseGrid');
             grid.innerHTML = '';
-            
+
             // Image base path: adjust for production (pos.ontomeel.com) and local dev
             const isProduction = window.location.hostname.includes('ontomeel.com');
-            const imageBasePath = isProduction 
-                ? 'https://ontomeel.com/admin/assets/book-images/' 
+            const imageBasePath = isProduction
+                ? 'https://ontomeel.com/admin/assets/book-images/'
                 : '../../../bookshop/admin/assets/book-images/';
-            
+
             books.forEach(book => {
                 const pill = document.createElement('div');
                 pill.className = 'book-pill fade-in';
-                
+
                 // Determine and store image source
                 book.displayImage = '';
                 if (book.cover_image) {
-                    book.displayImage = book.cover_image.startsWith('http') 
-                        ? book.cover_image 
+                    book.displayImage = book.cover_image.startsWith('http')
+                        ? book.cover_image
                         : imageBasePath + book.cover_image;
                 }
 
@@ -970,9 +1375,9 @@
                         ${book.stock_qty > 0 ? `${book.stock_qty} in stock` : 'Out of stock'}
                     </div>
                     <div class="book-thumbnail">
-                        ${book.displayImage 
-                            ? `<img src="${book.displayImage}" loading="lazy" alt="${book.title}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(book.title)}&background=eff6ff&color=2563eb&bold=true'">` 
-                            : '<i class="fa-solid fa-book-open" style="font-size: 2.5rem; color: #cbd5e1;"></i>'}
+                        ${book.displayImage
+                        ? `<img src="${book.displayImage}" loading="lazy" alt="${book.title}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(book.title)}&background=eff6ff&color=2563eb&bold=true'">`
+                        : '<i class="fa-solid fa-book-open" style="font-size: 2.5rem; color: #cbd5e1;"></i>'}
                     </div>
                     <div class="book-info-compact">
                         <div class="book-name" title="${book.title}">${book.title}</div>
@@ -992,13 +1397,13 @@
                 return;
             }
 
-            const filtered = allBooks.filter(b => 
-                (b.title && b.title.toLowerCase().includes(query)) || 
+            const filtered = allBooks.filter(b =>
+                (b.title && b.title.toLowerCase().includes(query)) ||
                 (b.author && b.author.toLowerCase().includes(query)) ||
                 (b.isbn && b.isbn.toLowerCase().includes(query))
             );
             renderBooks(filtered);
-            
+
             const countEl = document.getElementById('bookCount');
             countEl.innerText = `${filtered.length} matching result${filtered.length === 1 ? '' : 's'}`;
         }
@@ -1008,9 +1413,9 @@
                 alert('This book is currently out of stock.');
                 return;
             }
-            cart.push({...book, cartId: Date.now() + Math.random()});
+            cart.push({ ...book, cartId: Date.now() + Math.random() });
             updateCartUI();
-            
+
             // Show feedback
             const status = document.getElementById('cartStatus');
             status.style.display = 'block';
@@ -1022,23 +1427,51 @@
             updateCartUI();
         }
 
+        function clearCart() {
+            cart = [];
+            updateCartUI();
+            showToast("Cart cleared!", "info");
+            const discountInput = document.getElementById('cartDiscount');
+            if(discountInput) discountInput.value = '0';
+        }
+
+        function calculateSubtotal() {
+            return cart.reduce((sum, item) => sum + parseFloat(item.sell_price), 0);
+        }
+
+        function getDiscount() {
+            const input = document.getElementById('cartDiscount');
+            if(!input) return 0;
+            let val = parseFloat(input.value) || 0;
+            return val > 0 ? val : 0;
+        }
+
+        function calculateTotal() {
+            let subtotal = calculateSubtotal();
+            let discount = getDiscount();
+            if(discount > subtotal) discount = subtotal;
+            return subtotal - discount;
+        }
+
         function updateCartUI() {
             const list = document.getElementById('cartList');
             const totalEl = document.getElementById('cartTotal');
+            const subtotalEl = document.getElementById('cartSubtotal');
             const countEl = document.getElementById('cartCount');
+            const discountInput = document.getElementById('cartDiscount');
             
             if (cart.length === 0) {
-                list.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 3rem;"><i class="fa-solid fa-basket-shopping" style="font-size: 2.5rem; opacity: 0.1; display: block; margin-bottom: 1rem;"></i>No books selected</div>`;
+                list.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 5rem; padding: 2rem;"><div style="position: relative; display: inline-block;"><i class="fa-solid fa-basket-shopping" style="font-size: 3.5rem; opacity: 0.05; display: block; margin-bottom: 1.5rem;"></i><i class="fa-solid fa-plus" style="position: absolute; bottom: 15px; right: -5px; font-size: 1.2rem; opacity: 0.2; color: var(--primary-blue);"></i></div><div style="font-weight: 700; font-size: 0.9rem; opacity: 0.4;">Your cart is empty</div><div style="font-size: 0.75rem; opacity: 0.4; margin-top: 4px;">Search and add books to start</div></div>`;
                 totalEl.innerText = '৳0.00';
+                if(subtotalEl) subtotalEl.innerText = '৳0.00';
                 countEl.innerText = '0';
+                if(discountInput) discountInput.value = '0';
                 return;
             }
 
             list.innerHTML = '';
-            let total = 0;
             
             cart.forEach((item) => {
-                total += parseFloat(item.sell_price);
                 const row = document.createElement('div');
                 row.className = 'cart-row fade-in';
                 row.innerHTML = `
@@ -1052,6 +1485,16 @@
                 list.appendChild(row);
             });
 
+            const subtotal = calculateSubtotal();
+            let discount = getDiscount();
+            if(discount > subtotal) {
+                discount = subtotal;
+                // Only update the input directly if the user isn't currently typing inside it to avoid frustrating input jank
+                if(discountInput && document.activeElement !== discountInput) discountInput.value = discount;
+            }
+            const total = subtotal - discount;
+
+            if(subtotalEl) subtotalEl.innerText = '৳' + subtotal.toFixed(2);
             totalEl.innerText = '৳' + total.toFixed(2);
             countEl.innerText = cart.length;
         }
@@ -1063,7 +1506,7 @@
         async function searchMembers() {
             const query = document.getElementById('memberSearch').value;
             const resultsBox = document.getElementById('memberSearchResults');
-            
+
             if (query.length < 2) {
                 resultsBox.style.display = 'none';
                 return;
@@ -1075,7 +1518,7 @@
                 try {
                     const response = await fetch(`../../api/controllers/TerminalController.php?action=searchMembers&q=${encodeURIComponent(query)}`);
                     searchResults = await response.json();
-                    
+
                     if (searchResults.length > 0) {
                         resultsBox.innerHTML = searchResults.map((m, index) => `
                             <div class="result-item" onclick="selectMemberByIndex(${index})">
@@ -1102,13 +1545,13 @@
             selectedMember = member;
             document.getElementById('memberSearch').value = '';
             document.getElementById('memberSearchResults').style.display = 'none';
-            
+
             document.getElementById('selMemberName').innerText = member.full_name;
             document.getElementById('selMemberPlan').innerText = member.membership_plan || 'None';
             document.getElementById('selMemberPlan').style.display = member.membership_plan === 'None' ? 'none' : 'inline-block';
             document.getElementById('selMemberId').innerText = `MEMBERSHIP ID: ${member.membership_id}`;
             document.getElementById('selMemberBal').innerText = `৳${member.acc_balance}`;
-            
+
             const expiry = member.plan_expire_date ? new Date(member.plan_expire_date).toLocaleDateString() : 'N/A';
             document.getElementById('selMemberExpiry').innerText = expiry;
             document.getElementById('selMemberExpiry').style.color = expiry === 'N/A' ? '#94a3b8' : '#e11d48';
@@ -1117,24 +1560,24 @@
 
             // Check if we need to auto-trigger Return Modal
             const urlParams = new URLSearchParams(window.location.search);
-            if(urlParams.get('action') === 'return') {
+            if (urlParams.get('action') === 'return') {
                 openReturnModal();
             }
         }
 
         async function openReturnModal() {
-            if(!selectedMember) return;
+            if (!selectedMember) return;
             document.getElementById('returnMemberName').innerText = selectedMember.full_name;
             document.getElementById('returnModal').style.display = 'flex';
-            
+
             const container = document.getElementById('borrowListContainer');
             container.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading borrows...</div>';
 
             try {
                 const res = await fetch(`../../api/controllers/TerminalController.php?action=getBorrowedBooks&memberId=${selectedMember.id}`);
                 const borrows = await res.json();
-                
-                if(borrows.length === 0) {
+
+                if (borrows.length === 0) {
                     container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">No active borrows found for this member.</div>';
                 } else {
                     container.innerHTML = borrows.map(b => `
@@ -1147,7 +1590,7 @@
                         </div>
                     `).join('');
                 }
-            } catch(e) {
+            } catch (e) {
                 container.innerHTML = '<div style="padding:20px; color:#ef4444;">Error loading borrows.</div>';
             }
         }
@@ -1158,7 +1601,7 @@
 
         async function processReturn() {
             const checks = document.querySelectorAll('.return-check:checked');
-            if(checks.length === 0) return alert("Please select books to return.");
+            if (checks.length === 0) return alert("Please select books to return.");
 
             const borrowIds = Array.from(checks).map(c => c.value);
             const btn = document.querySelector('#returnModal .btn-sell');
@@ -1170,12 +1613,12 @@
                     method: 'POST',
                     body: JSON.stringify({ borrowIds: borrowIds })
                 });
-                if((await res.json()).success) {
+                if ((await res.json()).success) {
                     showToast("Books returned successfully!", "success");
                     closeReturnModal();
                     clearMember();
                 }
-            } catch(e) {
+            } catch (e) {
                 showToast("Failed to process return.", "error");
             } finally {
                 btn.disabled = false;
@@ -1241,7 +1684,7 @@
                 showToast('Please add books to the cart first.', 'error');
                 return;
             }
-            
+
             if (customerType === 'member' && !selectedMember) {
                 showToast('Please select a member first.', 'error');
                 return;
@@ -1264,7 +1707,7 @@
                     showToast('Borrowing is only allowed for registered members.', 'error');
                     return;
                 }
-                
+
                 const date = new Date();
                 date.setDate(date.getDate() + 15);
                 document.getElementById('dueDate').value = date.toISOString().split('T')[0];
@@ -1301,18 +1744,15 @@
             checkoutBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> PROCESSING...';
 
             const orderData = {
-                customerType: customerType,
-                memberId: selectedMember ? selectedMember.id : null,
-                guestName: document.getElementById('guestName').value,
-                guestPhone: document.getElementById('guestPhone').value,
-                guestEmail: document.getElementById('guestEmail').value,
+                items: cart,
+                subtotal: calculateSubtotal(),
+                discount: getDiscount(),
+                total: calculateTotal(),
+                memberId: customerType === 'member' ? selectedMember.id : null,
                 paymentMethod: paymentMethod,
-                items: cart.map(item => ({
-                    id: item.id,
-                    price: item.sell_price,
-                    title: item.title
-                })),
-                total: totalAmount
+                guestName: customerType === 'guest' ? document.getElementById('guestName').value : null,
+                guestPhone: customerType === 'guest' ? document.getElementById('guestPhone').value : null,
+                guestEmail: customerType === 'guest' ? document.getElementById('guestEmail').value : null
             };
 
             try {
@@ -1325,7 +1765,11 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showToast('✓ Transaction Successful! Invoice: ' + result.invoice_no, 'success');
+                    showToast('✓ Transaction Successful!', 'success');
+
+                    // Trigger Invoice Modal
+                    prepareInvoice(result.invoice_no, orderData);
+
                     cart = [];
                     updateCartUI();
                     if (customerType === 'guest') {
@@ -1346,6 +1790,160 @@
                 checkoutBtn.disabled = false;
                 checkoutBtn.innerHTML = originalContent;
             }
+        }
+
+        function prepareInvoice(invoiceNo, payload) {
+            const container = document.getElementById('invoicePrintContainer');
+
+            const itemsHtml = payload.items.map(item => `
+                <tr>
+                    <td>${item.title}</td>
+                    <td>1</td>
+                    <td style="text-align: right;">৳${item.sell_price}</td>
+                </tr>
+            `).join('');
+
+            const customerName = payload.memberId ? selectedMember.full_name : (payload.guestName || 'Cash Customer');
+            const memberIdField = payload.memberId ? `<div class="receipt-row"><span>Member ID:</span> <span>${selectedMember.membership_id || ''}</span></div>` : '';
+
+            container.innerHTML = `
+                <div class="invoice-receipt">
+                    <div class="receipt-header">
+                        <img src="../assets/logo.webp" alt="Logo">
+                        <h2>ONTOMEEL</h2>
+                        <p style="font-size: 10px; margin: 4px 0;">Library & Bookstore<br>Dhaka, Bangladesh</p>
+                    </div>
+                    
+                    <div class="receipt-info">
+                        <div class="receipt-row"><span>Date:</span> <span>${new Date().toLocaleString()}</span></div>
+                        <div class="receipt-row"><span>Inv #:</span> <span>${invoiceNo}</span></div>
+                        <div class="receipt-row"><span>Staff:</span> <span>${window.posUserName || 'Admin'}</span></div>
+                    </div>
+                    
+                    <div class="receipt-info">
+                        <div class="receipt-row"><span>Customer:</span> <span>${customerName}</span></div>
+                        ${memberIdField}
+                    </div>
+                    
+                    <table class="receipt-items">
+                        <thead>
+                            <tr>
+                                <th style="width: 50%;">Item</th>
+                                <th style="width: 20%;">Qty</th>
+                                <th style="width: 30%; text-align: right;">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+                    
+                    <div class="receipt-totals">
+                        <div class="receipt-row"><span>Subtotal:</span> <span>৳${(payload.subtotal || payload.total).toFixed(2)}</span></div>
+                        <div class="receipt-row"><span>Discount:</span> <span>৳${(payload.discount || 0).toFixed(2)}</span></div>
+                        <hr style="border: none; border-top: 1px solid #000; margin: 8px 0;">
+                        <div class="receipt-row total-bold"><span>Total:</span> <span>৳${payload.total.toFixed(2)}</span></div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
+                        <p style="margin: 0; font-size: 11px;">Payment Mode: ${payload.paymentMethod}</p>
+                        <p style="margin: 10px 0 0 0; font-weight: 700;">Thank You!</p>
+                        <p style="margin: 0; font-size: 10px;">Keep your receipt for any support</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('invoiceModal').style.display = 'flex';
+        }
+
+        function closeInvoiceModal() {
+            document.getElementById('invoiceModal').style.display = 'none';
+        }
+
+        let parkedCarts = JSON.parse(localStorage.getItem('parkedCarts') || '[]');
+
+        function holdCart() {
+            if (cart.length === 0) return showToast("Nothing to hold!", "info");
+
+            const parker = {
+                id: Date.now(),
+                cart: [...cart],
+                member: selectedMember ? { ...selectedMember } : null,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            parkedCarts.push(parker);
+            localStorage.setItem('parkedCarts', JSON.stringify(parkedCarts));
+
+            showToast("Cart parked", "success");
+            cart = [];
+            selectedMember = null;
+            updateCartUI();
+            clearMember();
+            updateParkedUI();
+        }
+
+        function toggleParked() {
+            const list = document.getElementById('parkedList');
+            list.style.display = list.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function updateParkedUI() {
+            const count = parkedCarts.length;
+            const badge = document.getElementById('parkedCountBadge');
+
+            if (badge) {
+                badge.innerText = count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            }
+
+            const list = document.getElementById('parkedList');
+            if (!list) return;
+
+            if (count === 0) {
+                list.innerHTML = '<div style="padding:30px; text-align:center; color:#94a3b8; font-size:0.85rem;"><i class="fa-solid fa-inbox" style="display:block; font-size:2rem; margin-bottom:10px; opacity:0.3;"></i>No parked carts</div>';
+                return;
+            }
+
+            list.innerHTML = `
+                <div style="padding:15px; border-bottom:1px solid #f1f5f9; background:#f8fafc; font-weight:800; font-size:0.75rem; color:#64748b; letter-spacing:0.5px; text-transform:uppercase;">Active Sessions</div>
+                ${parkedCarts.map((p, idx) => `
+                    <div style="padding:15px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; transition:0.2s; cursor:default;" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='white'">
+                        <div style="text-align:left;">
+                            <div style="font-weight:700; font-size:0.85rem; color:var(--text-header);">${p.member ? p.member.full_name : 'Guest Customer'}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+                                <i class="fa-solid fa-clock" style="font-size:0.65rem;"></i> ${p.time} • ${p.cart.length} items
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button onclick="resumeCart(${p.id})" style="background:var(--primary-blue); color:white; border:none; width:34px; height:34px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 6px rgba(37, 99, 235, 0.2);"><i class="fa-solid fa-play" style="font-size:0.8rem;"></i></button>
+                            <button onclick="deleteParked(${p.id})" style="background:#fef2f2; color:#ef4444; border:none; width:34px; height:34px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-trash-can" style="font-size:0.8rem;"></i></button>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function resumeCart(id) {
+            if (cart.length > 0) {
+                if (!confirm("Current cart will be overwritten. Proceed?")) return;
+            }
+
+            const p = parkedCarts.find(x => x.id === id);
+            cart = p.cart;
+            selectedMember = p.member;
+
+            updateCartUI();
+            if (selectedMember) selectMember(selectedMember);
+
+            deleteParked(id);
+            toggleParked();
+            showToast("Cart resumed", "info");
+        }
+
+        function deleteParked(id) {
+            parkedCarts = parkedCarts.filter(x => x.id !== id);
+            localStorage.setItem('parkedCarts', JSON.stringify(parkedCarts));
+            updateParkedUI();
         }
 
         async function processBorrow() {
@@ -1391,7 +1989,7 @@
         }
 
         window.onload = init;
-        
+
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.member-card')) {
@@ -1400,4 +1998,5 @@
         });
     </script>
 </body>
+
 </html>

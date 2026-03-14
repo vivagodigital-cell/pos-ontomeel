@@ -36,13 +36,13 @@ try {
             $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone, guest_email) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?, ?)");
             $stmt->execute([
                 $invoice_no,
-                $data['memberId'],
-                $data['total'],
-                0, // No discount for now
-                $data['total'],
-                $data['paymentMethod'],
-                $data['guestName'],
-                $data['guestPhone'],
+                $data['memberId'] ?? null,
+                $data['subtotal'] ?? ($data['total'] ?? 0),
+                $data['discount'] ?? 0,
+                $data['total'] ?? 0,
+                $data['paymentMethod'] ?? 'Cash',
+                $data['guestName'] ?? null,
+                $data['guestPhone'] ?? null,
                 $data['guestEmail'] ?? null
             ]);
             
@@ -50,9 +50,10 @@ try {
 
             // Insert items and decrease stock
             foreach ($data['items'] as $item) {
+                $price = $item['sell_price'] ?? $item['price'] ?? 0;
                 // Insert order item
                 $stmt = $pdo->prepare("INSERT INTO order_items (order_id, book_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$order_id, $item['id'], 1, $item['price'], $item['price']]);
+                $stmt->execute([$order_id, $item['id'], 1, $price, $price]);
 
                 // Update stock
                 $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - 1 WHERE id = ?");
@@ -97,9 +98,9 @@ try {
                 // Guest Email Notification
                 if (!empty($data['guestEmail'])) {
                     $notif_payload = [
-                        'name' => $data['guestName'],
+                        'name' => $data['guestName'] ?? 'Guest Customer',
                         'invoice_no' => $invoice_no,
-                        'amount' => $data['total'],
+                        'amount' => $data['total'] ?? 0,
                         'address' => 'In-person purchase at POS Terminal'
                     ];
                     queueNotification($pdo, $data['guestEmail'], 'order_placed', $notif_payload);
@@ -263,6 +264,28 @@ try {
             $pdo->rollBack();
             throw $e;
         }
+    }
+    elseif ($action === 'getOrders') {
+        $stmt = $pdo->query("SELECT o.*, m.full_name as member_name FROM orders o LEFT JOIN members m ON o.member_id = m.id ORDER BY o.order_date DESC LIMIT 50");
+        echo json_encode(['success' => true, 'orders' => $stmt->fetchAll()]);
+    }
+    elseif ($action === 'getOrderDetails') {
+        $orderId = $_GET['id'] ?? '';
+        if (empty($orderId)) throw new Exception("Order ID is required.");
+        
+        // Get order
+        $stmt = $pdo->prepare("SELECT o.*, m.full_name as member_name, m.membership_id FROM orders o LEFT JOIN members m ON o.member_id = m.id WHERE o.id = ?");
+        $stmt->execute([$orderId]);
+        $order = $stmt->fetch();
+        
+        if (!$order) throw new Exception("Order not found.");
+        
+        // Get items
+        $stmt = $pdo->prepare("SELECT oi.*, b.title as book_title FROM order_items oi JOIN books b ON oi.book_id = b.id WHERE oi.order_id = ?");
+        $stmt->execute([$orderId]);
+        $items = $stmt->fetchAll();
+        
+        echo json_encode(['success' => true, 'order' => $order, 'items' => $items]);
     }
 } catch (Exception $e) {
     http_response_code(500);

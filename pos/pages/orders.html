@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History | Ontomeel POS</title>
+    <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="../assets/auth-guard.js"></script>
+    <style>
+        .order-table-container {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            margin-top: 2rem;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1.25rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        td {
+            padding: 1.25rem 1rem;
+            font-size: 0.9rem;
+            color: var(--text-header);
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .paid {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .pending {
+            background: #fef9c3;
+            color: #a16207;
+        }
+
+        .btn-view {
+            background: #eff6ff;
+            color: var(--primary-blue);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-view:hover {
+            background: #dbeafe;
+            transform: translateY(-1px);
+        }
+
+        /* Invoice Print Styles (80mm) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #invoicePrintContainer,
+            #invoicePrintContainer * {
+                visibility: visible;
+            }
+
+            #invoicePrintContainer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                padding: 5mm;
+                color: black !important;
+                background: white !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        .invoice-receipt {
+            font-family: 'Inter', sans-serif;
+            width: 80mm;
+            background: white;
+            padding: 20px;
+            font-size: 13px;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .receipt-header img {
+            width: 50px;
+            margin-bottom: 5px;
+        }
+
+        .receipt-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .receipt-info {
+            margin-bottom: 15px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .receipt-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .receipt-items th {
+            text-align: left;
+            font-size: 11px;
+            padding: 5px 0;
+            border-bottom: 1px solid #000;
+        }
+
+        .receipt-items td {
+            padding: 8px 0;
+            font-size: 12px;
+            vertical-align: top;
+        }
+
+        .receipt-totals {
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+        }
+
+        .total-bold {
+            font-weight: 800;
+            font-size: 15px;
+        }
+
+        #invoiceModal .modal-overlay {
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        .print-btn {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            width: 100%;
+            margin-top: 1.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-wrapper">
+            <div class="logo-icon" style="background: none; box-shadow: none;">
+                <img src="../assets/logo.webp" alt="Logo" style="width: 32px; height: 32px; object-fit: contain;">
+            </div>
+            <span class="logo-text">ONTOMEEL</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span
+                        class="nav-text">Dashboard</span></a></li>
+            <li class="nav-item"><a href="terminal.html" class="nav-link"><i class="fa-solid fa-cash-register"></i><span
+                        class="nav-text">Terminal</span></a></li>
+            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span
+                        class="nav-text">Members</span></a></li>
+            <li class="nav-item"><a href="supplier.html" class="nav-link"><i
+                        class="fa-solid fa-truck-ramp-box"></i><span class="nav-text">Suppliers</span></a></li>
+            <li class="nav-item"><a href="report.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span
+                        class="nav-text">Reports</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-history"></i><span
+                        class="nav-text">Orders</span></a></li>
+        </ul>
+        <div style="margin-top: auto; padding: 1rem;">
+            <a href="javascript:void(0)" onclick="logout()" class="nav-link" style="color: #ef4444;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="nav-text">Logout</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+        <header>
+            <div class="page-title">
+                <h1>Order <span style="color: var(--primary-blue);">History</span></h1>
+                <p>Track and manage all terminal sales transactions</p>
+            </div>
+            <div class="header-tools" style="display: flex; align-items: center; gap: 1rem;">
+                <div class="user-profile" style="display: flex; align-items: center; gap: 12px;">
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);"
+                            class="user-name-display">Admin</div>
+                        <div
+                            style="font-size: 0.7rem; color: var(--accent-mint); font-weight: 800; text-transform: uppercase;">
+                            Staff</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="order-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice #</th>
+                        <th>Member/Guest</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="orderTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i
+                                class="fa-solid fa-spinner fa-spin"></i> Fetching orders...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Invoice View Modal -->
+    <div class="modal-overlay" id="invoiceModal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 24px; max-width: 400px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0; font-weight: 800;">Sale Receipt</h3>
+                <button onclick="closeInvoiceModal()"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
+            </div>
+
+            <div id="invoicePrintContainer">
+                <!-- Receipt content populated by JS -->
+            </div>
+
+            <button class="print-btn" onclick="printInvoice()">
+                <i class="fa-solid fa-print"></i> PRINT RECEIPT (80mm)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function fetchOrders() {
+            try {
+                const res = await fetch('../../api/controllers/TerminalController.php?action=getOrders');
+                const data = await res.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('orderTableBody');
+                    if (data.orders.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 3rem;">No orders found.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.orders.map(o => `
+                        <tr>
+                            <td>${new Date(o.order_date).toLocaleString()}</td>
+                            <td style="font-weight: 700;">${o.invoice_no}</td>
+                            <td>${o.member_name || o.guest_name || 'Anonymous'}</td>
+                            <td style="font-weight: 800;">৳${o.total_amount}</td>
+                            <td>${o.payment_method}</td>
+                            <td><span class="status-badge ${o.payment_status.toLowerCase()}">${o.payment_status}</span></td>
+                            <td><button class="btn-view" onclick="viewInvoice(${o.id})">View/Print</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function viewInvoice(orderId) {
+            try {
+                const res = await fetch(`../../api/controllers/TerminalController.php?action=getOrderDetails&id=${orderId}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    const order = data.order;
+                    const items = data.items;
+
+                    document.getElementById('invoicePrintContainer').innerHTML = `
+                        <div class="invoice-receipt">
+                            <div class="receipt-header">
+                                <img src="../assets/logo.webp" alt="Logo">
+                                <h2>ONTOMEEL</h2>
+                                <p style="font-size: 10px; margin: 4px 0;">Library & Bookstore<br>Cox's Bazar, Bangladesh</p>
+                            </div>
+                            
+                            <div class="receipt-info">
+                                <div class="receipt-row"><span>Date:</span> <span>${new Date(order.order_date).toLocaleString()}</span></div>
+                                <div class="receipt-row"><span>Inv #:</span> <span>${order.invoice_no}</span></div>
+                                <div class="receipt-row"><span>Staff:</span> <span>${window.posUserName || 'Admin'}</span></div>
+                            </div>
+                            
+                            <div class="receipt-info">
+                                <div class="receipt-row"><span>Customer:</span> <span>${order.member_name || order.guest_name || 'Cash Customer'}</span></div>
+                                ${order.membership_id ? `<div class="receipt-row"><span>Member ID:</span> <span>${order.membership_id}</span></div>` : ''}
+                            </div>
+                            
+                            <table class="receipt-items">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Item</th>
+                                        <th style="width: 20%;">Qty</th>
+                                        <th style="width: 30%; text-align: right;">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${items.map(item => `
+                                        <tr>
+                                            <td>${item.book_title}</td>
+                                            <td>${item.quantity}</td>
+                                            <td style="text-align: right;">৳${item.total_price}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            
+                            <div class="receipt-totals">
+                                <div class="receipt-row"><span>Subtotal:</span> <span>৳${order.subtotal}</span></div>
+                                <div class="receipt-row"><span>Discount:</span> <span>৳${order.discount}</span></div>
+                                <hr style="border: none; border-top: 1px solid #000; margin: 8px 0;">
+                                <div class="receipt-row total-bold"><span>Total:</span> <span>৳${order.total_amount}</span></div>
+                            </div>
+                            
+                            <div style="margin-top: 20px; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
+                                <p style="margin: 0; font-size: 11px;">Payment Mode: ${order.payment_method}</p>
+                                <p style="margin: 10px 0 0 0; font-weight: 700;">Thank You!</p>
+                                <p style="margin: 0; font-size: 10px;">Keep your receipt for any support</p>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('invoiceModal').style.display = 'flex';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function closeInvoiceModal() {
+            document.getElementById('invoiceModal').style.display = 'none';
+        }
+
+        function printInvoice() {
+            window.print();
+        }
+
+        window.onload = fetchOrders;
+    </script>
+</body>
+
+</html>
