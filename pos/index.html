@@ -14,18 +14,23 @@
 <body>
 
     <nav class="sidebar">
-        <div class="logo">ONTOMEEL</div>
+        <div class="logo-wrapper">
+            <div class="logo-icon">
+                <i class="fa-solid fa-book-open"></i>
+            </div>
+            <span class="logo-text">ONTOMEEL</span>
+        </div>
         <ul class="nav-links">
             <li class="nav-item">
                 <a href="#" class="nav-link active">
-                    <i class="fa-solid fa-gauge-high"></i>
+                    <i class="fa-solid fa-house"></i>
                     <span class="nav-text">Dashboard</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                    <span class="nav-text">Point of Sale</span>
+                <a href="pages/terminal.html" class="nav-link">
+                    <i class="fa-solid fa-cash-register"></i>
+                    <span class="nav-text">Terminal</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -53,72 +58,87 @@
                 </a>
             </li>
         </ul>
+        <div style="margin-top: auto; padding: 1rem;">
+            <a href="#" class="nav-link" style="color: #ef4444;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="nav-text">Logout</span>
+            </a>
+        </div>
     </nav>
 
     <div class="main-wrapper">
         <header>
-            <div class="search-box">
-                <i class="fa-solid fa-magnifying-glass" style="color: var(--text-secondary);"></i>
-                <input type="text" placeholder="Search books, members, or transactions...">
+            <div class="page-title">
+                <h1>Overview</h1>
+                <p>Welcome back, Admin. Here's what's happening today.</p>
             </div>
-            <div class="user-profile">
-                <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="User" style="width: 40px; border-radius: 10px;">
+            <div class="header-tools">
+                <div class="search-box">
+                    <i class="fa-solid fa-search" style="color: var(--text-muted);"></i>
+                    <input type="text" placeholder="Search anything...">
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=eff6ff&color=2563eb&bold=true" alt="User" style="width: 44px; border-radius: 12px; border: 1px solid var(--border-light);">
+                </div>
             </div>
         </header>
 
         <section class="dashboard-overview">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-title">ACTIVE BORROWS</span>
-                        <span class="stat-trend up">+12%</span>
+                    <div class="stat-icon icon-blue">
+                        <i class="fa-solid fa-bookmark"></i>
                     </div>
-                    <div class="stat-value">124</div>
+                    <span class="stat-title">Active Borrows</span>
+                    <div class="stat-value">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-title">TODAY'S SALES</span>
-                        <span class="stat-trend up">+5.2%</span>
+                    <div class="stat-icon icon-mint">
+                        <i class="fa-solid fa-bangladeshi-taka-sign"></i>
                     </div>
-                    <div class="stat-value">৳8,450</div>
+                    <span class="stat-title">Today's Revenue</span>
+                    <div class="stat-value">৳0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-title">NEW MEMBERS</span>
-                        <span class="stat-trend up">+8</span>
+                    <div class="stat-icon icon-pink">
+                        <i class="fa-solid fa-user-group"></i>
                     </div>
-                    <div class="stat-value">42</div>
+                    <span class="stat-title">Total Members</span>
+                    <div class="stat-value">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-title">OVERDUE BOOKS</span>
-                        <span class="stat-trend" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">ALERT</span>
+                    <div class="stat-icon icon-yellow">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
                     </div>
-                    <div class="stat-value">7</div>
+                    <span class="stat-title">Overdue Alerts</span>
+                    <div class="stat-value">0</div>
                 </div>
             </div>
 
-            <h2 style="margin-bottom: 1.5rem;">Quick Actions</h2>
+            <div class="section-header">
+                <h2 style="font-weight: 700; color: var(--text-header);">Quick Services</h2>
+            </div>
+            
             <div class="action-grid">
                 <div class="action-card">
-                    <i class="fa-solid fa-plus action-icon" style="color: var(--accent-indigo);"></i>
-                    <h3>New Borrow</h3>
-                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Issue a book to a member</p>
+                    <i class="fa-solid fa-plus" style="color: var(--primary-blue);"></i>
+                    <h3>Issue Book</h3>
+                    <p>Lend a book to a registered member</p>
                 </div>
                 <div class="action-card">
-                    <i class="fa-solid fa-rotate-left action-icon" style="color: var(--accent-emerald);"></i>
-                    <h3>Return Book</h3>
-                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Process returned items</p>
+                    <i class="fa-solid fa-rotate-left" style="color: var(--accent-mint);"></i>
+                    <h3>Pick Return</h3>
+                    <p>Check-in books and calculate fines</p>
                 </div>
                 <div class="action-card">
-                    <i class="fa-solid fa-cash-register action-icon" style="color: #fbbf24;"></i>
-                    <h3>New Sale</h3>
-                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Direct book purchase</p>
+                    <i class="fa-solid fa-cart-shopping" style="color: #f59e0b;"></i>
+                    <h3>Direct Sale</h3>
+                    <p>Generate invoice for book purchase</p>
                 </div>
                 <div class="action-card">
-                    <i class="fa-solid fa-user-plus action-icon" style="color: #ec4899;"></i>
-                    <h3>Add Member</h3>
-                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Register new library user</p>
+                    <i class="fa-solid fa-user-plus" style="color: #ec4899;"></i>
+                    <h3>New Member</h3>
+                    <p>Create a membership profile</p>
                 </div>
             </div>
         </section>
