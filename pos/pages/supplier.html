@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,7 +63,10 @@
 
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(15, 23, 42, 0.3);
             backdrop-filter: blur(8px);
             z-index: 1000;
@@ -111,8 +115,15 @@
             text-transform: uppercase;
         }
 
-        .status-active { background: #ecfdf5; color: #10b981; }
-        .status-overdue { background: #fef2f2; color: #ef4444; }
+        .status-active {
+            background: #ecfdf5;
+            color: #10b981;
+        }
+
+        .status-overdue {
+            background: #fef2f2;
+            color: #ef4444;
+        }
 
         .tabs {
             display: flex;
@@ -144,7 +155,8 @@
 
         #toastContainer {
             position: fixed;
-            bottom: 30px; right: 30px;
+            bottom: 30px;
+            right: 30px;
             z-index: 2000;
         }
 
@@ -157,10 +169,19 @@
             animation: slideIn 0.3s ease;
         }
 
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
     </style>
     <script src="../assets/auth-guard.js"></script>
 </head>
+
 <body>
 
     <nav class="sidebar">
@@ -171,13 +192,20 @@
             <span class="logo-text">ONTOMEEL</span>
         </div>
         <ul class="nav-links">
-            <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span class="nav-text">Dashboard</span></a></li>
-            <li class="nav-item"><a href="terminal.html" class="nav-link"><i class="fa-solid fa-cash-register"></i><span class="nav-text">Terminal</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-book"></i><span class="nav-text">Inventory</span></a></li>
-            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span class="nav-text">Members</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-truck-ramp-box"></i><span class="nav-text">Suppliers</span></a></li>
-            <li class="nav-item"><a href="report.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span class="nav-text">Reports</span></a></li>
-            <li class="nav-item"><a href="orders.html" class="nav-link"><i class="fa-solid fa-history"></i><span class="nav-text">Orders</span></a></li>
+            <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span
+                        class="nav-text">Dashboard</span></a></li>
+            <li class="nav-item"><a href="terminal.html" class="nav-link"><i class="fa-solid fa-cash-register"></i><span
+                        class="nav-text">Terminal</span></a></li>
+            <li class="nav-item"><a href="inventory.html" class="nav-link"><i class="fa-solid fa-box-open"></i><span
+                        class="nav-text">Inventory</span></a></li>
+            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span
+                        class="nav-text">Members</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-truck-ramp-box"></i><span
+                        class="nav-text">Suppliers</span></a></li>
+            <li class="nav-item"><a href="report.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span
+                        class="nav-text">Reports</span></a></li>
+            <li class="nav-item"><a href="orders.html" class="nav-link"><i class="fa-solid fa-history"></i><span
+                        class="nav-text">Orders</span></a></li>
         </ul>
         <div style="margin-top: auto; padding: 1rem;">
             <a href="javascript:void(0)" onclick="logout()" class="nav-link" style="color: #ef4444;">
@@ -198,6 +226,7 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="showTab('suppliers')">Suppliers List</button>
             <button class="tab-btn" onclick="showTab('suppliedBooks')">Supplied Books</button>
+            <button class="tab-btn" onclick="showTab('purchaseRecords')">Purchase Records</button>
             <button class="tab-btn" onclick="showTab('externalBorrows')">External Borrows</button>
         </div>
 
@@ -206,7 +235,8 @@
             <div class="data-card">
                 <div class="card-header">
                     <div style="font-weight: 800; font-size: 1.1rem;">Registered Suppliers</div>
-                    <button class="nav-link active" onclick="openModal('supplierModal')" style="padding: 10px 20px; font-size: 0.85rem;">
+                    <button class="nav-link active" onclick="openModal('supplierModal')"
+                        style="padding: 10px 20px; font-size: 0.85rem;">
                         <i class="fa-solid fa-plus"></i> ADD SUPPLIER
                     </button>
                 </div>
@@ -249,12 +279,43 @@
 
         </div>
 
+        <!-- Purchase Records Tab -->
+        <div id="purchaseRecordsTab" class="tab-content" style="display:none;">
+            <div class="data-card">
+                <div class="card-header">
+                    <div style="font-weight: 800; font-size: 1.1rem;">Item Purchase Records</div>
+                    <button class="nav-link active" onclick="openModal('purchaseRecordModal')"
+                        style="padding: 10px 20px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-plus"></i> ADD PURCHASE
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Item Name</th>
+                                <th>Type</th>
+                                <th>Qty</th>
+                                <th>Total Cost</th>
+                                <th>Paid</th>
+                                <th>Status</th>
+                                <th>Supplier</th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchaseRecordsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- External Borrows Tab -->
         <div id="externalBorrowsTab" class="tab-content" style="display:none;">
             <div class="data-card">
                 <div class="card-header">
                     <div style="font-weight: 800; font-size: 1.1rem;">Books Borrowed from Other Libraries</div>
-                    <button class="nav-link active" onclick="openModal('borrowModal')" style="padding: 10px 20px; font-size: 0.85rem;">
+                    <button class="nav-link active" onclick="openModal('borrowModal')"
+                        style="padding: 10px 20px; font-size: 0.85rem;">
                         <i class="fa-solid fa-plus"></i> LOG BORROW
                     </button>
                 </div>
@@ -279,9 +340,11 @@
     <!-- Modals -->
     <div class="modal-overlay" id="supplierModal">
         <div class="modal-content">
-            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
                 <h2 style="margin:0; font-size:1.2rem;">Add New Supplier</h2>
-                <button onclick="closeModal('supplierModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+                <button onclick="closeModal('supplierModal')"
+                    style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
             </div>
             <div style="padding: 2rem;">
                 <div class="input-group">
@@ -300,16 +363,19 @@
                     <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">ADDRESS</label>
                     <textarea id="supAddress" class="checkout-input" style="height: 80px;"></textarea>
                 </div>
-                <button onclick="saveSupplier()" class="nav-link active" style="width:100%; justify-content:center; padding:12px; margin-top:1rem;">SAVE SUPPLIER</button>
+                <button onclick="saveSupplier()" class="nav-link active"
+                    style="width:100%; justify-content:center; padding:12px; margin-top:1rem;">SAVE SUPPLIER</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="borrowModal">
         <div class="modal-content">
-            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
                 <h2 style="margin:0; font-size:1.2rem;">Log External Borrow</h2>
-                <button onclick="closeModal('borrowModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+                <button onclick="closeModal('borrowModal')"
+                    style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
             </div>
             <div style="padding: 2rem;">
                 <div class="input-group">
@@ -328,7 +394,8 @@
                     <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">DUE DATE</label>
                     <input type="date" id="borDue" class="checkout-input">
                 </div>
-                <button onclick="saveBorrow()" class="nav-link active" style="width:100%; justify-content:center; padding:12px; margin-top:1rem;">LOG ENTRY</button>
+                <button onclick="saveBorrow()" class="nav-link active"
+                    style="width:100%; justify-content:center; padding:12px; margin-top:1rem;">LOG ENTRY</button>
             </div>
         </div>
     </div>
@@ -336,9 +403,11 @@
     <!-- Collect Books Modal -->
     <div class="modal-overlay" id="collectModal">
         <div class="modal-content" style="width: 500px;">
-            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
                 <h2 style="margin:0; font-size:1.2rem;">Record Book Collection</h2>
-                <button onclick="closeModal('collectModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+                <button onclick="closeModal('collectModal')"
+                    style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
             </div>
             <div style="padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="input-group" style="grid-column: span 2;">
@@ -354,15 +423,84 @@
                     <input type="number" id="collQty" class="checkout-input">
                 </div>
                 <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PURCHASE PRICE *</label>
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PURCHASE PRICE
+                        *</label>
                     <input type="number" id="collCost" class="checkout-input">
                 </div>
                 <div class="input-group" style="grid-column: span 2;">
                     <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">SELLING PRICE</label>
                     <input type="number" id="collSale" class="checkout-input">
                 </div>
-                <button onclick="processCollection()" class="nav-link active" style="grid-column: span 2; justify-content:center; padding:12px; margin-top:0.5rem;">
+                <button onclick="processCollection()" class="nav-link active"
+                    style="grid-column: span 2; justify-content:center; padding:12px; margin-top:0.5rem;">
                     <i class="fa-solid fa-cloud-arrow-up"></i> UPDATE INVENTORY
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Record Modal -->
+    <div class="modal-overlay" id="purchaseRecordModal">
+        <div class="modal-content" style="width: 500px;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+                <h2 style="margin:0; font-size:1.2rem;">Add Purchase Record</h2>
+                <button onclick="closeModal('purchaseRecordModal')"
+                    style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+            <div style="padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="input-group" style="grid-column: span 2;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-header);">ITEM NAME *</label>
+                    <input type="text" id="purItemName" class="checkout-input" placeholder="Enter item name">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">ITEM TYPE</label>
+                    <select id="purItemType" class="checkout-input">
+                        <option value="General">General</option>
+                        <option value="Books">Books</option>
+                        <option value="Stationery">Stationery</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">SUPPLIER</label>
+                    <select id="purSupplier" class="checkout-input">
+                        <option value="">-- No Supplier --</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">QUANTITY *</label>
+                    <input type="number" id="purQty" class="checkout-input" value="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">UNIT COST *</label>
+                    <input type="number" id="purUnitCost" class="checkout-input" placeholder="0.00">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PAID AMOUNT</label>
+                    <input type="number" id="purPaid" class="checkout-input" value="0" min="0">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PAYMENT METHOD</label>
+                    <select id="purPayMethod" class="checkout-input">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank">Bank Transfer</option>
+                        <option value="Mobile">Mobile Banking</option>
+                    </select>
+                </div>
+                <div class="input-group" style="grid-column: span 2;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PURCHASE DATE</label>
+                    <input type="date" id="purDate" class="checkout-input">
+                </div>
+                <div class="input-group" style="grid-column: span 2;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">NOTE</label>
+                    <textarea id="purNote" class="checkout-input" style="height: 60px;"
+                        placeholder="Optional note"></textarea>
+                </div>
+                <button onclick="savePurchaseRecord()" class="nav-link active"
+                    style="grid-column: span 2; justify-content:center; padding:12px; margin-top:0.5rem;">
+                    <i class="fa-solid fa-save"></i> SAVE RECORD
                 </button>
             </div>
         </div>
@@ -371,9 +509,11 @@
     <!-- Pay Due Modal -->
     <div class="modal-overlay" id="payModal">
         <div class="modal-content">
-            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
                 <h2 style="margin:0; font-size:1.2rem;">Settle Supplier Due</h2>
-                <button onclick="closeModal('payModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+                <button onclick="closeModal('payModal')"
+                    style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
             </div>
             <div style="padding: 2rem;">
                 <div style="background: #fef2f2; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
@@ -392,7 +532,8 @@
                         <option value="Mobile">Mobile Banking</option>
                     </select>
                 </div>
-                <button onclick="processPayment()" class="nav-link active" style="width:100%; justify-content:center; padding:12px; margin-top:1rem; background:#10b981;">
+                <button onclick="processPayment()" class="nav-link active"
+                    style="width:100%; justify-content:center; padding:12px; margin-top:1rem; background:#10b981;">
                     RECORD PAYMENT
                 </button>
             </div>
@@ -404,9 +545,13 @@
     <!-- View Books Modal -->
     <div class="modal-overlay" id="viewBooksModal">
         <div class="modal-content" style="width: 80%; max-width: 900px;">
-            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items:center;">
-                <h2 style="margin:0; font-size:1.2rem;"><i class="fa-solid fa-book"></i> Books from <span id="currentDetailSupplier" style="color:var(--primary-blue);"></span></h2>
-                <button onclick="closeModal('viewBooksModal')" style="border:none; background:#f1f5f9; cursor:pointer; font-size:1rem; padding: 10px 15px; border-radius: 50%;"><i class="fa-solid fa-times"></i></button>
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items:center;">
+                <h2 style="margin:0; font-size:1.2rem;"><i class="fa-solid fa-book"></i> Books from <span
+                        id="currentDetailSupplier" style="color:var(--primary-blue);"></span></h2>
+                <button onclick="closeModal('viewBooksModal')"
+                    style="border:none; background:#f1f5f9; cursor:pointer; font-size:1rem; padding: 10px 15px; border-radius: 50%;"><i
+                        class="fa-solid fa-times"></i></button>
             </div>
             <div style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
                 <div class="table-wrapper">
@@ -433,10 +578,11 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tab + 'Tab').style.display = 'block';
             event.target.classList.add('active');
-            
-            if(tab === 'suppliers') fetchSuppliers();
-            if(tab === 'suppliedBooks') fetchSuppliedBooks();
-            if(tab === 'externalBorrows') fetchExternalBorrows();
+
+            if (tab === 'suppliers') fetchSuppliers();
+            if (tab === 'suppliedBooks') fetchSuppliedBooks();
+            if (tab === 'purchaseRecords') fetchPurchaseRecords();
+            if (tab === 'externalBorrows') fetchExternalBorrows();
         }
 
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
@@ -446,7 +592,7 @@
         async function fetchSuppliers() {
             const res = await fetch('../../api/controllers/SupplierController.php?action=listSuppliers');
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 document.getElementById('supplierTableBody').innerHTML = data.suppliers.map(s => `
                     <tr>
                         <td style="font-weight:700;">${s.name}</td>
@@ -490,12 +636,12 @@
                 amount: document.getElementById('payAmount').value,
                 method: document.getElementById('payMethod').value
             };
-            if(!payload.amount || payload.amount <= 0) return alert("Valid amount required.");
+            if (!payload.amount || payload.amount <= 0) return alert("Valid amount required.");
 
             const res = await fetch('../../api/controllers/SupplierController.php?action=recordPayment', {
                 method: 'POST', body: JSON.stringify(payload)
             });
-            if((await res.json()).success) {
+            if ((await res.json()).success) {
                 showToast("Payment recorded successfully!");
                 closeModal('payModal');
                 fetchSuppliers();
@@ -511,17 +657,17 @@
                 cost: document.getElementById('collCost').value,
                 sale: document.getElementById('collSale').value
             };
-            if(!payload.title || !payload.qty) return alert("Title and Quantity are required.");
+            if (!payload.title || !payload.qty) return alert("Title and Quantity are required.");
 
             const res = await fetch('../../api/controllers/SupplierController.php?action=receiveInventory', {
                 method: 'POST', body: JSON.stringify(payload)
             });
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 showToast("Inventory updated successfully!");
                 closeModal('collectModal');
                 fetchSuppliers();
-                
+
                 // Clear inputs
                 document.getElementById('collTitle').value = '';
                 document.getElementById('collAuthor').value = '';
@@ -534,7 +680,7 @@
         async function fetchSuppliedBooks() {
             const res = await fetch('../../api/controllers/SupplierController.php?action=getSupplierBooks');
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 document.getElementById('procurementTableBody').innerHTML = data.data.map(d => `
                     <tr>
                         <td style="font-weight:700;">${d.supplier_name}</td>
@@ -553,15 +699,15 @@
         async function viewSupplierBooks(name) {
             document.getElementById('currentDetailSupplier').innerText = name;
             openModal('viewBooksModal');
-            
+
             // Show loading state
             document.getElementById('supplierDetailTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading books...</td></tr>';
 
             const res = await fetch(`../../api/controllers/SupplierController.php?action=getBooksBySupplier&name=${encodeURIComponent(name)}`);
             const data = await res.json();
-            
-            if(data.success) {
-                if(data.books.length > 0) {
+
+            if (data.success) {
+                if (data.books.length > 0) {
                     document.getElementById('supplierDetailTableBody').innerHTML = data.books.map(b => `
                         <tr>
                             <td style="font-weight:700;">${b.title}</td>
@@ -580,7 +726,7 @@
         async function fetchExternalBorrows() {
             const res = await fetch('../../api/controllers/SupplierController.php?action=listExternalBorrows');
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 document.getElementById('borrowTableBody').innerHTML = data.borrows.map(b => `
                     <tr>
                         <td style="font-weight:700;">${b.library_name}</td>
@@ -590,6 +736,92 @@
                         <td><span class="status-badge status-${b.status.toLowerCase()}">${b.status}</span></td>
                     </tr>
                 `).join('');
+            }
+        }
+
+        async function fetchPurchaseRecords() {
+            // Setup table first
+            await fetch('../../api/controllers/SupplierController.php?action=setupPurchaseTable');
+
+            const res = await fetch('../../api/controllers/SupplierController.php?action=listPurchaseRecords');
+            const data = await res.json();
+            if (data.success) {
+                const records = data.records || [];
+                if (records.length > 0) {
+                    document.getElementById('purchaseRecordsTableBody').innerHTML = records.map(r => {
+                        let statusClass = r.payment_status === 'Paid' ? 'status-active' : (r.payment_status === 'Partial' ? 'status-overdue' : 'status-overdue');
+                        return `
+                            <tr>
+                                <td>${r.purchase_date}</td>
+                                <td style="font-weight:700;">${r.item_name}</td>
+                                <td>${r.item_type}</td>
+                                <td>${r.quantity}</td>
+                                <td style="font-weight:700;">৳${parseFloat(r.total_cost).toLocaleString()}</td>
+                                <td style="color:#10b981;">৳${parseFloat(r.paid_amount).toLocaleString()}</td>
+                                <td><span class="status-badge ${statusClass}">${r.payment_status}</span></td>
+                                <td>${r.supplier_name || 'N/A'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    document.getElementById('purchaseRecordsTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px; color: var(--text-muted);">No purchase records found. Click "Add Purchase" to create one.</td></tr>';
+                }
+            }
+        }
+
+        async function loadSuppliersForPurchase() {
+            const res = await fetch('../../api/controllers/SupplierController.php?action=listSuppliers');
+            const data = await res.json();
+            if (data.success) {
+                const select = document.getElementById('purSupplier');
+                data.suppliers.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        async function savePurchaseRecord() {
+            const payload = {
+                supplier_id: document.getElementById('purSupplier').value,
+                supplier_name: '',
+                item_name: document.getElementById('purItemName').value,
+                item_type: document.getElementById('purItemType').value,
+                quantity: document.getElementById('purQty').value,
+                unit_cost: document.getElementById('purUnitCost').value,
+                paid_amount: document.getElementById('purPaid').value,
+                payment_method: document.getElementById('purPayMethod').value,
+                purchase_date: document.getElementById('purDate').value,
+                note: document.getElementById('purNote').value
+            };
+
+            if (!payload.item_name || !payload.unit_cost) {
+                alert('Item name and unit cost are required.');
+                return;
+            }
+
+            const res = await fetch('../../api/controllers/SupplierController.php?action=savePurchaseRecord', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast('Purchase record saved successfully!');
+                closeModal('purchaseRecordModal');
+                fetchPurchaseRecords();
+
+                // Clear form
+                document.getElementById('purItemName').value = '';
+                document.getElementById('purItemType').value = 'General';
+                document.getElementById('purSupplier').value = '';
+                document.getElementById('purQty').value = '1';
+                document.getElementById('purUnitCost').value = '';
+                document.getElementById('purPaid').value = '0';
+                document.getElementById('purNote').value = '';
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
         }
 
@@ -603,7 +835,7 @@
             const res = await fetch('../../api/controllers/SupplierController.php?action=saveSupplier', {
                 method: 'POST', body: JSON.stringify(payload)
             });
-            if((await res.json()).success) {
+            if ((await res.json()).success) {
                 showToast("Supplier saved successfully!");
                 closeModal('supplierModal');
                 fetchSuppliers();
@@ -620,7 +852,7 @@
             const res = await fetch('../../api/controllers/SupplierController.php?action=saveExternalBorrow', {
                 method: 'POST', body: JSON.stringify(payload)
             });
-            if((await res.json()).success) {
+            if ((await res.json()).success) {
                 showToast("Borrow logged successfully!");
                 closeModal('borrowModal');
                 fetchExternalBorrows();
@@ -635,7 +867,13 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        window.onload = fetchSuppliers;
+        window.onload = function () {
+            fetchSuppliers();
+            // Set default date for purchase record modal
+            document.getElementById('purDate').value = new Date().toISOString().split('T')[0];
+            loadSuppliersForPurchase();
+        };
     </script>
 </body>
+
 </html>

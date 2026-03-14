@@ -874,7 +874,7 @@
                         class="nav-text">Dashboard</span></a></li>
             <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-cash-register"></i><span
                         class="nav-text">Terminal</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-book"></i><span
+            <li class="nav-item"><a href="inventory.html" class="nav-link"><i class="fa-solid fa-box-open"></i><span
                         class="nav-text">Inventory</span></a></li>
             <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span
                         class="nav-text">Members</span></a></li>
@@ -927,8 +927,14 @@
             <!-- Explorer -->
             <div class="explorer-pane">
                 <div class="pane-header">
-                    <div style="font-weight: 700; color: var(--text-header);">Library Catalog</div>
-                    <div id="bookCount" style="font-size: 0.8rem; color: var(--text-muted);">Loading books...</div>
+                    <div style="font-weight: 700; color: var(--text-header);">Catalog</div>
+                    <div id="bookCount" style="font-size: 0.8rem; color: var(--text-muted);">Loading...</div>
+                </div>
+                <!-- Filter tabs -->
+                <div style="display: flex; gap: 8px; padding: 0 1.5rem 1rem; flex-shrink: 0;">
+                    <button class="filter-tab active" onclick="setFilter('all', this)" style="padding: 6px 16px; border-radius: 20px; border: 2px solid transparent; background: var(--primary-blue); color: white; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s;">All</button>
+                    <button class="filter-tab" onclick="setFilter('books', this)" style="padding: 6px 16px; border-radius: 20px; border: 2px solid #e2e8f0; background: white; color: var(--text-muted); font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-book" style="margin-right:4px;"></i>Books</button>
+                    <button class="filter-tab" onclick="setFilter('inventory', this)" style="padding: 6px 16px; border-radius: 20px; border: 2px solid #e2e8f0; background: white; color: var(--text-muted); font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-box-open" style="margin-right:4px;"></i>Inventory</button>
                 </div>
                 <div class="browse-grid" id="browseGrid">
                     <!-- Dynamic Content -->
@@ -1234,9 +1240,12 @@
 
     <script>
         let allBooks = [];
+        let allInventoryItems = [];
+        let allItems = []; // merged for display
         let cart = [];
         let customerType = 'member'; // 'member' or 'guest'
         let paymentMethod = 'Cash';
+        let activeFilter = 'all'; // 'all', 'books', 'inventory'
 
         function switchCustomerTab(type) {
             customerType = type;
@@ -1263,7 +1272,7 @@
 
         async function init() {
             renderSkeletons();
-            await fetchBooks(false); // First fetch with skeletons
+            await fetchBooks(false);
 
             // Handle URL Actions (from dashboard)
             const urlParams = new URLSearchParams(window.location.search);
@@ -1277,35 +1286,88 @@
             // Continuous Background Sync (every 30 seconds)
             setInterval(() => fetchBooks(true), 30000);
 
-            updateParkedUI(); // Initialize parked carts UI on load
+            updateParkedUI();
         }
 
         async function fetchBooks(isSync = false) {
-            // SILENT SYNC: No UI changes if isSync is true
             try {
-                const apiPath = '../../api/controllers/TerminalController.php?action=getBooks';
-                const response = await fetch(apiPath);
-                if (!response.ok) throw new Error('Sync failed');
+                const [booksRes, invRes] = await Promise.all([
+                    fetch('../../api/controllers/TerminalController.php?action=getBooks'),
+                    fetch('../../api/controllers/InventoryController.php?action=getItems')
+                ]);
 
-                const data = await response.json();
-                allBooks = data;
+                if (!booksRes.ok) throw new Error('Sync failed');
 
-                const searchVal = document.getElementById('bookSearch').value.trim();
-                if (searchVal === "") {
-                    renderBooks(allBooks);
-                    document.getElementById('bookCount').innerText = `${allBooks.length} Books Available`;
-                } else {
-                    filterBooks();
+                const booksData = await booksRes.json();
+                allBooks = booksData;
+
+                let invData = { success: false, items: [] };
+                if (invRes.ok) {
+                    try { invData = await invRes.json(); } catch(e) {}
                 }
+                allInventoryItems = (invData.success ? invData.items : []).map(item => ({
+                    ...item,
+                    author: item.item_type,
+                    _isInventory: true
+                }));
+
+                allItems = [
+                    ...allBooks.map(b => ({ ...b, _isInventory: false })),
+                    ...allInventoryItems
+                ];
 
                 if (isSync) {
-                    // Update header timestamp silently if needed
-                    console.log('Background sync completed at ' + new Date().toLocaleTimeString());
+                    // Silent sync: only update data, do NOT re-render the grid
+                    // Just update stock badges in-place if the grid is already populated
+                    updateStockBadges();
+                    console.log('Background sync at ' + new Date().toLocaleTimeString());
+                } else {
+                    applyFilter();
                 }
 
             } catch (error) {
                 console.error('Background Sync Error:', error);
             }
+        }
+
+        // Silently update stock numbers in existing cards without re-rendering
+        function updateStockBadges() {
+            const lookup = {};
+            allItems.forEach(item => lookup[item.id] = item.stock_qty);
+            document.querySelectorAll('[data-item-id]').forEach(badge => {
+                const id = parseInt(badge.dataset.itemId);
+                if (lookup[id] !== undefined) {
+                    const qty = lookup[id];
+                    badge.innerText = qty > 0 ? `${qty} in stock` : 'Out of stock';
+                    badge.style.color = qty > 5 ? 'var(--accent-mint)' : '#ef4444';
+                }
+            });
+        }
+
+        function setFilter(f, btn) {
+            activeFilter = f;
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            applyFilter();
+        }
+
+        function applyFilter() {
+            let displayed;
+            if (activeFilter === 'books') displayed = allBooks.map(b => ({ ...b, _isInventory: false }));
+            else if (activeFilter === 'inventory') displayed = allInventoryItems;
+            else displayed = allItems;
+
+            const searchVal = document.getElementById('bookSearch')?.value.trim().toLowerCase() || '';
+            if (searchVal) {
+                displayed = displayed.filter(b =>
+                    (b.title && b.title.toLowerCase().includes(searchVal)) ||
+                    (b.author && b.author.toLowerCase().includes(searchVal)) ||
+                    (b.isbn && b.isbn.toLowerCase().includes(searchVal))
+                );
+            }
+
+            renderBooks(displayed);
+            document.getElementById('bookCount').innerText = `${displayed.length} Items`;
         }
 
         function showToast(message, type = 'info') {
@@ -1350,7 +1412,7 @@
             const grid = document.getElementById('browseGrid');
             grid.innerHTML = '';
 
-            // Image base path: adjust for production (pos.ontomeel.com) and local dev
+            // Image base path
             const isProduction = window.location.hostname.includes('ontomeel.com');
             const imageBasePath = isProduction
                 ? 'https://ontomeel.com/admin/assets/book-images/'
@@ -1360,52 +1422,58 @@
                 const pill = document.createElement('div');
                 pill.className = 'book-pill fade-in';
 
-                // Determine and store image source
-                book.displayImage = '';
-                if (book.cover_image) {
-                    book.displayImage = book.cover_image.startsWith('http')
-                        ? book.cover_image
-                        : imageBasePath + book.cover_image;
+                if (book._isInventory) {
+                    // Inventory item card
+                    book.displayImage = '';
+                    const typeIcons = { 'Stationary': 'pen-ruler', 'Flowers': 'seedling', 'Accessories': 'plug', 'General': 'box' };
+                    const icon = typeIcons[book.item_type] || 'box';
+                    pill.onclick = () => addToCart(book);
+                    pill.innerHTML = `
+                        <div class="stock-badge" data-item-id="${book.id}" style="color: ${book.stock_qty > 5 ? 'var(--accent-mint)' : '#ef4444'}">
+                            ${book.stock_qty > 0 ? `${book.stock_qty} in stock` : 'Out of stock'}
+                        </div>
+                        <div class="book-thumbnail" style="background: #f0fdf4; display:flex; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-${icon}" style="font-size: 2.5rem; color: #16a34a;"></i>
+                        </div>
+                        <div class="book-info-compact">
+                            <div class="book-name" title="${book.title}">${book.title}</div>
+                            <div class="book-meta" style="color: #16a34a; font-weight: 700;">${book.item_type}</div>
+                            ${book.isbn ? `<div class="book-isbn">SKU: ${book.isbn}</div>` : ''}
+                            <div class="book-price-tag">৳${parseFloat(book.sell_price).toFixed(2)}</div>
+                        </div>
+                    `;
+                } else {
+                    // Book card
+                    book.displayImage = '';
+                    if (book.cover_image) {
+                        book.displayImage = book.cover_image.startsWith('http')
+                            ? book.cover_image
+                            : imageBasePath + book.cover_image;
+                    }
+                    pill.onclick = () => addToCart(book);
+                    pill.innerHTML = `
+                        <div class="stock-badge" data-item-id="${book.id}" style="color: ${book.stock_qty > 5 ? 'var(--accent-mint)' : '#ef4444'}">
+                            ${book.stock_qty > 0 ? `${book.stock_qty} in stock` : 'Out of stock'}
+                        </div>
+                        <div class="book-thumbnail">
+                            ${book.displayImage
+                                ? `<img src="${book.displayImage}" loading="lazy" alt="${book.title}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(book.title)}&background=eff6ff&color=2563eb&bold=true'">`
+                                : '<i class="fa-solid fa-book-open" style="font-size: 2.5rem; color: #cbd5e1;"></i>'}
+                        </div>
+                        <div class="book-info-compact">
+                            <div class="book-name" title="${book.title}">${book.title}</div>
+                            <div class="book-meta">${book.author || ''}</div>
+                            ${book.isbn ? `<div class="book-isbn">ISBN: ${book.isbn}</div>` : ''}
+                            <div class="book-price-tag">৳${parseFloat(book.sell_price).toFixed(2)}</div>
+                        </div>
+                    `;
                 }
-
-                pill.onclick = () => addToCart(book);
-
-                pill.innerHTML = `
-                    <div class="stock-badge" style="color: ${book.stock_qty > 5 ? 'var(--accent-mint)' : '#ef4444'}">
-                        ${book.stock_qty > 0 ? `${book.stock_qty} in stock` : 'Out of stock'}
-                    </div>
-                    <div class="book-thumbnail">
-                        ${book.displayImage
-                        ? `<img src="${book.displayImage}" loading="lazy" alt="${book.title}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(book.title)}&background=eff6ff&color=2563eb&bold=true'">`
-                        : '<i class="fa-solid fa-book-open" style="font-size: 2.5rem; color: #cbd5e1;"></i>'}
-                    </div>
-                    <div class="book-info-compact">
-                        <div class="book-name" title="${book.title}">${book.title}</div>
-                        <div class="book-meta">${book.author}</div>
-                        ${book.isbn ? `<div class="book-isbn">ISBN: ${book.isbn}</div>` : ''}
-                        <div class="book-price-tag">৳${parseFloat(book.sell_price).toFixed(2)}</div>
-                    </div>
-                `;
                 grid.appendChild(pill);
             });
         }
 
         function filterBooks() {
-            const query = document.getElementById('bookSearch').value.toLowerCase().trim();
-            if (!query) {
-                renderBooks(allBooks);
-                return;
-            }
-
-            const filtered = allBooks.filter(b =>
-                (b.title && b.title.toLowerCase().includes(query)) ||
-                (b.author && b.author.toLowerCase().includes(query)) ||
-                (b.isbn && b.isbn.toLowerCase().includes(query))
-            );
-            renderBooks(filtered);
-
-            const countEl = document.getElementById('bookCount');
-            countEl.innerText = `${filtered.length} matching result${filtered.length === 1 ? '' : 's'}`;
+            applyFilter();
         }
 
         function addToCart(book) {
@@ -1681,10 +1749,10 @@
         function finalize(type) {
 
             if (cart.length === 0) {
-                showToast('Please add books to the cart first.', 'error');
+                showToast('Please add items to the cart first.', 'error');
                 return;
             }
-
+            
             if (customerType === 'member' && !selectedMember) {
                 showToast('Please select a member first.', 'error');
                 return;
@@ -1700,9 +1768,17 @@
             }
 
             if (type === 'sell') {
-                document.getElementById('modalTotal').innerText = document.getElementById('cartTotal').innerText;
+                const totalEl = document.getElementById('cartTotal');
+                document.getElementById('modalTotal').innerText = totalEl.innerText;
                 document.getElementById('checkoutModal').style.display = 'flex';
             } else {
+                // Issue / Borrow — only books allowed
+                const hasNonBook = cart.some(item => item._isInventory);
+                if (hasNonBook) {
+                    showToast('Only books can be issued/borrowed. Remove inventory items from the cart.', 'error');
+                    return;
+                }
+
                 if (customerType === 'guest') {
                     showToast('Borrowing is only allowed for registered members.', 'error');
                     return;

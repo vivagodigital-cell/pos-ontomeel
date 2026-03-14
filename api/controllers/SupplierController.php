@@ -18,7 +18,8 @@ try {
         $email = $data['email'] ?? '';
         $address = $data['address'] ?? '';
 
-        if (empty($name)) throw new Exception("Supplier name is required.");
+        if (empty($name))
+            throw new Exception("Supplier name is required.");
 
         $stmt = $pdo->prepare("INSERT INTO suppliers (name, contact, email, address) VALUES (?, ?, ?, ?)");
         $stmt->execute([$name, $contact, $email, $address]);
@@ -36,7 +37,8 @@ try {
         $borrow = $data['borrow_date'] ?? date('Y-m-d');
         $due = $data['due_date'] ?? '';
 
-        if (empty($lib) || empty($title) || empty($due)) throw new Exception("Required fields missing.");
+        if (empty($lib) || empty($title) || empty($due))
+            throw new Exception("Required fields missing.");
 
         $stmt = $pdo->prepare("INSERT INTO external_borrows (library_name, book_title, author, borrow_date, due_date) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$lib, $title, $author, $borrow, $due]);
@@ -49,8 +51,9 @@ try {
     }
     elseif ($action === 'getBooksBySupplier') {
         $name = $_GET['name'] ?? '';
-        if (empty($name)) throw new Exception("Supplier name is required.");
-        
+        if (empty($name))
+            throw new Exception("Supplier name is required.");
+
         $stmt = $pdo->prepare("SELECT title, author, purchase_price, stock_qty, (purchase_price * stock_qty) as total_value FROM books WHERE supplier_name = ? ORDER BY title ASC");
         $stmt->execute([$name]);
         echo json_encode(['success' => true, 'books' => $stmt->fetchAll()]);
@@ -64,13 +67,15 @@ try {
         $cost = floatval($data['cost'] ?? 0);
         $sale = floatval($data['sale'] ?? 0);
 
-        if (!$supplierId || empty($title) || $qty <= 0) throw new Exception("Required data missing.");
+        if (!$supplierId || empty($title) || $qty <= 0)
+            throw new Exception("Required data missing.");
 
         // 1. Get Supplier Name
         $stmt = $pdo->prepare("SELECT name FROM suppliers WHERE id = ?");
         $stmt->execute([$supplierId]);
         $supplier = $stmt->fetch();
-        if (!$supplier) throw new Exception("Supplier not found.");
+        if (!$supplier)
+            throw new Exception("Supplier not found.");
 
         $pdo->beginTransaction();
         try {
@@ -84,7 +89,8 @@ try {
                 $newQty = $existing['stock_qty'] + $qty;
                 $stmt = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, sell_price = ?, supplier_name = ? WHERE id = ?");
                 $stmt->execute([$newQty, $cost, $sale, $supplier['name'], $existing['id']]);
-            } else {
+            }
+            else {
                 // Insert new
                 $stmt = $pdo->prepare("INSERT INTO books (title, author, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$title, $author, $qty, $cost, $sale, $supplier['name']]);
@@ -97,7 +103,8 @@ try {
 
             $pdo->commit();
             echo json_encode(['success' => true]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
         }
@@ -109,7 +116,8 @@ try {
         $method = $data['method'] ?? 'Cash';
         $notes = $data['notes'] ?? '';
 
-        if (!$supplierId || $amount <= 0) throw new Exception("Invalid payment data.");
+        if (!$supplierId || $amount <= 0)
+            throw new Exception("Invalid payment data.");
 
         $pdo->beginTransaction();
         try {
@@ -123,12 +131,129 @@ try {
 
             $pdo->commit();
             echo json_encode(['success' => true]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
         }
     }
-} catch (Exception $e) {
+    elseif ($action === 'setupPurchaseTable') {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `purchase_records` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `supplier_id` INT DEFAULT NULL,
+            `supplier_name` VARCHAR(200) DEFAULT NULL,
+            `item_name` VARCHAR(255) NOT NULL,
+            `item_type` VARCHAR(50) DEFAULT 'General',
+            `quantity` INT DEFAULT 1,
+            `unit_cost` DECIMAL(10,2) DEFAULT 0.00,
+            `total_cost` DECIMAL(10,2) DEFAULT 0.00,
+            `paid_amount` DECIMAL(10,2) DEFAULT 0.00,
+            `payment_status` ENUM('Unpaid','Partial','Paid') DEFAULT 'Unpaid',
+            `payment_method` VARCHAR(50) DEFAULT 'Cash',
+            `note` TEXT DEFAULT NULL,
+            `purchase_date` DATE NOT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Create separate inventory_items table for non-book items
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `inventory_items` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `item_name` VARCHAR(255) NOT NULL,
+            `item_type` VARCHAR(50) DEFAULT 'General',
+            `quantity` INT DEFAULT 0,
+            `unit_cost` DECIMAL(10,2) DEFAULT 0.00,
+            `sell_price` DECIMAL(10,2) DEFAULT 0.00,
+            `supplier_id` INT DEFAULT NULL,
+            `supplier_name` VARCHAR(200) DEFAULT NULL,
+            `barcode` VARCHAR(100) DEFAULT NULL,
+            `is_active` TINYINT(1) DEFAULT 1,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        echo json_encode(['success' => true, 'message' => 'Tables ready']);
+    }
+    elseif ($action === 'savePurchaseRecord') {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        $supplierIdRaw = $data['supplier_id'] ?? null;
+        $supplierId = ($supplierIdRaw && $supplierIdRaw !== '') ? intval($supplierIdRaw) : null;
+        $supplierName = $data['supplier_name'] ?? null;
+        $itemName = trim($data['item_name'] ?? '');
+        $itemType = $data['item_type'] ?? 'General';
+        $qty = max(1, intval($data['quantity'] ?? 1));
+        $unitCost = floatval($data['unit_cost'] ?? 0);
+        $paidAmount = floatval($data['paid_amount'] ?? 0);
+        $payMethod = $data['payment_method'] ?? 'Cash';
+        $note = $data['note'] ?? '';
+        $purchaseDate = $data['purchase_date'] ?? date('Y-m-d');
+
+        if (empty($itemName))
+            throw new Exception("Item name is required.");
+
+        $totalCost = $unitCost * $qty;
+
+        // Determine payment status
+        $payStatus = 'Unpaid';
+        if ($paidAmount >= $totalCost)
+            $payStatus = 'Paid';
+        elseif ($paidAmount > 0)
+            $payStatus = 'Partial';
+
+        // If supplier linked by id, get name
+        if ($supplierId && !$supplierName) {
+            $s = $pdo->prepare("SELECT name FROM suppliers WHERE id = ?");
+            $s->execute([$supplierId]);
+            $row = $s->fetch();
+            $supplierName = $row ? $row['name'] : null;
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO purchase_records 
+            (supplier_id, supplier_name, item_name, item_type, quantity, unit_cost, total_cost, paid_amount, payment_status, payment_method, note, purchase_date)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+        $stmt->execute([$supplierId, $supplierName, $itemName, $itemType, $qty, $unitCost, $totalCost, $paidAmount, $payStatus, $payMethod, $note, $purchaseDate]);
+
+        // If there is an outstanding balance, add to supplier due
+        if ($supplierId && $totalCost > $paidAmount) {
+            $due = $totalCost - $paidAmount;
+            $pdo->prepare("UPDATE suppliers SET total_due = total_due + ? WHERE id = ?")->execute([$due, $supplierId]);
+        }
+
+        // Also add to inventory_items table for non-book items (NEW separate table)
+        if ($itemType !== 'Books' && $itemType !== 'Book') {
+            // Check if item exists in inventory
+            $check = $pdo->prepare("SELECT id, quantity FROM inventory_items WHERE item_name = ? AND item_type = ? AND is_active = 1");
+            $check->execute([$itemName, $itemType]);
+            $existing = $check->fetch();
+
+            if ($existing) {
+                // Update existing inventory
+                $newQty = $existing['quantity'] + $qty;
+                $upd = $pdo->prepare("UPDATE inventory_items SET quantity = ?, unit_cost = ?, sell_price = ? WHERE id = ?");
+                $upd->execute([$newQty, $unitCost, $unitCost, $existing['id']]);
+            }
+            else {
+                // Insert new inventory item
+                $ins = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_id, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $ins->execute([$itemName, $itemType, $qty, $unitCost, $unitCost, $supplierId, $supplierName]);
+            }
+        }
+
+        echo json_encode(['success' => true, 'message' => 'Purchase recorded!']);
+    }
+    elseif ($action === 'listPurchaseRecords') {
+        $supplierId = $_GET['supplier_id'] ?? null;
+        if ($supplierId) {
+            $stmt = $pdo->prepare("SELECT * FROM purchase_records WHERE supplier_id = ? ORDER BY purchase_date DESC, id DESC");
+            $stmt->execute([$supplierId]);
+        }
+        else {
+            $stmt = $pdo->query("SELECT * FROM purchase_records ORDER BY purchase_date DESC, id DESC");
+        }
+        echo json_encode(['success' => true, 'records' => $stmt->fetchAll()]);
+    }
+}
+catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

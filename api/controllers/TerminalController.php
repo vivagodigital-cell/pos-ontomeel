@@ -9,10 +9,10 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'getBooks') {
-        $stmt = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty FROM books WHERE is_active = 1 ORDER BY title ASC");
+        $stmt = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty FROM books WHERE is_active = 1 AND (item_type = 'Book' OR item_type IS NULL OR item_type = '') ORDER BY title ASC");
         $books = $stmt->fetchAll();
         echo json_encode($books);
-    } 
+    }
     elseif ($action === 'searchMembers') {
         $query = $_GET['q'] ?? '';
         $stmt = $pdo->prepare("SELECT id, membership_id, full_name, acc_balance, email, phone, membership_plan, plan_expire_date FROM members WHERE full_name LIKE ? OR membership_id LIKE ? LIMIT 10");
@@ -22,7 +22,7 @@ try {
     }
     elseif ($action === 'saveOrder') {
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         if (!$data || empty($data['items'])) {
             throw new Exception("Invalid order data.");
         }
@@ -31,7 +31,7 @@ try {
 
         try {
             $invoice_no = 'OTM-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
-            
+
             // Insert into orders table
             $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone, guest_email) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?, ?)");
             $stmt->execute([
@@ -45,7 +45,7 @@ try {
                 $data['guestPhone'] ?? null,
                 $data['guestEmail'] ?? null
             ]);
-            
+
             $order_id = $pdo->lastInsertId();
 
             // Group items to handle duplicates gracefully
@@ -64,7 +64,7 @@ try {
                 $price = $item['sell_price'] ?? $item['price'] ?? 0;
                 $qty = $item['purchase_qty'];
                 $total_price = $price * $qty;
-                
+
                 // Insert order item
                 $stmt = $pdo->prepare("INSERT INTO order_items (order_id, book_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$order_id, $item['id'], $qty, $price, $total_price]);
@@ -85,7 +85,7 @@ try {
                     $stmt = $pdo->prepare("SELECT acc_balance FROM members WHERE id = ? FOR UPDATE");
                     $stmt->execute([$data['memberId']]);
                     $balance = $stmt->fetchColumn();
-                    
+
                     if ($balance < $data['total']) {
                         throw new Exception("Insufficient member balance. Available: ৳$balance");
                     }
@@ -108,7 +108,8 @@ try {
                     ];
                     queueNotification($pdo, $member['email'], 'order_placed', $notif_payload);
                 }
-            } else {
+            }
+            else {
                 // Guest Email Notification
                 if (!empty($data['guestEmail'])) {
                     $notif_payload = [
@@ -124,14 +125,15 @@ try {
             $pdo->commit();
             echo json_encode(['success' => true, 'invoice_no' => $invoice_no]);
 
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
         }
     }
     elseif ($action === 'saveBorrow') {
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         if (!$data || empty($data['items']) || !$data['memberId']) {
             throw new Exception("Invalid borrow data.");
         }
@@ -161,7 +163,7 @@ try {
                 // Update stock
                 $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - 1 WHERE id = ?");
                 $stmt->execute([$item['id']]);
-                
+
                 $booksList[] = $item['title'];
             }
 
@@ -183,14 +185,15 @@ try {
             $pdo->commit();
             echo json_encode(['success' => true]);
 
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
         }
     }
     elseif ($action === 'registerMember') {
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         if (empty($data['full_name']) || empty($data['phone'])) {
             throw new Exception("Name and Phone are required.");
         }
@@ -214,7 +217,7 @@ try {
             $data['phone'],
             $temp_password
         ]);
-        
+
         $memberId = $pdo->lastInsertId();
 
         // Send Welcome Email if email is provided
@@ -231,7 +234,7 @@ try {
         }
 
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'member' => [
                 'id' => $memberId,
                 'membership_id' => $membership_id,
@@ -246,15 +249,17 @@ try {
     }
     elseif ($action === 'getBorrowedBooks') {
         $memberId = $_GET['memberId'] ?? '';
-        if (empty($memberId)) throw new Exception("Member ID is required.");
-        
+        if (empty($memberId))
+            throw new Exception("Member ID is required.");
+
         $stmt = $pdo->prepare("SELECT b.id as borrow_id, bk.id as book_id, bk.title, bk.author, b.borrow_date, b.due_date FROM borrows b JOIN books bk ON b.book_id = bk.id WHERE b.member_id = ? AND b.status = 'Active' ORDER BY b.borrow_date DESC");
         $stmt->execute([$memberId]);
         echo json_encode($stmt->fetchAll());
     }
     elseif ($action === 'returnBooks') {
         $data = json_decode(file_get_contents('php://input'), true);
-        if (empty($data['borrowIds'])) throw new Exception("No books selected for return.");
+        if (empty($data['borrowIds']))
+            throw new Exception("No books selected for return.");
 
         $pdo->beginTransaction();
         try {
@@ -274,7 +279,8 @@ try {
             }
             $pdo->commit();
             echo json_encode(['success' => true]);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
         }
@@ -285,23 +291,26 @@ try {
     }
     elseif ($action === 'getOrderDetails') {
         $orderId = $_GET['id'] ?? '';
-        if (empty($orderId)) throw new Exception("Order ID is required.");
-        
+        if (empty($orderId))
+            throw new Exception("Order ID is required.");
+
         // Get order
         $stmt = $pdo->prepare("SELECT o.*, m.full_name as member_name, m.membership_id FROM orders o LEFT JOIN members m ON o.member_id = m.id WHERE o.id = ?");
         $stmt->execute([$orderId]);
         $order = $stmt->fetch();
-        
-        if (!$order) throw new Exception("Order not found.");
-        
+
+        if (!$order)
+            throw new Exception("Order not found.");
+
         // Get items
         $stmt = $pdo->prepare("SELECT oi.*, b.title as book_title FROM order_items oi JOIN books b ON oi.book_id = b.id WHERE oi.order_id = ?");
         $stmt->execute([$orderId]);
         $items = $stmt->fetchAll();
-        
+
         echo json_encode(['success' => true, 'order' => $order, 'items' => $items]);
     }
-} catch (Exception $e) {
+}
+catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
 }
