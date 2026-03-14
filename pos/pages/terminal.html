@@ -375,8 +375,11 @@
             const grid = document.getElementById('browseGrid');
             grid.innerHTML = '';
             
-            // Image base path: bookshop is a sibling of ontomeel-pos
-            const imageBasePath = '../../../bookshop/admin/assets/book-images/';
+            // Image base path: adjust for production (pos.ontomeel.com) and local dev
+            const isProduction = window.location.hostname.includes('ontomeel.com');
+            const imageBasePath = isProduction 
+                ? 'https://ontomeel.com/admin/assets/book-images/' 
+                : '../../../bookshop/admin/assets/book-images/';
             
             books.forEach(book => {
                 const pill = document.createElement('div');
