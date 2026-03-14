@@ -1,3 +1,4 @@
+<?php
 // api/config/database.php
 
 // Helper to load .env file
