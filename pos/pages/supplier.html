@@ -573,16 +573,30 @@
     </div>
 
     <script>
+        let activeTab = 'suppliers';
         function showTab(tab) {
+            activeTab = tab;
             document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tab + 'Tab').style.display = 'block';
-            event.target.classList.add('active');
+            
+            // Handle active class
+            if (event && event.target && event.target.classList.contains('tab-btn')) {
+                event.target.classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    if (btn.getAttribute('onclick')?.includes(tab)) btn.classList.add('active');
+                });
+            }
 
-            if (tab === 'suppliers') fetchSuppliers();
-            if (tab === 'suppliedBooks') fetchSuppliedBooks();
-            if (tab === 'purchaseRecords') fetchPurchaseRecords();
-            if (tab === 'externalBorrows') fetchExternalBorrows();
+            syncActiveTab();
+        }
+
+        function syncActiveTab() {
+            if (activeTab === 'suppliers') fetchSuppliers();
+            if (activeTab === 'suppliedBooks') fetchSuppliedBooks();
+            if (activeTab === 'purchaseRecords') fetchPurchaseRecords();
+            if (activeTab === 'externalBorrows') fetchExternalBorrows();
         }
 
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
@@ -644,7 +658,10 @@
             if ((await res.json()).success) {
                 showToast("Payment recorded successfully!");
                 closeModal('payModal');
+                // Refresh all tabs
                 fetchSuppliers();
+                fetchSuppliedBooks();
+                fetchPurchaseRecords();
             }
         }
 
@@ -666,7 +683,10 @@
             if (data.success) {
                 showToast("Inventory updated successfully!");
                 closeModal('collectModal');
+                // Refresh all tabs
                 fetchSuppliers();
+                fetchSuppliedBooks();
+                fetchPurchaseRecords();
 
                 // Clear inputs
                 document.getElementById('collTitle').value = '';
@@ -810,6 +830,9 @@
             if (data.success) {
                 showToast('Purchase record saved successfully!');
                 closeModal('purchaseRecordModal');
+                // Refresh all tabs
+                fetchSuppliers();
+                fetchSuppliedBooks();
                 fetchPurchaseRecords();
 
                 // Clear form
@@ -838,7 +861,10 @@
             if ((await res.json()).success) {
                 showToast("Supplier saved successfully!");
                 closeModal('supplierModal');
+                // Refresh all tabs
                 fetchSuppliers();
+                fetchSuppliedBooks();
+                fetchPurchaseRecords();
             }
         }
 
@@ -855,6 +881,7 @@
             if ((await res.json()).success) {
                 showToast("Borrow logged successfully!");
                 closeModal('borrowModal');
+                // Refresh all tabs
                 fetchExternalBorrows();
             }
         }
@@ -872,6 +899,9 @@
             // Set default date for purchase record modal
             document.getElementById('purDate').value = new Date().toISOString().split('T')[0];
             loadSuppliersForPurchase();
+
+            // Background sync - refresh active tab every 15 seconds
+            setInterval(syncActiveTab, 15000);
         };
     </script>
 </body>

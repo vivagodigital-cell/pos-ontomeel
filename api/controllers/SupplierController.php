@@ -79,7 +79,7 @@ try {
 
         $pdo->beginTransaction();
         try {
-            // 2. Check if book exists
+            // 2. Check if book exists (by title and author)
             $stmt = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND author = ?");
             $stmt->execute([$title, $author]);
             $existing = $stmt->fetch();
@@ -91,8 +91,8 @@ try {
                 $stmt->execute([$newQty, $cost, $sale, $supplier['name'], $existing['id']]);
             }
             else {
-                // Insert new
-                $stmt = $pdo->prepare("INSERT INTO books (title, author, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?)");
+                // Insert new book into books table (item_type will default to 'Book' or can be set)
+                $stmt = $pdo->prepare("INSERT INTO books (title, author, stock_qty, purchase_price, sell_price, supplier_name, item_type) VALUES (?, ?, ?, ?, ?, ?, 'Book')");
                 $stmt->execute([$title, $author, $qty, $cost, $sale, $supplier['name']]);
             }
 
@@ -219,24 +219,22 @@ try {
             $pdo->prepare("UPDATE suppliers SET total_due = total_due + ? WHERE id = ?")->execute([$due, $supplierId]);
         }
 
-        // Also add to inventory_items table for non-book items (NEW separate table)
-        if ($itemType !== 'Books' && $itemType !== 'Book') {
-            // Check if item exists in inventory
-            $check = $pdo->prepare("SELECT id, quantity FROM inventory_items WHERE item_name = ? AND item_type = ? AND is_active = 1");
-            $check->execute([$itemName, $itemType]);
-            $existing = $check->fetch();
+        // Add/update in books table for unified inventory
+        // Check if item exists in books
+        $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND (item_type = ? OR item_type = 'General')");
+        $check->execute([$itemName, $itemType]);
+        $existing = $check->fetch();
 
-            if ($existing) {
-                // Update existing inventory
-                $newQty = $existing['quantity'] + $qty;
-                $upd = $pdo->prepare("UPDATE inventory_items SET quantity = ?, unit_cost = ?, sell_price = ? WHERE id = ?");
-                $upd->execute([$newQty, $unitCost, $unitCost, $existing['id']]);
-            }
-            else {
-                // Insert new inventory item
-                $ins = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_id, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $ins->execute([$itemName, $itemType, $qty, $unitCost, $unitCost, $supplierId, $supplierName]);
-            }
+        if ($existing) {
+            // Update existing inventory in books table
+            $newQty = $existing['stock_qty'] + $qty;
+            $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, sell_price = ?, supplier_name = ?, item_type = ? WHERE id = ?");
+            $upd->execute([$newQty, $unitCost, $unitCost, $supplierName, $itemType, $existing['id']]);
+        }
+        else {
+            // Insert new item into books table (only using supplier_name, not supplier_id)
+            $ins = $pdo->prepare("INSERT INTO books (title, item_type, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?)");
+            $ins->execute([$itemName, $itemType, $qty, $unitCost, $unitCost, $supplierName]);
         }
 
         echo json_encode(['success' => true, 'message' => 'Purchase recorded!']);

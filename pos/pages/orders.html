@@ -396,7 +396,11 @@
             window.print();
         }
 
-        window.onload = fetchOrders;
+        window.onload = function() {
+            fetchOrders();
+            // Background sync - refresh orders every 15 seconds
+            setInterval(fetchOrders, 15000);
+        };
     </script>
 </body>
 

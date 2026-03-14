@@ -7,8 +7,8 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'getItems') {
-        // Fetch from new inventory_items table (not books table)
-        $stmt = $pdo->query("SELECT id, item_name as title, item_type, quantity as stock_qty, sell_price, barcode as isbn FROM inventory_items WHERE is_active = 1 ORDER BY id DESC");
+        // Fetch all items from books table (including non-book items via item_type)
+        $stmt = $pdo->query("SELECT id, title, item_type, stock_qty, sell_price, isbn, author, cover_image, purchase_price, supplier_name FROM books WHERE is_active = 1 ORDER BY id DESC");
         $items = $stmt->fetchAll();
         echo json_encode(["success" => true, "items" => $items]);
     }
@@ -20,16 +20,17 @@ try {
         $stock = (int)($data['stock'] ?? 0);
         $price = (float)($data['price'] ?? 0.00);
         $sku   = $data['barcode'] ?? null;
+        $cost  = (float)($data['cost'] ?? 0.00);
 
         if (empty($title)) {
             echo json_encode(["success" => false, "error" => "Item name is required!"]);
             exit;
         }
 
-        // Insert into new inventory_items table
-        $stmt = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, sell_price, barcode) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$title, $type, $stock, $price, $sku]);
-        echo json_encode(["success" => true, "message" => "Item added!"]);
+        // Insert into books table with item_type
+        $stmt = $pdo->prepare("INSERT INTO books (title, item_type, stock_qty, sell_price, isbn, purchase_price) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$title, $type, $stock, $price, $sku, $cost]);
+        echo json_encode(["success" => true, "message" => "Item added!", "id" => $pdo->lastInsertId()]);
     }
 
     elseif ($action === 'updateItem') {
@@ -40,15 +41,16 @@ try {
         $stock = (int)($data['stock'] ?? 0);
         $price = (float)($data['price'] ?? 0.00);
         $sku   = $data['barcode'] ?? null;
+        $cost  = (float)($data['cost'] ?? 0.00);
 
         if (!$id || empty($title)) {
             echo json_encode(["success" => false, "error" => "Invalid data."]);
             exit;
         }
 
-        // Update in new inventory_items table
-        $stmt = $pdo->prepare("UPDATE inventory_items SET item_name=?, item_type=?, quantity=?, sell_price=?, barcode=? WHERE id=?");
-        $stmt->execute([$title, $type, $stock, $price, $sku, $id]);
+        // Update in books table
+        $stmt = $pdo->prepare("UPDATE books SET title=?, item_type=?, stock_qty=?, sell_price=?, isbn=?, purchase_price=? WHERE id=?");
+        $stmt->execute([$title, $type, $stock, $price, $sku, $cost, $id]);
         echo json_encode(["success" => true, "message" => "Item updated!"]);
     }
 
@@ -62,7 +64,7 @@ try {
         }
 
         // Soft-delete: set is_active = 0 
-        $stmt = $pdo->prepare("UPDATE inventory_items SET is_active = 0 WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE books SET is_active = 0 WHERE id = ?");
         $stmt->execute([$id]);
         echo json_encode(["success" => true, "message" => "Item deleted."]);
     }
@@ -77,9 +79,15 @@ try {
             exit;
         }
 
-        // Restock in new inventory_items table
-        $stmt = $pdo->prepare("UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?");
+        // Restock in books table
+        $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty + ? WHERE id = ? AND is_active = 1");
         $stmt->execute([$qty, $id]);
+        
+        // Verify update happened
+        if ($stmt->rowCount() === 0) {
+            echo json_encode(["success" => false, "error" => "Item not found or already inactive."]);
+            exit;
+        }
         echo json_encode(["success" => true, "message" => "Stock updated!"]);
     }
 

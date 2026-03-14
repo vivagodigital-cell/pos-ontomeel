@@ -9,7 +9,8 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'getBooks') {
-        $stmt = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty FROM books WHERE is_active = 1 AND (item_type = 'Book' OR item_type IS NULL OR item_type = '') ORDER BY title ASC");
+        // Fetch all items from books table including non-book items (item_type = 'General', 'Stationery', etc.)
+        $stmt = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, item_type FROM books WHERE is_active = 1 AND stock_qty > 0 ORDER BY title ASC");
         $books = $stmt->fetchAll();
         echo json_encode($books);
     }
@@ -205,8 +206,9 @@ try {
             throw new Exception("A member with this phone number already exists.");
         }
 
-        // Generate Membership ID (OM-RANDOM)
-        $membership_id = 'OM-' . strtoupper(substr(md5(uniqid()), 0, 8));
+        // Generate Membership ID (OM-YYYY-XXXX format)
+        $year = date('Y');
+        $membership_id = 'OM-' . $year . '-' . strtoupper(substr(md5(uniqid()), -4));
         $temp_password = password_hash('123456', PASSWORD_DEFAULT); // Default temp password
 
         $stmt = $pdo->prepare("INSERT INTO members (membership_id, full_name, email, phone, password, membership_plan, acc_balance) VALUES (?, ?, ?, ?, ?, 'None', 0)");
