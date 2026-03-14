@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ontomeel POS | Library Dashboard</title>
+    <link rel="stylesheet" href="assets/pos-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo">ONTOMEEL</div>
+        <ul class="nav-links">
+            <li class="nav-item">
+                <a href="#" class="nav-link active">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="nav-text">Point of Sale</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fa-solid fa-book"></i>
+                    <span class="nav-text">Inventory</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fa-solid fa-users"></i>
+                    <span class="nav-text">Members</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span class="nav-text">Borrows</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span class="nav-text">Reports</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="main-wrapper">
+        <header>
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass" style="color: var(--text-secondary);"></i>
+                <input type="text" placeholder="Search books, members, or transactions...">
+            </div>
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="User" style="width: 40px; border-radius: 10px;">
+            </div>
+        </header>
+
+        <section class="dashboard-overview">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">ACTIVE BORROWS</span>
+                        <span class="stat-trend up">+12%</span>
+                    </div>
+                    <div class="stat-value">124</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">TODAY'S SALES</span>
+                        <span class="stat-trend up">+5.2%</span>
+                    </div>
+                    <div class="stat-value">৳8,450</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">NEW MEMBERS</span>
+                        <span class="stat-trend up">+8</span>
+                    </div>
+                    <div class="stat-value">42</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-title">OVERDUE BOOKS</span>
+                        <span class="stat-trend" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">ALERT</span>
+                    </div>
+                    <div class="stat-value">7</div>
+                </div>
+            </div>
+
+            <h2 style="margin-bottom: 1.5rem;">Quick Actions</h2>
+            <div class="action-grid">
+                <div class="action-card">
+                    <i class="fa-solid fa-plus action-icon" style="color: var(--accent-indigo);"></i>
+                    <h3>New Borrow</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Issue a book to a member</p>
+                </div>
+                <div class="action-card">
+                    <i class="fa-solid fa-rotate-left action-icon" style="color: var(--accent-emerald);"></i>
+                    <h3>Return Book</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Process returned items</p>
+                </div>
+                <div class="action-card">
+                    <i class="fa-solid fa-cash-register action-icon" style="color: #fbbf24;"></i>
+                    <h3>New Sale</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Direct book purchase</p>
+                </div>
+                <div class="action-card">
+                    <i class="fa-solid fa-user-plus action-icon" style="color: #ec4899;"></i>
+                    <h3>Add Member</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">Register new library user</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        async function updateDashboard() {
+            try {
+                const response = await fetch('../api/controllers/DashboardController.php');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('API Error:', data.error);
+                    return;
+                }
+
+                // Update UI elements
+                document.querySelector('.stat-card:nth-child(1) .stat-value').innerText = data.active_borrows;
+                document.querySelector('.stat-card:nth-child(2) .stat-value').innerText = '৳' + data.today_sales;
+                document.querySelector('.stat-card:nth-child(3) .stat-value').innerText = data.total_members;
+                document.querySelector('.stat-card:nth-child(4) .stat-value').innerText = data.overdue_books;
+                
+            } catch (error) {
+                console.error('Fetch error:', error);
+            }
+        }
+
+        // Run on load
+        updateDashboard();
+        // Refresh every minute
+        setInterval(updateDashboard, 60000);
+    </script>
+</body>
+</html>
