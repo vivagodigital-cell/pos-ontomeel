@@ -229,6 +229,41 @@ try {
             ]
         ]);
     }
+    elseif ($action === 'getBorrowedBooks') {
+        $memberId = $_GET['memberId'] ?? '';
+        if (empty($memberId)) throw new Exception("Member ID is required.");
+        
+        $stmt = $pdo->prepare("SELECT b.id as borrow_id, bk.id as book_id, bk.title, bk.author, b.borrow_date, b.due_date FROM borrows b JOIN books bk ON b.book_id = bk.id WHERE b.member_id = ? AND b.status = 'Active' ORDER BY b.borrow_date DESC");
+        $stmt->execute([$memberId]);
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif ($action === 'returnBooks') {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (empty($data['borrowIds'])) throw new Exception("No books selected for return.");
+
+        $pdo->beginTransaction();
+        try {
+            foreach ($data['borrowIds'] as $borrowId) {
+                // Get book_id
+                $stmt = $pdo->prepare("SELECT book_id FROM borrows WHERE id = ?");
+                $stmt->execute([$borrowId]);
+                $bookId = $stmt->fetchColumn();
+
+                // Update borrow record
+                $stmt = $pdo->prepare("UPDATE borrows SET status = 'Returned', return_date = CURRENT_TIMESTAMP WHERE id = ?");
+                $stmt->execute([$borrowId]);
+
+                // Increase stock
+                $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty + 1 WHERE id = ?");
+                $stmt->execute([$bookId]);
+            }
+            $pdo->commit();
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);

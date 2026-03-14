@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier & External Inventory | Ontomeel POS</title>
+    <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .supplier-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .data-card {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        td {
+            padding: 1.25rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-body);
+        }
+
+        tr:hover td {
+            background: var(--primary-blue-soft);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            width: 450px;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 25px 70px -10px rgba(15, 23, 42, 0.2);
+            animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .checkout-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            outline: none;
+            background: #f8fafc;
+        }
+
+        .checkout-input:focus {
+            border-color: var(--primary-blue);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .status-active { background: #ecfdf5; color: #10b981; }
+        .status-overdue { background: #fef2f2; color: #ef4444; }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: #f1f5f9;
+            padding: 5px;
+            border-radius: 16px;
+            width: fit-content;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: 0.3s;
+            color: var(--text-muted);
+            border: none;
+            background: transparent;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary-blue);
+            box-shadow: var(--shadow-sm);
+        }
+
+        #toastContainer {
+            position: fixed;
+            bottom: 30px; right: 30px;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: #0f172a;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 16px;
+            margin-top: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-wrapper">
+            <div class="logo-icon"><i class="fa-solid fa-book-open"></i></div>
+            <span class="logo-text">ONTOMEEL</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span class="nav-text">Dashboard</span></a></li>
+            <li class="nav-item"><a href="terminal.html" class="nav-link"><i class="fa-solid fa-cash-register"></i><span class="nav-text">Terminal</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-book"></i><span class="nav-text">Inventory</span></a></li>
+            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span class="nav-text">Members</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-truck-ramp-box"></i><span class="nav-text">Suppliers</span></a></li>
+            <li class="nav-item"><a href="report.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span class="nav-text">Reports</span></a></li>
+        </ul>
+    </nav>
+
+    <div class="main-wrapper">
+        <header>
+            <div class="page-title">
+                <h1>Supplier & <span style="color: var(--primary-blue);">Inventory Source</span></h1>
+                <p>Track book procurement and external library loans</p>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('suppliers')">Suppliers List</button>
+            <button class="tab-btn" onclick="showTab('suppliedBooks')">Supplied Books</button>
+            <button class="tab-btn" onclick="showTab('externalBorrows')">External Borrows</button>
+        </div>
+
+        <!-- Suppliers Tab -->
+        <div id="suppliersTab" class="tab-content">
+            <div class="data-card">
+                <div class="card-header">
+                    <div style="font-weight: 800; font-size: 1.1rem;">Registered Suppliers</div>
+                    <button class="nav-link active" onclick="openModal('supplierModal')" style="padding: 10px 20px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-plus"></i> ADD SUPPLIER
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Supplier Name</th>
+                                <th>Contact</th>
+                                <th>Total Due</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplierTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supplied Books Tab -->
+        <div id="suppliedBooksTab" class="tab-content" style="display:none;">
+            <div class="data-card">
+                <div class="card-header">
+                    <div style="font-weight: 800; font-size: 1.1rem;">Procurement History</div>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Supplier Name</th>
+                                <th>Total Titles</th>
+                                <th>Inventory Value</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="procurementTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- External Borrows Tab -->
+        <div id="externalBorrowsTab" class="tab-content" style="display:none;">
+            <div class="data-card">
+                <div class="card-header">
+                    <div style="font-weight: 800; font-size: 1.1rem;">Books Borrowed from Other Libraries</div>
+                    <button class="nav-link active" onclick="openModal('borrowModal')" style="padding: 10px 20px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-plus"></i> LOG BORROW
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Library Name</th>
+                                <th>Book Title</th>
+                                <th>Borrow Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="borrowTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="supplierModal">
+        <div class="modal-content">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+                <h2 style="margin:0; font-size:1.2rem;">Add New Supplier</h2>
+                <button onclick="closeModal('supplierModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+            <div style="padding: 2rem;">
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">SUPPLIER NAME</label>
+                    <input type="text" id="supName" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">CONTACT PHONE</label>
+                    <input type="text" id="supContact" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">EMAIL</label>
+                    <input type="email" id="supEmail" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">ADDRESS</label>
+                    <textarea id="supAddress" class="checkout-input" style="height: 80px;"></textarea>
+                </div>
+                <button onclick="saveSupplier()" class="nav-link active" style="width:100%; justify-content:center; padding:12px; margin-top:1rem;">SAVE SUPPLIER</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="borrowModal">
+        <div class="modal-content">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+                <h2 style="margin:0; font-size:1.2rem;">Log External Borrow</h2>
+                <button onclick="closeModal('borrowModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+            <div style="padding: 2rem;">
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">LIBRARY NAME</label>
+                    <input type="text" id="borLib" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">BOOK TITLE</label>
+                    <input type="text" id="borTitle" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">AUTHOR</label>
+                    <input type="text" id="borAuthor" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">DUE DATE</label>
+                    <input type="date" id="borDue" class="checkout-input">
+                </div>
+                <button onclick="saveBorrow()" class="nav-link active" style="width:100%; justify-content:center; padding:12px; margin-top:1rem;">LOG ENTRY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collect Books Modal -->
+    <div class="modal-overlay" id="collectModal">
+        <div class="modal-content" style="width: 500px;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+                <h2 style="margin:0; font-size:1.2rem;">Record Book Collection</h2>
+                <button onclick="closeModal('collectModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+            <div style="padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="input-group" style="grid-column: span 2;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-header);">BOOK TITLE *</label>
+                    <input type="text" id="collTitle" class="checkout-input">
+                </div>
+                <div class="input-group" style="grid-column: span 2;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">AUTHOR</label>
+                    <input type="text" id="collAuthor" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">QUANTITY *</label>
+                    <input type="number" id="collQty" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PURCHASE PRICE *</label>
+                    <input type="number" id="collCost" class="checkout-input">
+                </div>
+                <div class="input-group" style="grid-column: span 2;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">SELLING PRICE</label>
+                    <input type="number" id="collSale" class="checkout-input">
+                </div>
+                <button onclick="processCollection()" class="nav-link active" style="grid-column: span 2; justify-content:center; padding:12px; margin-top:0.5rem;">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> UPDATE INVENTORY
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Due Modal -->
+    <div class="modal-overlay" id="payModal">
+        <div class="modal-content">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
+                <h2 style="margin:0; font-size:1.2rem;">Settle Supplier Due</h2>
+                <button onclick="closeModal('payModal')" style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+            <div style="padding: 2rem;">
+                <div style="background: #fef2f2; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <span style="font-size: 0.75rem; color: #ef4444; font-weight: 800;">CURRENT OUTSTANDING</span>
+                    <div id="payDueDisplay" style="font-size: 1.5rem; font-weight: 800; color: #b91c1c;">৳0.00</div>
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PAYMENT AMOUNT</label>
+                    <input type="number" id="payAmount" class="checkout-input">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">METHOD</label>
+                    <select id="payMethod" class="checkout-input">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank">Bank Transfer</option>
+                        <option value="Mobile">Mobile Banking</option>
+                    </select>
+                </div>
+                <button onclick="processPayment()" class="nav-link active" style="width:100%; justify-content:center; padding:12px; margin-top:1rem; background:#10b981;">
+                    RECORD PAYMENT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <!-- View Books Modal -->
+    <div class="modal-overlay" id="viewBooksModal">
+        <div class="modal-content" style="width: 80%; max-width: 900px;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items:center;">
+                <h2 style="margin:0; font-size:1.2rem;"><i class="fa-solid fa-book"></i> Books from <span id="currentDetailSupplier" style="color:var(--primary-blue);"></span></h2>
+                <button onclick="closeModal('viewBooksModal')" style="border:none; background:#f1f5f9; cursor:pointer; font-size:1rem; padding: 10px 15px; border-radius: 50%;"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
+                <div class="table-wrapper">
+                    <table style="background:#f8fafc; border-radius:12px;">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Author</th>
+                                <th>Purchase Price</th>
+                                <th>Stock Qty</th>
+                                <th>Total Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplierDetailTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tab + 'Tab').style.display = 'block';
+            event.target.classList.add('active');
+            
+            if(tab === 'suppliers') fetchSuppliers();
+            if(tab === 'suppliedBooks') fetchSuppliedBooks();
+            if(tab === 'externalBorrows') fetchExternalBorrows();
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        let activeSupplierId = null;
+        async function fetchSuppliers() {
+            const res = await fetch('../../api/controllers/SupplierController.php?action=listSuppliers');
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('supplierTableBody').innerHTML = data.suppliers.map(s => `
+                    <tr>
+                        <td style="font-weight:700;">${s.name}</td>
+                        <td>
+                            <div style="font-size:0.85rem;">${s.contact || 'N/A'}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">${s.address || ''}</div>
+                        </td>
+                        <td style="color:#ef4444; font-weight:700;">৳${s.total_due}</td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <button onclick="openCollectModal('${s.id}', '${s.name.replace(/'/g, "\\'")}')" 
+                                style="padding: 8px 14px; font-size: 0.7rem; border:none; border-radius:10px; background:var(--primary-blue); color:white; font-weight:800; cursor:pointer; margin-right:5px; transition:0.3s;">
+                                <i class="fa-solid fa-box-archive"></i> COLLECT
+                            </button>
+                            <button onclick="openPayModal('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${s.total_due})" 
+                                style="padding: 8px 14px; font-size: 0.7rem; border:none; border-radius:10px; background:#10b981; color:white; font-weight:800; cursor:pointer; transition:0.3s;">
+                                <i class="fa-solid fa-receipt"></i> PAY
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function openCollectModal(id, name) {
+            activeSupplierId = id;
+            openModal('collectModal');
+            document.querySelector('#collectModal h2').innerText = "Record Collection: " + name;
+        }
+
+        function openPayModal(id, name, due) {
+            activeSupplierId = id;
+            document.getElementById('payDueDisplay').innerText = "৳" + due;
+            document.getElementById('payAmount').value = due;
+            openModal('payModal');
+            document.querySelector('#payModal h2').innerText = "Payment to: " + name;
+        }
+
+        async function processPayment() {
+            const payload = {
+                supplierId: activeSupplierId,
+                amount: document.getElementById('payAmount').value,
+                method: document.getElementById('payMethod').value
+            };
+            if(!payload.amount || payload.amount <= 0) return alert("Valid amount required.");
+
+            const res = await fetch('../../api/controllers/SupplierController.php?action=recordPayment', {
+                method: 'POST', body: JSON.stringify(payload)
+            });
+            if((await res.json()).success) {
+                showToast("Payment recorded successfully!");
+                closeModal('payModal');
+                fetchSuppliers();
+            }
+        }
+
+        async function processCollection() {
+            const payload = {
+                supplierId: activeSupplierId,
+                title: document.getElementById('collTitle').value,
+                author: document.getElementById('collAuthor').value,
+                qty: document.getElementById('collQty').value,
+                cost: document.getElementById('collCost').value,
+                sale: document.getElementById('collSale').value
+            };
+            if(!payload.title || !payload.qty) return alert("Title and Quantity are required.");
+
+            const res = await fetch('../../api/controllers/SupplierController.php?action=receiveInventory', {
+                method: 'POST', body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(data.success) {
+                showToast("Inventory updated successfully!");
+                closeModal('collectModal');
+                fetchSuppliers();
+                
+                // Clear inputs
+                document.getElementById('collTitle').value = '';
+                document.getElementById('collAuthor').value = '';
+                document.getElementById('collQty').value = '';
+                document.getElementById('collCost').value = '';
+                document.getElementById('collSale').value = '';
+            }
+        }
+
+        async function fetchSuppliedBooks() {
+            const res = await fetch('../../api/controllers/SupplierController.php?action=getSupplierBooks');
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('procurementTableBody').innerHTML = data.data.map(d => `
+                    <tr>
+                        <td style="font-weight:700;">${d.supplier_name}</td>
+                        <td>${d.book_count}</td>
+                        <td style="color:var(--primary-blue); font-weight:700;">৳${parseFloat(d.inventory_value).toLocaleString()}</td>
+                        <td style="text-align:right;">
+                            <button class="nav-link active" onclick="viewSupplierBooks('${d.supplier_name.replace(/'/g, "\\'")}')" style="padding: 6px 12px; font-size: 0.75rem; display:inline-flex;">
+                                <i class="fa-solid fa-eye"></i> VIEW BOOKS
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function viewSupplierBooks(name) {
+            document.getElementById('currentDetailSupplier').innerText = name;
+            openModal('viewBooksModal');
+            
+            // Show loading state
+            document.getElementById('supplierDetailTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading books...</td></tr>';
+
+            const res = await fetch(`../../api/controllers/SupplierController.php?action=getBooksBySupplier&name=${encodeURIComponent(name)}`);
+            const data = await res.json();
+            
+            if(data.success) {
+                if(data.books.length > 0) {
+                    document.getElementById('supplierDetailTableBody').innerHTML = data.books.map(b => `
+                        <tr>
+                            <td style="font-weight:700;">${b.title}</td>
+                            <td>${b.author}</td>
+                            <td>৳${b.purchase_price}</td>
+                            <td>${b.stock_qty}</td>
+                            <td style="font-weight:700; color:var(--primary-blue);">৳${parseFloat(b.total_value).toLocaleString()}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('supplierDetailTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No books found for this supplier.</td></tr>';
+                }
+            }
+        }
+
+        async function fetchExternalBorrows() {
+            const res = await fetch('../../api/controllers/SupplierController.php?action=listExternalBorrows');
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('borrowTableBody').innerHTML = data.borrows.map(b => `
+                    <tr>
+                        <td style="font-weight:700;">${b.library_name}</td>
+                        <td>${b.book_title}</td>
+                        <td>${b.borrow_date}</td>
+                        <td>${b.due_date}</td>
+                        <td><span class="status-badge status-${b.status.toLowerCase()}">${b.status}</span></td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function saveSupplier() {
+            const payload = {
+                name: document.getElementById('supName').value,
+                contact: document.getElementById('supContact').value,
+                email: document.getElementById('supEmail').value,
+                address: document.getElementById('supAddress').value
+            };
+            const res = await fetch('../../api/controllers/SupplierController.php?action=saveSupplier', {
+                method: 'POST', body: JSON.stringify(payload)
+            });
+            if((await res.json()).success) {
+                showToast("Supplier saved successfully!");
+                closeModal('supplierModal');
+                fetchSuppliers();
+            }
+        }
+
+        async function saveBorrow() {
+            const payload = {
+                library_name: document.getElementById('borLib').value,
+                book_title: document.getElementById('borTitle').value,
+                author: document.getElementById('borAuthor').value,
+                due_date: document.getElementById('borDue').value
+            };
+            const res = await fetch('../../api/controllers/SupplierController.php?action=saveExternalBorrow', {
+                method: 'POST', body: JSON.stringify(payload)
+            });
+            if((await res.json()).success) {
+                showToast("Borrow logged successfully!");
+                closeModal('borrowModal');
+                fetchExternalBorrows();
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        window.onload = fetchSuppliers;
+    </script>
+</body>
+</html>

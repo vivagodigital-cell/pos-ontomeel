@@ -599,9 +599,9 @@
             <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span class="nav-text">Dashboard</span></a></li>
             <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-cash-register"></i><span class="nav-text">Terminal</span></a></li>
             <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-book"></i><span class="nav-text">Inventory</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-users"></i><span class="nav-text">Members</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i><span class="nav-text">Borrows</span></a></li>
-            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-chart-line"></i><span class="nav-text">Reports</span></a></li>
+            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span class="nav-text">Members</span></a></li>
+            <li class="nav-item"><a href="supplier.html" class="nav-link"><i class="fa-solid fa-truck-ramp-box"></i><span class="nav-text">Suppliers</span></a></li>
+            <li class="nav-item"><a href="report.html" class="nav-link"><i class="fa-solid fa-chart-line"></i><span class="nav-text">Reports</span></a></li>
         </ul>
     </nav>
 
@@ -805,6 +805,28 @@
         </div>
     </div>
 
+    <!-- Return Modal -->
+    <div class="modal-overlay" id="returnModal">
+        <div class="checkout-modal" style="width: 550px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin:0; font-weight: 800;">Process Returns</h2>
+                <button onclick="closeReturnModal()" style="border:none; background:none; cursor:pointer; font-size:1.5rem; color:#94a3b8;">&times;</button>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Active borrows for <span id="returnMemberName" style="color: var(--primary-blue); font-weight: 800;">Member</span></p>
+
+            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1.5rem;" id="borrowListContainer">
+                <!-- Borrowed items will be loaded here -->
+            </div>
+
+            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem; background: #10b981;" onclick="processReturn()">
+                <i class="fa-solid fa-rotate-left"></i> CONFIRM RETURN
+            </button>
+            <button class="btn-action" style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);" onclick="closeReturnModal()">
+                CANCEL
+            </button>
+        </div>
+    </div>
+
     <div id="toastContainer"></div>
 
     <script>
@@ -840,6 +862,15 @@
             renderSkeletons();
             await fetchBooks(false); // First fetch with skeletons
             
+            // Handle URL Actions (from dashboard)
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            if(action === 'return') {
+                showToast("Please select a member to process their return.", "info");
+            } else if(action === 'issue') {
+                showToast("Select a member and add books to issue them.", "info");
+            }
+
             // Continuous Background Sync (every 30 seconds)
             setInterval(() => fetchBooks(true), 30000);
         }
@@ -1083,6 +1114,73 @@
             document.getElementById('selMemberExpiry').style.color = expiry === 'N/A' ? '#94a3b8' : '#e11d48';
 
             document.getElementById('selectedMember').style.display = 'flex';
+
+            // Check if we need to auto-trigger Return Modal
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('action') === 'return') {
+                openReturnModal();
+            }
+        }
+
+        async function openReturnModal() {
+            if(!selectedMember) return;
+            document.getElementById('returnMemberName').innerText = selectedMember.full_name;
+            document.getElementById('returnModal').style.display = 'flex';
+            
+            const container = document.getElementById('borrowListContainer');
+            container.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading borrows...</div>';
+
+            try {
+                const res = await fetch(`../../api/controllers/TerminalController.php?action=getBorrowedBooks&memberId=${selectedMember.id}`);
+                const borrows = await res.json();
+                
+                if(borrows.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">No active borrows found for this member.</div>';
+                } else {
+                    container.innerHTML = borrows.map(b => `
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-weight:700; font-size:0.9rem;">${b.title}</div>
+                                <div style="font-size:0.75rem; color:var(--text-muted);">Due: ${new Date(b.due_date).toLocaleDateString()}</div>
+                            </div>
+                            <input type="checkbox" class="return-check" value="${b.borrow_id}" style="width:20px; height:20px; cursor:pointer;">
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                container.innerHTML = '<div style="padding:20px; color:#ef4444;">Error loading borrows.</div>';
+            }
+        }
+
+        function closeReturnModal() {
+            document.getElementById('returnModal').style.display = 'none';
+        }
+
+        async function processReturn() {
+            const checks = document.querySelectorAll('.return-check:checked');
+            if(checks.length === 0) return alert("Please select books to return.");
+
+            const borrowIds = Array.from(checks).map(c => c.value);
+            const btn = document.querySelector('#returnModal .btn-sell');
+            btn.disabled = true;
+            btn.innerText = "PROCESSING...";
+
+            try {
+                const res = await fetch('../../api/controllers/TerminalController.php?action=returnBooks', {
+                    method: 'POST',
+                    body: JSON.stringify({ borrowIds: borrowIds })
+                });
+                if((await res.json()).success) {
+                    showToast("Books returned successfully!", "success");
+                    closeReturnModal();
+                    clearMember();
+                }
+            } catch(e) {
+                showToast("Failed to process return.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "CONFIRM RETURN";
+            }
         }
 
         function openMemberModal() {

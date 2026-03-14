@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Intelligence | Ontomeel POS</title>
+    <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .report-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+        }
+
+        .ai-insight-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 24px;
+            padding: 2.5rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3);
+        }
+
+        .ai-insight-card::before {
+            content: '';
+            position: absolute;
+            top: -50px; right: -50px;
+            width: 200px; height: 200px;
+            background: rgba(37, 99, 235, 0.2);
+            filter: blur(60px);
+            border-radius: 50%;
+        }
+
+        .ai-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-top: 1.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .ai-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .ai-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .ai-content::-webkit-scrollbar-thumb {
+            background: rgba(37, 99, 235, 0.3);
+            border-radius: 10px;
+        }
+
+        .btn-ai {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-ai:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .stat-small {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-wrapper">
+            <div class="logo-icon"><i class="fa-solid fa-book-open"></i></div>
+            <span class="logo-text">ONTOMEEL</span>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="../index.html" class="nav-link"><i class="fa-solid fa-house"></i><span class="nav-text">Dashboard</span></a></li>
+            <li class="nav-item"><a href="terminal.html" class="nav-link"><i class="fa-solid fa-cash-register"></i><span class="nav-text">Terminal</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-book"></i><span class="nav-text">Inventory</span></a></li>
+            <li class="nav-item"><a href="member.html" class="nav-link"><i class="fa-solid fa-users"></i><span class="nav-text">Members</span></a></li>
+            <li class="nav-item"><a href="supplier.html" class="nav-link"><i class="fa-solid fa-truck-ramp-box"></i><span class="nav-text">Suppliers</span></a></li>
+            <li class="nav-item"><a href="#" class="nav-link active"><i class="fa-solid fa-chart-line"></i><span class="nav-text">Reports</span></a></li>
+        </ul>
+    </nav>
+
+    <div class="main-wrapper">
+        <header>
+            <div class="page-title">
+                <h1>Business <span style="color: var(--primary-blue);">Intelligence</span></h1>
+                <p>Data-driven insights for smarter library management</p>
+            </div>
+            <div class="header-tools">
+                <button class="nav-link active" onclick="window.print()" style="padding: 10px 20px; font-size: 0.85rem;">
+                    <i class="fa-solid fa-file-export"></i> EXPORT PDF
+                </button>
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-blue"><i class="fa-solid fa-coins"></i></div>
+                <span class="stat-title">Total Revenue</span>
+                <div class="stat-value" id="valTotalSales">৳0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-mint"><i class="fa-solid fa-book-reader"></i></div>
+                <span class="stat-title">Total Borrows</span>
+                <div class="stat-value" id="valTotalBorrows">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-pink"><i class="fa-solid fa-user-check"></i></div>
+                <span class="stat-title">New Members</span>
+                <div class="stat-value" id="valTotalMembers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-yellow"><i class="fa-solid fa-clock"></i></div>
+                <span class="stat-title">Active Borrows</span>
+                <div class="stat-value" id="valActiveBorrows">0</div>
+            </div>
+        </div>
+
+        <div class="report-grid">
+            <div class="left-col">
+                <div class="chart-container">
+                    <div style="font-weight: 800; margin-bottom: 1.5rem; color: var(--text-header);">Sales Performance (Last 7 Days)</div>
+                    <canvas id="salesChart" height="120"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div style="font-weight: 800; margin-bottom: 1.5rem; color: var(--text-header);">Most Borrowed Books</div>
+                    <canvas id="popularChart" height="120"></canvas>
+                </div>
+            </div>
+
+            <div class="right-col">
+                <div class="ai-insight-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <div style="font-weight: 800; font-size: 1.1rem;"><i class="fa-solid fa-brain" style="color: var(--primary-blue);"></i> AI INSIGHTS</div>
+                        <div class="stat-small">Groq Engine</div>
+                    </div>
+                    <div id="aiResponse" class="ai-content">
+                        Click the button below to analyze your library data and get professional management suggestions.
+                    </div>
+                    <div style="margin-top: 2rem;">
+                        <button id="btnAiAnalyze" class="btn-ai" onclick="generateAIInsights()">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> ANALYZE DATA
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-container" style="margin-top: 2rem;">
+                    <div style="font-weight: 800; margin-bottom: 1.5rem; color: var(--text-header);">Plan Distribution</div>
+                    <canvas id="planChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let reportData = {};
+
+        async function initDashboard() {
+            try {
+                // Fetch Summary
+                const sumRes = await fetch('../../api/controllers/ReportController.php?action=getSummary');
+                const sumData = await sumRes.json();
+                if (sumData.success) {
+                    reportData.summary = sumData.summary;
+                    document.getElementById('valTotalSales').innerText = '৳' + sumData.summary.total_sales;
+                    document.getElementById('valTotalBorrows').innerText = sumData.summary.total_borrows;
+                    document.getElementById('valTotalMembers').innerText = sumData.summary.total_members;
+                    document.getElementById('valActiveBorrows').innerText = sumData.summary.active_borrows;
+                }
+
+                // Sales Chart
+                const salesRes = await fetch('../../api/controllers/ReportController.php?action=getSalesData');
+                const salesData = await salesRes.json();
+                if (salesData.success) {
+                    reportData.sales = salesData.data;
+                    renderSalesChart(salesData.data);
+                }
+
+                // Popular Books
+                const popRes = await fetch('../../api/controllers/ReportController.php?action=getPopularBooks');
+                const popData = await popRes.json();
+                if (popData.success) {
+                    reportData.popular = popData.data;
+                    renderPopularChart(popData.data);
+                }
+
+                // Plan Distribution
+                const planRes = await fetch('../../api/controllers/ReportController.php?action=getMemberStats');
+                const planData = await planRes.json();
+                if (planData.success) {
+                    reportData.plans = planData.data;
+                    renderPlanChart(planData.data);
+                }
+
+            } catch (e) { console.error(e); }
+        }
+
+        function renderSalesChart(data) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: 'Daily Sales (৳)',
+                        data: data.map(d => d.amount),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#2563eb'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderPopularChart(data) {
+            const ctx = document.getElementById('popularChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.title),
+                    datasets: [{
+                        label: 'Borrows',
+                        data: data.map(d => d.borrow_count),
+                        backgroundColor: '#10b981',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, grid: { display: false } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderPlanChart(data) {
+            const ctx = document.getElementById('planChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.membership_plan),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: ['#64748b', '#10b981', '#2563eb', '#db2777'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } }
+                }
+            });
+        }
+
+        async function generateAIInsights() {
+            const btn = document.getElementById('btnAiAnalyze');
+            const responseDiv = document.getElementById('aiResponse');
+            
+            btn.disabled = true;
+            btn.classList.add('pulse');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing Data...';
+            responseDiv.innerHTML = "Consulting AI engine for business insights...";
+
+            try {
+                // Fetch Advanced Stats for AI
+                const advRes = await fetch('../../api/controllers/ReportController.php?action=getAdvancedStats');
+                const advData = await advRes.json();
+                
+                const stats = advData.success ? advData.adv : {};
+
+                const prompt = `
+                    Act as a professional Library Management Consultant. Analyze these metrics:
+                    
+                    1. Website vs POS Sales:
+                       - Website Sales: ৳${stats.website_sales || 0}
+                       - POS Direct Sales: ৳${stats.pos_sales || 0}
+                    
+                    2. Inventory Health:
+                       - Total Book Titles: ${stats.total_books || 0}
+                       - Out of Stock Items: ${stats.low_stock || 0}
+                    
+                    3. Popular Books: ${JSON.stringify(stats.top_sellers || [])}
+                    
+                    4. Recent 5 Activities: ${JSON.stringify(stats.recent_activity || [])}
+
+                    Provide a report in English with:
+                    - A business health summary.
+                    - Performance comparison of Website vs POS.
+                    - 2 specific recommendations for improving sales or inventory.
+                    Limit the response to 400 words.
+                `;
+
+                const res = await fetch('../../api/controllers/AIController.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    responseDiv.innerHTML = data.answer.replace(/\n/g, '<br>');
+                } else {
+                    responseDiv.innerHTML = "Error: " + (data.error || "AI connection failed.");
+                }
+            } catch (e) {
+                responseDiv.innerHTML = "Cannot connect to AI server.";
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('pulse');
+                btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> ANALYZE DATA';
+            }
+        }
+
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>
