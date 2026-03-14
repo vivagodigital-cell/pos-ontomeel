@@ -16,11 +16,11 @@ function loadEnv($path) {
 // Load .env from root
 loadEnv(__DIR__ . '/../../.env');
 
-$host = getenv('DB_HOST') ?: 'localhost';
-$db   = getenv('DB_NAME') ?: 'ontomeel_bookshop';
-$user = getenv('DB_USER') ?: 'root';
-$pass = getenv('DB_PASS') ?: '';
-$charset = getenv('DB_CHARSET') ?: 'utf8mb4';
+$host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? 'localhost');
+$db   = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? 'ontomeel_bookshop');
+$user = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? 'root');
+$pass = getenv('DB_PASS') ?: ($_ENV['DB_PASS'] ?? '');
+$charset = getenv('DB_CHARSET') ?: ($_ENV['DB_CHARSET'] ?? 'utf8mb4');
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [

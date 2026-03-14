@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS Terminal | Ontomeel Library</title>
-    <link rel="stylesheet" href="../assets/pos-styles.css">
+    <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -334,10 +334,11 @@
             renderSkeletons();
             
             try {
-                // Determine base path to API (handling nested pages folder)
+                // Resilient path for production API
                 const apiPath = '../../api/controllers/TerminalController.php?action=getBooks';
                 
                 const response = await fetch(apiPath);
+                if (!response.ok) throw new Error('Network response was not ok');
                 allBooks = await response.json();
                 
                 // Forced 0.3s delay for the skeleton effect appreciation

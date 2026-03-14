@@ -1,0 +1,15 @@
+# Ensure correct MIME types
+AddType text/css .css
+AddType application/javascript .js
+AddType image/webp .webp
+
+# Universal Character Set
+AddDefaultCharset UTF-8
+
+# Prevent directory listing
+Options -Indexes
+
+# Cache control for assets
+<FilesMatch "\.(css|js|webp|png|jpg|jpeg|svg|ico)$">
+    Header set Cache-Control "max-age=604800, public"
+</FilesMatch>
