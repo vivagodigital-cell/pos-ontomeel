@@ -9,8 +9,8 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'getBooks') {
-        // Fetch all items from books table including non-book items (item_type = 'General', 'Stationery', etc.)
-        $stmt = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, item_type FROM books WHERE is_active = 1 AND stock_qty > 0 ORDER BY title ASC");
+        // Fetch all items with grouping to prevent duplicates in display
+        $stmt = $pdo->query("SELECT MAX(id) as id, title, MAX(author) as author, isbn, MAX(sell_price) as sell_price, MAX(cover_image) as cover_image, SUM(stock_qty) as stock_qty, item_type FROM books WHERE is_active = 1 GROUP BY title, isbn, item_type HAVING SUM(stock_qty) > 0 ORDER BY title ASC");
         $books = $stmt->fetchAll();
         echo json_encode($books);
     }

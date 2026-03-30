@@ -178,75 +178,107 @@ try {
 
         $supplierIdRaw = $data['supplier_id'] ?? null;
         $supplierId = ($supplierIdRaw && $supplierIdRaw !== '') ? intval($supplierIdRaw) : null;
-        $supplierName = $data['supplier_name'] ?? null;
-        $itemName = trim($data['item_name'] ?? '');
-        $itemType = $data['item_type'] ?? 'General';
-        $qty = max(1, intval($data['quantity'] ?? 1));
-        $unitCost = floatval($data['unit_cost'] ?? 0);
-        $paidAmount = floatval($data['paid_amount'] ?? 0);
-        $payMethod = $data['payment_method'] ?? 'Cash';
-        $note = $data['note'] ?? '';
+        $category = $data['category'] ?? 'General';
         $purchaseDate = $data['purchase_date'] ?? date('Y-m-d');
+        $payMethod = $data['payment_method'] ?? 'Cash';
+        $paidAmount = floatval($data['paid_amount'] ?? 0);
+        $note = $data['note'] ?? '';
+        $items = $data['items'] ?? [];
 
-        if (empty($itemName))
-            throw new Exception("Item name is required.");
+        if (empty($items))
+            throw new Exception("Please add at least one item.");
 
-        $totalCost = $unitCost * $qty;
+        $pdo->beginTransaction();
+        try {
+            // 1. Calculate Grand Total
+            $grandTotal = 0;
+            foreach ($items as $item) {
+                $grandTotal += (floatval($item['unit_cost']) * intval($item['quantity']));
+            }
 
-        // Determine payment status
-        $payStatus = 'Unpaid';
-        if ($paidAmount >= $totalCost)
-            $payStatus = 'Paid';
-        elseif ($paidAmount > 0)
-            $payStatus = 'Partial';
+            // 2. Determine Payment Status
+            $payStatus = 'Unpaid';
+            if ($paidAmount >= $grandTotal) $payStatus = 'Paid';
+            elseif ($paidAmount > 0) $payStatus = 'Partial';
 
-        // If supplier linked by id, get name
-        if ($supplierId && !$supplierName) {
-            $s = $pdo->prepare("SELECT name FROM suppliers WHERE id = ?");
-            $s->execute([$supplierId]);
-            $row = $s->fetch();
-            $supplierName = $row ? $row['name'] : null;
+            // 3. Resolve Supplier Name
+            $supplierName = null;
+            if ($supplierId) {
+                $s = $pdo->prepare("SELECT name FROM suppliers WHERE id = ?");
+                $s->execute([$supplierId]);
+                $row = $s->fetch();
+                $supplierName = $row ? $row['name'] : null;
+            }
+
+            // 4. Insert Master Purchase Record
+            $stmt = $pdo->prepare("INSERT INTO purchases 
+                (supplier_id, supplier_name, category, total_amount, paid_amount, payment_method, payment_status, purchase_date, note)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$supplierId, $supplierName, $category, $grandTotal, $paidAmount, $payMethod, $payStatus, $purchaseDate, $note]);
+            $purchaseId = $pdo->lastInsertId();
+
+            // 5. Insert Items into purchase_items and update books table
+            foreach ($items as $item) {
+                $p_name = trim($item['name'] ?? '');
+                $p_isbn = trim($item['isbn'] ?? '');
+                $p_cost = floatval($item['unit_cost'] ?? 0);
+                $p_qty = intval($item['quantity'] ?? 1);
+                $p_total = $p_cost * $p_qty;
+
+                if (empty($p_name)) continue;
+
+                // A. Insert into purchase_items
+                $stmt = $pdo->prepare("INSERT INTO purchase_items (purchase_id, item_name, isbn, unit_cost, quantity, total_item_cost) VALUES (?,?,?,?,?,?)");
+                $stmt->execute([$purchaseId, $p_name, $p_isbn, $p_cost, $p_qty, $p_total]);
+
+                // B. Sync with books table for inventory management (Preventing Duplicates)
+                $existing = null;
+                if (!empty($p_isbn)) {
+                    $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE isbn = ?");
+                    $check->execute([$p_isbn]);
+                    $existing = $check->fetch();
+                }
+
+                if (!$existing && !empty($p_name)) {
+                    $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND (isbn IS NULL OR isbn = '')");
+                    $check->execute([$p_name]);
+                    $existing = $check->fetch();
+                }
+
+                if ($existing) {
+                    // Update existing inventory
+                    $newQty = $existing['stock_qty'] + $p_qty;
+                    $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ? WHERE id = ?");
+                    $upd->execute([$newQty, $p_cost, $supplierName, $category, $existing['id']]);
+                } else {
+                    // Insert new item into books table
+                    // Default sell_price = unit_cost for now (adjust in Inventory page later)
+                    $ins = $pdo->prepare("INSERT INTO books (title, isbn, item_type, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $ins->execute([$p_name, $p_isbn, $category, $p_qty, $p_cost, $p_cost, $supplierName]);
+                }
+            }
+
+            // 6. Update Supplier Due if balance exists
+            if ($supplierId && $grandTotal > $paidAmount) {
+                $due = $grandTotal - $paidAmount;
+                $pdo->prepare("UPDATE suppliers SET total_due = total_due + ? WHERE id = ?")->execute([$due, $supplierId]);
+            }
+
+            $pdo->commit();
+            echo json_encode(['success' => true, 'message' => 'Multi-item purchase recorded!']);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
         }
-
-        $stmt = $pdo->prepare("INSERT INTO purchase_records 
-            (supplier_id, supplier_name, item_name, item_type, quantity, unit_cost, total_cost, paid_amount, payment_status, payment_method, note, purchase_date)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-        $stmt->execute([$supplierId, $supplierName, $itemName, $itemType, $qty, $unitCost, $totalCost, $paidAmount, $payStatus, $payMethod, $note, $purchaseDate]);
-
-        // If there is an outstanding balance, add to supplier due
-        if ($supplierId && $totalCost > $paidAmount) {
-            $due = $totalCost - $paidAmount;
-            $pdo->prepare("UPDATE suppliers SET total_due = total_due + ? WHERE id = ?")->execute([$due, $supplierId]);
-        }
-
-        // Add/update in books table for unified inventory
-        // Check if item exists in books
-        $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND (item_type = ? OR item_type = 'General')");
-        $check->execute([$itemName, $itemType]);
-        $existing = $check->fetch();
-
-        if ($existing) {
-            // Update existing inventory in books table
-            $newQty = $existing['stock_qty'] + $qty;
-            $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, sell_price = ?, supplier_name = ?, item_type = ? WHERE id = ?");
-            $upd->execute([$newQty, $unitCost, $unitCost, $supplierName, $itemType, $existing['id']]);
-        }
-        else {
-            // Insert new item into books table (only using supplier_name, not supplier_id)
-            $ins = $pdo->prepare("INSERT INTO books (title, item_type, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?)");
-            $ins->execute([$itemName, $itemType, $qty, $unitCost, $unitCost, $supplierName]);
-        }
-
-        echo json_encode(['success' => true, 'message' => 'Purchase recorded!']);
     }
     elseif ($action === 'listPurchaseRecords') {
         $supplierId = $_GET['supplier_id'] ?? null;
         if ($supplierId) {
-            $stmt = $pdo->prepare("SELECT * FROM purchase_records WHERE supplier_id = ? ORDER BY purchase_date DESC, id DESC");
+            $stmt = $pdo->prepare("SELECT * FROM purchases WHERE supplier_id = ? ORDER BY purchase_date DESC, id DESC");
             $stmt->execute([$supplierId]);
         }
         else {
-            $stmt = $pdo->query("SELECT * FROM purchase_records ORDER BY purchase_date DESC, id DESC");
+            $stmt = $pdo->query("SELECT * FROM purchases ORDER BY purchase_date DESC, id DESC");
         }
         echo json_encode(['success' => true, 'records' => $stmt->fetchAll()]);
     }
