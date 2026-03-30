@@ -61,14 +61,15 @@ body {
 }
 
 .logo-icon {
-    width: 35px;
-    height: 35px;
-    background: var(--primary-blue);
-    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    background: #0f172a; /* Dark background like the screenshot */
+    border-radius: 50%; /* Circular like the screenshot */
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
+    overflow: hidden;
 }
 
 .logo-text {
