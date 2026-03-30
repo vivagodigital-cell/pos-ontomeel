@@ -412,67 +412,95 @@
 
     <!-- Purchase Record Modal -->
     <div class="modal-overlay" id="purchaseRecordModal">
-        <div class="modal-content" style="width: 500px;">
+        <div class="modal-content" style="width: 850px; max-width: 95%;">
             <div
-                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
-                <h2 style="margin:0; font-size:1.2rem;">Add Purchase Record</h2>
+                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin:0; font-size:1.35rem; font-weight: 800; color: var(--text-header);"><i class="fa-solid fa-cart-shopping"></i> Purchase Record</h2>
                 <button onclick="closeModal('purchaseRecordModal')"
-                    style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+                    style="border:none; background: #f1f5f9; cursor:pointer; font-size:1.2rem; padding: 8px 12px; border-radius: 12px; color: #94a3b8;">&times;</button>
             </div>
-            <div style="padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="input-group" style="grid-column: span 2;">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-header);">ITEM NAME *</label>
-                    <input type="text" id="purItemName" class="checkout-input" placeholder="Enter item name">
+            
+            <div style="padding: 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
+                    <div class="input-group">
+                        <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Supplier Name *</label>
+                        <select id="purSupplier" class="checkout-input">
+                            <option value="">Select Supplier</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Purchase Category</label>
+                        <select id="purCategory" class="checkout-input">
+                            <option value="Books">Books</option>
+                            <option value="Stationery">Stationery</option>
+                            <option value="Furniture">Furniture</option>
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Purchase Date</label>
+                        <input type="date" id="purDate" class="checkout-input">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">ITEM TYPE</label>
-                    <select id="purItemType" class="checkout-input">
-                        <option value="General">General</option>
-                        <option value="Books">Books</option>
-                        <option value="Stationery">Stationery</option>
-                        <option value="Equipment">Equipment</option>
-                        <option value="Other">Other</option>
-                    </select>
+
+                <div style="background: #f8fafc; border-radius: 20px; border: 1px solid var(--border-light); padding: 1.5rem; margin-bottom: 25px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text-header); margin: 0;">Items List</h3>
+                        <button type="button" onclick="addPurchaseItemRow()" class="nav-link" style="padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--primary-blue); color: var(--primary-blue); background: var(--primary-blue-soft);">
+                            <i class="fa-solid fa-plus-circle"></i> Add More Item
+                        </button>
+                    </div>
+                    <div style="max-height: 250px; overflow-y: auto;">
+                        <table style="width: 100%;" id="purchaseItemsTable">
+                            <thead>
+                                <tr style="text-align: left; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">
+                                    <th style="padding: 10px; width: 35%;">Item Name / Title</th>
+                                    <th style="padding: 10px; width: 25%;">ISBN (For Books)</th>
+                                    <th style="padding: 10px; width: 15%;">Unit Cost</th>
+                                    <th style="padding: 10px; width: 15%;">Qty</th>
+                                    <th style="padding: 10px; width: 10%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchaseItemsBody">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">SUPPLIER</label>
-                    <select id="purSupplier" class="checkout-input">
-                        <option value="">-- No Supplier --</option>
-                    </select>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px; align-items: end;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                        <div class="input-group">
+                            <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Payment Method</label>
+                            <select id="purPayMethod" class="checkout-input">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank">Bank Transfer</option>
+                                <option value="Mobile">Mobile Banking (Bkash/Nagad)</option>
+                                <option value="Due">Due / Credits</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Paid Amount</label>
+                            <input type="number" id="purPaid" class="checkout-input" value="0">
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Observation / Note</label>
+                            <input type="text" id="purNote" class="checkout-input" placeholder="Any order details or reference numbers...">
+                        </div>
+                    </div>
+
+                    <div style="background: var(--text-header); color: white; padding: 1.5rem; border-radius: 20px; text-align: right;">
+                        <div style="font-size: 0.7rem; font-weight: 800; opacity: 0.7; margin-bottom: 5px; text-transform: uppercase;">Total Purchase Amount</div>
+                        <div id="purTotalDisplay" style="font-size: 1.75rem; font-weight: 800; font-family: 'Inter', sans-serif;">৳0.00</div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">QUANTITY *</label>
-                    <input type="number" id="purQty" class="checkout-input" value="1" min="1">
+
+                <div style="margin-top: 2rem; display: flex; gap: 15px;">
+                    <button type="button" onclick="closeModal('purchaseRecordModal')" class="nav-link" style="flex: 1; justify-content: center; background: #f1f5f9; color: var(--text-muted); border: none;">Discard</button>
+                    <button type="button" onclick="savePurchaseRecord()" class="nav-link active" style="flex: 2; justify-content: center; padding: 12px; font-weight: 800;">
+                        <i class="fa-solid fa-save"></i> Save Purchase Record
+                    </button>
                 </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">UNIT COST *</label>
-                    <input type="number" id="purUnitCost" class="checkout-input" placeholder="0.00">
-                </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PAID AMOUNT</label>
-                    <input type="number" id="purPaid" class="checkout-input" value="0" min="0">
-                </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PAYMENT METHOD</label>
-                    <select id="purPayMethod" class="checkout-input">
-                        <option value="Cash">Cash</option>
-                        <option value="Bank">Bank Transfer</option>
-                        <option value="Mobile">Mobile Banking</option>
-                    </select>
-                </div>
-                <div class="input-group" style="grid-column: span 2;">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PURCHASE DATE</label>
-                    <input type="date" id="purDate" class="checkout-input">
-                </div>
-                <div class="input-group" style="grid-column: span 2;">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">NOTE</label>
-                    <textarea id="purNote" class="checkout-input" style="height: 60px;"
-                        placeholder="Optional note"></textarea>
-                </div>
-                <button onclick="savePurchaseRecord()" class="nav-link active"
-                    style="grid-column: span 2; justify-content:center; padding:12px; margin-top:0.5rem;">
-                    <i class="fa-solid fa-save"></i> SAVE RECORD
-                </button>
             </div>
         </div>
     </div>
@@ -731,8 +759,8 @@
         }
 
         async function fetchPurchaseRecords() {
-            // Setup table first
-            await fetch('../../api/controllers/SupplierController.php?action=setupPurchaseTable');
+            // Setup table first (temporary for UI check)
+            // await fetch('../../api/controllers/SupplierController.php?action=setupPurchaseTable');
 
             const res = await fetch('../../api/controllers/SupplierController.php?action=listPurchaseRecords');
             const data = await res.json();
@@ -745,7 +773,7 @@
                             <tr>
                                 <td>${r.purchase_date}</td>
                                 <td style="font-weight:700;">${r.item_name}</td>
-                                <td>${r.item_type}</td>
+                                <td>${r.category || 'N/A'}</td>
                                 <td>${r.quantity}</td>
                                 <td style="font-weight:700;">৳${parseFloat(r.total_cost).toLocaleString()}</td>
                                 <td style="color:#10b981;">৳${parseFloat(r.paid_amount).toLocaleString()}</td>
@@ -755,7 +783,7 @@
                         `;
                     }).join('');
                 } else {
-                    document.getElementById('purchaseRecordsTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px; color: var(--text-muted);">No purchase records found. Click "Add Purchase" to create one.</td></tr>';
+                    document.getElementById('purchaseRecordsTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px; color: var(--text-muted);">No records found. Click "Add Purchase" to create one.</td></tr>';
                 }
             }
         }
@@ -765,6 +793,8 @@
             const data = await res.json();
             if (data.success) {
                 const select = document.getElementById('purSupplier');
+                // Keep the first option
+                select.innerHTML = '<option value="">Select Supplier</option>';
                 data.suppliers.forEach(s => {
                     const opt = document.createElement('option');
                     opt.value = s.id;
@@ -774,24 +804,69 @@
             }
         }
 
-        async function savePurchaseRecord() {
-            const payload = {
-                supplier_id: document.getElementById('purSupplier').value,
-                supplier_name: '',
-                item_name: document.getElementById('purItemName').value,
-                item_type: document.getElementById('purItemType').value,
-                quantity: document.getElementById('purQty').value,
-                unit_cost: document.getElementById('purUnitCost').value,
-                paid_amount: document.getElementById('purPaid').value,
-                payment_method: document.getElementById('purPayMethod').value,
-                purchase_date: document.getElementById('purDate').value,
-                note: document.getElementById('purNote').value
-            };
+        let purchaseItemRowCount = 0;
+        function addPurchaseItemRow() {
+            const body = document.getElementById('purchaseItemsBody');
+            const rowId = `item-row-${purchaseItemRowCount++}`;
+            const row = `
+                <tr id="${rowId}">
+                    <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-name" placeholder="Item/Book Name" style="padding: 8px 12px; font-size: 0.85rem;"></td>
+                    <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-isbn" placeholder="ISBN (Optional)" style="padding: 8px 12px; font-size: 0.85rem;"></td>
+                    <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-cost" onkeyup="calculatePurchaseTotal()" placeholder="0.00" style="padding: 8px 12px; font-size: 0.85rem;"></td>
+                    <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-qty" onkeyup="calculatePurchaseTotal()" value="1" min="1" style="padding: 8px 12px; font-size: 0.85rem;"></td>
+                    <td style="padding: 5px; text-align: center;"><button type="button" onclick="removePurchaseItemRow('${rowId}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button></td>
+                </tr>
+            `;
+            body.insertAdjacentHTML('beforeend', row);
+        }
 
-            if (!payload.item_name || !payload.unit_cost) {
-                alert('Item name and unit cost are required.');
+        function removePurchaseItemRow(id) {
+            document.getElementById(id).remove();
+            calculatePurchaseTotal();
+        }
+
+        function calculatePurchaseTotal() {
+            let total = 0;
+            const rows = document.querySelectorAll('#purchaseItemsBody tr');
+            rows.forEach(row => {
+                const cost = parseFloat(row.querySelector('.pur-item-cost').value) || 0;
+                const qty = parseInt(row.querySelector('.pur-item-qty').value) || 0;
+                total += cost * qty;
+            });
+            document.getElementById('purTotalDisplay').innerText = "৳" + total.toFixed(2);
+            // Default: Paid amount equals total unless manually edited
+            // document.getElementById('purPaid').value = total.toFixed(2);
+        }
+
+        async function savePurchaseRecord() {
+            const rows = document.querySelectorAll('#purchaseItemsBody tr');
+            const items = [];
+            rows.forEach(row => {
+                const name = row.querySelector('.pur-item-name').value;
+                if (name) {
+                    items.push({
+                        name: name,
+                        isbn: row.querySelector('.pur-item-isbn').value,
+                        unit_cost: parseFloat(row.querySelector('.pur-item-cost').value) || 0,
+                        quantity: parseInt(row.querySelector('.pur-item-qty').value) || 0
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('Please add at least one item.');
                 return;
             }
+
+            const payload = {
+                supplier_id: document.getElementById('purSupplier').value,
+                category: document.getElementById('purCategory').value,
+                purchase_date: document.getElementById('purDate').value,
+                payment_method: document.getElementById('purPayMethod').value,
+                paid_amount: parseFloat(document.getElementById('purPaid').value) || 0,
+                note: document.getElementById('purNote').value,
+                items: items
+            };
 
             const res = await fetch('../../api/controllers/SupplierController.php?action=savePurchaseRecord', {
                 method: 'POST',
@@ -799,23 +874,11 @@
             });
             const data = await res.json();
             if (data.success) {
-                showToast('Purchase record saved successfully!');
+                showToast("Purchase record saved successfully!");
                 closeModal('purchaseRecordModal');
-                // Refresh all tabs
-                fetchSuppliers();
-                fetchSuppliedBooks();
                 fetchPurchaseRecords();
-
-                // Clear form
-                document.getElementById('purItemName').value = '';
-                document.getElementById('purItemType').value = 'General';
-                document.getElementById('purSupplier').value = '';
-                document.getElementById('purQty').value = '1';
-                document.getElementById('purUnitCost').value = '';
-                document.getElementById('purPaid').value = '0';
-                document.getElementById('purNote').value = '';
             } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
+                alert(data.error || "Failed to save record.");
             }
         }
 
@@ -867,9 +930,18 @@
 
         window.onload = function () {
             fetchSuppliers();
-            // Set default date for purchase record modal
-            document.getElementById('purDate').value = new Date().toISOString().split('T')[0];
             loadSuppliersForPurchase();
+            
+            // Set default date for purchase record modal
+            const purDate = document.getElementById('purDate');
+            if (purDate) purDate.valueAsDate = new Date();
+            
+            // Add initial item row
+            const purBody = document.getElementById('purchaseItemsBody');
+            if (purBody) {
+                purBody.innerHTML = '';
+                addPurchaseItemRow();
+            }
 
             // Background sync - refresh active tab every 15 seconds
             setInterval(syncActiveTab, 15000);
