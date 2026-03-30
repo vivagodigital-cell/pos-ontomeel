@@ -268,6 +268,55 @@
                 opacity: 1;
             }
         }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: skeletonLoading 1.5s infinite;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        @keyframes skeletonLoading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text { height: 1rem; width: 100%; }
+        .skeleton-badge { height: 1.5rem; width: 80px; border-radius: 20px; }
+        .skeleton-id { height: 1.2rem; width: 100px; }
+
+        .load-more-container {
+            display: flex;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+
+        .btn-load-more {
+            background: white;
+            border: 1px solid var(--border-light);
+            padding: 0.75rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            color: var(--text-header);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-load-more:hover {
+            background: #f8fafc;
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .btn-load-more:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
     <script src="../assets/auth-guard.js"></script>
 </head>
@@ -348,6 +397,13 @@
                         <!-- Dynamic Content -->
                     </tbody>
                 </table>
+            </div>
+
+            <div class="load-more-container" id="loadMoreContainer">
+                <button class="btn-load-more" id="btnLoadMore" onclick="loadMoreMembers()">
+                    <span>Load More Members</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -435,28 +491,94 @@
 
     <script>
         let allMembers = [];
+        let currentOffset = 0;
+        const limit = 50;
+        let isSearchActive = false;
 
-        async function fetchMembers() {
+        async function fetchMembers(isLoadMore = false) {
+            if (!isLoadMore) {
+                currentOffset = 0;
+                renderSkeletons();
+                isSearchActive = false;
+            }
+
             try {
-                const response = await fetch('../../api/controllers/MemberController.php?action=list');
+                const response = await fetch(`../../api/controllers/MemberController.php?action=list&limit=${limit}&offset=${currentOffset}`);
                 const data = await response.json();
+                
                 if (data.success) {
-                    allMembers = data.members;
-                    renderMembers(allMembers);
+                    if (isLoadMore) {
+                        allMembers = [...allMembers, ...data.members];
+                        appendMembers(data.members);
+                    } else {
+                        allMembers = data.members;
+                        renderMembers(allMembers);
+                    }
+                    
+                    currentOffset += data.members.length;
+                    
+                    // Hide Load More if fewer results than limit returned
+                    document.getElementById('loadMoreContainer').style.display = data.members.length < limit ? 'none' : 'flex';
+                    
                     updateStats();
                 }
             } catch (e) {
                 console.error("Error fetching members:", e);
+                showToast("Failed to load members.", "error");
             }
         }
 
-        // Background sync - refresh members every 15 seconds
-        setInterval(fetchMembers, 15000);
+        function loadMoreMembers() {
+            const btn = document.getElementById('btnLoadMore');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> LOADING...';
+            
+            fetchMembers(true).finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Load More Members</span><i class="fa-solid fa-chevron-down"></i>';
+            });
+        }
+
+        function renderSkeletons() {
+            const body = document.getElementById('memberTableBody');
+            let skeletons = '';
+            for (let i = 0; i < 8; i++) {
+                skeletons += `
+                    <tr>
+                        <td><div class="skeleton skeleton-id"></div></td>
+                        <td>
+                            <div class="skeleton skeleton-text" style="width: 70%; margin-bottom: 5px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 40%;"></div>
+                        </td>
+                        <td>
+                            <div class="skeleton skeleton-text" style="width: 60%; margin-bottom: 5px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                        </td>
+                        <td><div class="skeleton skeleton-badge"></div></td>
+                        <td><div class="skeleton skeleton-text" style="width: 40px;"></div></td>
+                        <td><div class="skeleton skeleton-text" style="width: 80%;"></div></td>
+                    </tr>
+                `;
+            }
+            body.innerHTML = skeletons;
+            document.getElementById('loadMoreContainer').style.display = 'none';
+        }
 
         function renderMembers(members) {
             const body = document.getElementById('memberTableBody');
-            body.innerHTML = members.map(m => `
-                <tr>
+            body.innerHTML = members.map(m => createMemberRow(m)).join('');
+        }
+
+        function appendMembers(newMembers) {
+            const body = document.getElementById('memberTableBody');
+            newMembers.forEach(m => {
+                body.insertAdjacentHTML('beforeend', createMemberRow(m));
+            });
+        }
+
+        function createMemberRow(m) {
+            return `
+                <tr id="member-row-${m.id}">
                     <td><code style="font-weight:800; color:var(--primary-blue);">${m.membership_id}</code></td>
                     <td>
                         <div style="font-weight:700;">${m.full_name}</div>
@@ -476,9 +598,9 @@
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 ${m.plan_expire_date ?
-                    `<div class="expiry-text">Expires: ${new Date(m.plan_expire_date).toLocaleDateString()}</div>` :
-                    '<span style="color:var(--text-muted); font-size:0.8rem;">Lifetime/None</span>'
-                }
+                                    `<div class="expiry-text">Expires: ${new Date(m.plan_expire_date).toLocaleDateString()}</div>` :
+                                    '<span style="color:var(--text-muted); font-size:0.8rem;">Lifetime/None</span>'
+                                }
                             </div>
                             <button class="btn-fund" onclick='openFundModal(${JSON.stringify(m).replace(/'/g, "&apos;")})'>
                                 <i class="fa-solid fa-plus"></i> FUND
@@ -486,7 +608,7 @@
                         </div>
                     </td>
                 </tr>
-            `).join('');
+            `;
         }
 
         // --- Modal Logic ---
@@ -603,13 +725,24 @@
         }
 
         function filterTable() {
-            const query = document.getElementById('memberFilter').value.toLowerCase();
-            const filtered = allMembers.filter(m =>
-                m.full_name.toLowerCase().includes(query) ||
-                m.membership_id.toLowerCase().includes(query) ||
-                m.phone.includes(query)
-            );
-            renderMembers(filtered);
+            clearTimeout(window.searchTimer);
+            window.searchTimer = setTimeout(async () => {
+                const query = document.getElementById('memberFilter').value.toLowerCase();
+                if (query.length === 0) {
+                    isSearchActive = false;
+                    fetchMembers();
+                    return;
+                }
+                
+                isSearchActive = true;
+                document.getElementById('loadMoreContainer').style.display = 'none';
+                
+                const res = await fetch(`../../api/controllers/MemberController.php?action=search&q=${query}`);
+                const data = await res.json();
+                if (data.success) {
+                    renderMembers(data.members);
+                }
+            }, 300);
         }
 
         async function updateStats() {

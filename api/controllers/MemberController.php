@@ -8,7 +8,11 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'list') {
-        $stmt = $pdo->query("SELECT id, membership_id, full_name, email, phone, membership_plan, acc_balance, plan_expire_date, created_at FROM members ORDER BY created_at DESC");
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+        $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+        
+        $stmt = $pdo->prepare("SELECT id, membership_id, full_name, email, phone, membership_plan, acc_balance, plan_expire_date, created_at FROM members ORDER BY created_at DESC LIMIT ? OFFSET ?");
+        $stmt->execute([$limit, $offset]);
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'members' => $members]);
     } 
