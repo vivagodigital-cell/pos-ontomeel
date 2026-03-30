@@ -517,6 +517,110 @@
             background: #1d4ed8;
             transform: translateY(-1px);
         }
+
+        /* ---- Book Form Components ---- */
+        .bk-section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #b45309;
+            margin-bottom: 4px;
+        }
+        .bk-section-line {
+            display: inline-block;
+            width: 28px;
+            height: 2px;
+            background: #fde68a;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .bk-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .bk-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .bk-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .bk-span-2 { grid-column: span 2; }
+        .bk-group { display: flex; flex-direction: column; gap: 5px; }
+        .bk-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .bk-req { color: #ef4444; }
+        .bk-field {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 11px 14px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.88rem;
+            color: #1e293b;
+            transition: border-color 0.18s, box-shadow 0.18s;
+            outline: none;
+        }
+        .bk-field:focus {
+            border-color: #3b82f6;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+        }
+        .bk-field-price {
+            color: #2563eb;
+            font-weight: 800;
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
+        .bk-field-price:focus { border-color: #2563eb; }
+        /* Toggle card */
+        .bk-toggle-card {
+            flex: 1;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: border-color 0.18s;
+            user-select: none;
+        }
+        .bk-toggle-card:hover { border-color: #cbd5e1; }
+        .bk-toggle-title { font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 0 0 3px; }
+        .bk-toggle-sub { font-size: 0.72rem; color: #94a3b8; margin: 0; }
+        .bk-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .bk-switch input { opacity: 0; width: 0; height: 0; }
+        .bk-slider {
+            position: absolute;
+            inset: 0;
+            background: #cbd5e1;
+            border-radius: 24px;
+            transition: 0.25s;
+            cursor: pointer;
+        }
+        .bk-slider:before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.25s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .bk-switch input:checked + .bk-slider { background: #1e293b; }
+        .bk-switch input:checked + .bk-slider:before { transform: translateX(20px); }
+        @media (max-width: 640px) {
+            .bk-grid-2, .bk-grid-3, .bk-grid-4 { grid-template-columns: 1fr; }
+            .bk-span-2 { grid-column: span 1; }
+        }
     </style>
 </head>
 
@@ -606,53 +710,187 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <div class="modal-overlay" id="addModal">
-        <div class="modal-box">
-            <div class="modal-head">
-                <h3 id="modalTitle">Add New Item</h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-overlay" id="addModal" style="display:none; overflow-y:auto; padding:24px 16px; align-items:flex-start;">
+        <div id="modalBox" style="width:100%; max-width:900px; margin:0 auto; background:#fff; border-radius:20px; box-shadow:0 30px 80px -12px rgba(0,0,0,0.25); overflow:hidden;">
+
+            <!-- Header -->
+            <div style="background:#1e293b; padding:24px 32px; display:flex; align-items:center; justify-content:space-between;">
+                <div>
+                    <h2 id="modalTitle" style="margin:0; font-size:1.4rem; font-weight:800; color:#fff;">Add New Book</h2>
+                    <p style="margin:5px 0 0; font-size:0.65rem; color:#fbbf24; font-weight:700; text-transform:uppercase; letter-spacing:1.5px;">Comprehensive Inventory Management</p>
+                </div>
+                <button onclick="closeModal()" style="background:rgba(255,255,255,0.12); border:none; color:#fff; width:38px; height:38px; border-radius:10px; cursor:pointer; font-size:1rem; transition:0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
 
-            <form id="addItemForm" onsubmit="handleSave(event)">
-                <input type="hidden" id="editId" value="">
-                <div class="form-row">
-                    <div class="form-field">
-                        <label>Item Name *</label>
-                        <input type="text" id="itemTitle" placeholder="e.g., A4 Paper Rim, Red Roses" required>
+            <!-- Form -->
+            <form id="addItemForm" onsubmit="handleSave(event)" style="padding:28px 32px; display:flex; flex-direction:column; gap:24px;">
+                <input type="hidden" id="editId" name="id" value="">
+
+                <!-- Section 1: Basic Info -->
+                <div>
+                    <div class="bk-section-label"><span class="bk-section-line"></span><span>Basic Information</span></div>
+                    <div class="bk-grid-2" style="margin-top:14px;">
+                        <div class="bk-group">
+                            <label class="bk-label">Title (Bengali)</label>
+                            <input type="text" name="title" id="itemTitle" placeholder="বইয়ের নাম লিখুন" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Title (English)</label>
+                            <input type="text" name="title_en" id="itemTitleEn" placeholder="Enter English title" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Subtitle / Series</label>
+                            <input type="text" name="subtitle" id="itemSubtitle" placeholder="e.g. Part 1, Special Edition" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Item Category</label>
+                            <select name="item_type" id="itemType" class="bk-field">
+                                <option value="Books">📚 Books</option>
+                                <option value="Stationary">📐 Stationary</option>
+                                <option value="Flowers">🌸 Flowers</option>
+                                <option value="Accessories">🔌 Accessories</option>
+                                <option value="General">📦 General / Other</option>
+                            </select>
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Genre</label>
+                            <input type="text" name="genre" id="itemGenre" placeholder="e.g. Thriller, Biography" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Language</label>
+                            <input type="text" name="language" id="itemLanguage" placeholder="e.g. Bangla, English" class="bk-field">
+                        </div>
+                        <div class="bk-group bk-span-2">
+                            <label class="bk-label">Description</label>
+                            <textarea name="description" id="itemDescription" rows="3" placeholder="Write a summary or notes..." class="bk-field" style="resize:none;"></textarea>
+                        </div>
                     </div>
                 </div>
-                <div class="form-row two">
-                    <div class="form-field">
-                        <label>Item Type *</label>
-                        <select id="itemType" required>
-                            <option value="Stationary">📐 Stationary</option>
-                            <option value="Flowers">🌸 Flowers</option>
-                            <option value="Accessories">🔌 Accessories</option>
-                            <option value="General">📦 General / Other</option>
-                        </select>
-                    </div>
-                    <div class="form-field">
-                        <label>Sell Price (৳) *</label>
-                        <input type="number" id="itemPrice" min="0" step="0.01" value="0" required>
-                    </div>
-                    <div class="form-field">
-                        <label>Cost Price (৳)</label>
-                        <input type="number" id="itemCost" min="0" step="0.01" value="0">
+
+                <!-- Section 2: Authors & Publication -->
+                <div>
+                    <div class="bk-section-label"><span class="bk-section-line"></span><span>Authors &amp; Publication</span></div>
+                    <div class="bk-grid-3" style="margin-top:14px;">
+                        <div class="bk-group">
+                            <label class="bk-label">Author (Bangla)</label>
+                            <input type="text" name="author" id="itemAuthor" placeholder="লেখকের নাম" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Author (English)</label>
+                            <input type="text" name="author_en" id="itemAuthorEn" placeholder="Author name" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Co-Author</label>
+                            <input type="text" name="co_author" id="itemCoAuthor" placeholder="Secondary author" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Publisher</label>
+                            <input type="text" name="publisher" id="itemPublisher" placeholder="e.g. Oprokash" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Publish Year</label>
+                            <input type="text" name="publish_year" id="itemYear" placeholder="e.g. 2024" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Edition</label>
+                            <input type="text" name="edition" id="itemEdition" placeholder="1st / Revised" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">ISBN / Barcode</label>
+                            <input type="text" name="isbn" id="itemBarcode" placeholder="e.g. 978-..." class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Supplier Name</label>
+                            <input type="text" name="supplier_name" id="itemSupplier" placeholder="e.g. Book Palace" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Format</label>
+                            <select name="format" id="itemFormat" class="bk-field">
+                                <option value="">— Select Format —</option>
+                                <option value="Paperback">Paperback</option>
+                                <option value="Hardcover">Hardcover</option>
+                                <option value="E-book">E-book</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div class="form-row two">
-                    <div class="form-field">
-                        <label>Stock Quantity</label>
-                        <input type="number" id="itemStock" min="0" value="0">
-                    </div>
-                    <div class="form-field">
-                        <label>Barcode / SKU</label>
-                        <input type="text" id="itemBarcode" placeholder="Optional">
+
+                <!-- Section 3: Stock, Physical & Pricing -->
+                <div>
+                    <div class="bk-section-label"><span class="bk-section-line"></span><span>Stock, Physical &amp; Pricing</span></div>
+                    <div class="bk-grid-4" style="margin-top:14px;">
+                        <div class="bk-group">
+                            <label class="bk-label">Condition</label>
+                            <select name="book_condition" id="itemCondition" class="bk-field">
+                                <option value="New">✨ New</option>
+                                <option value="Used">📖 Used</option>
+                                <option value="Damaged">⚠️ Damaged</option>
+                            </select>
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Page Count</label>
+                            <input type="number" name="page_count" id="itemPageCount" placeholder="e.g. 320" min="1" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Shelf Location</label>
+                            <input type="text" name="shelf_location" id="itemShelf" placeholder="e.g. A1" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Rack Number</label>
+                            <input type="text" name="rack_number" id="itemRack" placeholder="e.g. R-12" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Stock Qty</label>
+                            <input type="number" name="stock_qty" id="itemStock" value="0" min="0" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Min Stock Level</label>
+                            <input type="number" name="min_stock_level" id="itemMinStock" value="5" min="0" class="bk-field">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Sell Price (৳)</label>
+                            <input type="number" name="sell_price" id="itemPrice" value="0" min="0" step="0.01" class="bk-field bk-field-price">
+                        </div>
+                        <div class="bk-group">
+                            <label class="bk-label">Purchase Price (৳)</label>
+                            <input type="number" name="purchase_price" id="itemCost" value="0" min="0" step="0.01" class="bk-field">
+                        </div>
                     </div>
                 </div>
-                <button type="submit" class="btn-save" id="btnSaveItem">
-                    <i class="fa-solid fa-floppy-disk"></i> SAVE ITEM
-                </button>
+
+                <!-- Section 4: Toggles -->
+                <div style="display:flex; gap:14px; flex-wrap:wrap;">
+                    <label class="bk-toggle-card">
+                        <div>
+                            <p class="bk-toggle-title">Enable Borrowing</p>
+                            <p class="bk-toggle-sub">Allow students to borrow this book</p>
+                        </div>
+                        <div class="bk-switch">
+                            <input type="checkbox" name="is_borrowable" id="itemIsBorrowable" value="1" checked>
+                            <span class="bk-slider"></span>
+                        </div>
+                    </label>
+                    <label class="bk-toggle-card">
+                        <div>
+                            <p class="bk-toggle-title">Suggest on Website</p>
+                            <p class="bk-toggle-sub">Feature in website recommendations</p>
+                        </div>
+                        <div class="bk-switch">
+                            <input type="checkbox" name="is_suggested" id="itemIsSuggested" value="1">
+                            <span class="bk-slider"></span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Footer -->
+                <div style="border-top:1px solid #f1f5f9; padding-top:20px; display:flex; gap:10px;">
+                    <button type="button" onclick="closeModal()" style="padding:13px 26px; border-radius:10px; border:none; background:#f1f5f9; color:#64748b; font-weight:700; font-size:0.88rem; cursor:pointer; transition:0.18s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">Discard</button>
+                    <button type="submit" id="btnSaveItem" style="flex:1; padding:13px; border-radius:10px; border:none; background:#1e293b; color:#fff; font-weight:800; font-size:0.95rem; cursor:pointer; transition:0.18s; box-shadow:0 6px 18px -4px rgba(30,41,59,0.3);" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1e293b'">
+                        <i class="fa-solid fa-floppy-disk" style="margin-right:8px;"></i>SAVE INFORMATION
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -680,16 +918,16 @@
         let allItems = [];
         let activeTypeFilter = 'all';
 
-        const icons = { Stationary: 'pen-ruler', Flowers: 'seedling', Accessories: 'plug', General: 'box' };
-        const bgColors = { Stationary: '#eff6ff', Flowers: '#fdf4ff', Accessories: '#fffbeb', General: '#f0fdf4' };
-        const iconColors = { Stationary: '#2563eb', Flowers: '#9333ea', Accessories: '#d97706', General: '#16a34a' };
+        const icons = { Stationary: 'pen-ruler', Flowers: 'seedling', Accessories: 'plug', General: 'box', Books: 'book' };
+        const bgColors = { Stationary: '#eff6ff', Flowers: '#fdf4ff', Accessories: '#fffbeb', General: '#f0fdf4', Books: '#f1f5f9' };
+        const iconColors = { Stationary: '#2563eb', Flowers: '#9333ea', Accessories: '#d97706', General: '#16a34a', Books: '#64748b' };
 
         function toast(msg, type = 'info') {
             const c = document.getElementById('invToast');
             const el = document.createElement('div');
             el.className = `toast-msg ${type}`;
-            const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
-            el.innerHTML = `<i class="fa-solid ${icons[type]}"></i> <span>${msg}</span>`;
+            const iconsMap = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+            el.innerHTML = `<i class="fa-solid ${iconsMap[type]}"></i> <span>${msg}</span>`;
             c.appendChild(el);
             setTimeout(() => { el.style.opacity = '0'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, 3500);
         }
@@ -732,18 +970,23 @@
                 const ico = icons[item.item_type] || 'box';
                 const bg = bgColors[item.item_type] || '#f1f5f9';
                 const col = iconColors[item.item_type] || '#64748b';
-                const isLow = item.stock_qty <= 5;
+                const isLow = parseInt(item.stock_qty) <= 5;
+                let imgSrc = '';
+                if (item.cover_image) {
+                    imgSrc = item.cover_image.startsWith('http') ? item.cover_image : `../../api/uploads/books/${item.cover_image}`;
+                }
                 return `
                 <div class="inv-card">
                     <div class="card-header">
-                        <div class="type-icon-wrap" style="background:${bg};">
-                            <i class="fa-solid fa-${ico}" style="color:${col};"></i>
+                        <div class="type-icon-wrap" style="background:${bg}; overflow:hidden; border:1px solid rgba(0,0,0,0.05);">
+                            ${imgSrc ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid fa-${ico}" style="color:${col};"></i>`}
                         </div>
                         <span class="type-pill type-${item.item_type}">${item.item_type}</span>
                     </div>
                     <div class="card-body">
-                        <div class="card-title">${item.title}</div>
-                        <div class="card-sku">${item.isbn ? 'SKU: ' + item.isbn : '<span style="opacity:0.4;">No SKU</span>'}</div>
+                        <div class="card-title text-ellipsis" title="${item.title}">${item.title}</div>
+                        ${item.author ? `<div style="font-size:0.75rem; color:#64748b; font-weight:600; margin-bottom:4px;">by ${item.author}</div>` : ''}
+                        <div class="card-sku">${item.isbn ? (item.item_type === 'Books' ? 'ISBN: ' : 'SKU: ') + item.isbn : '<span style="opacity:0.4;">' + (item.item_type === 'Books' ? 'No ISBN' : 'No SKU') + '</span>'}</div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span class="stock-chip ${isLow ? 'stock-low' : 'stock-ok'}">
                                 <i class="fa-solid fa-${isLow ? 'triangle-exclamation' : 'circle-check'}" style="margin-right:3px;"></i>
@@ -752,13 +995,18 @@
                         </div>
                     </div>
                     <div class="card-footer">
-                        <div style="font-size:0.7rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Price</div>
-                        <div class="price-tag">৳${parseFloat(item.sell_price).toFixed(2)}</div>
+                        <div class="price-tag">৳${parseFloat(item.sell_price).toFixed(0)}</div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="card-btn stock-btn" onclick="openRestock(${item.id})" title="Restock"><i class="fa-solid fa-plus"></i></button>
+                        </div>
                     </div>
                     <div class="card-actions">
-                        <button class="card-btn stock-btn" onclick='openRestock(${item.id})'><i class="fa-solid fa-plus"></i> Stock</button>
-                        <button class="card-btn edit" onclick='editItem(${JSON.stringify(item).replace(/'/g, "\\'")})'><i class="fa-solid fa-pen"></i> Edit</button>
-                        <button class="card-btn del" onclick="deleteItem(${item.id})"><i class="fa-solid fa-trash"></i></button>
+                        <button class="card-btn edit" onclick='editItem(${JSON.stringify(item).replace(/'/g, "&apos;")})'>
+                            <i class="fa-solid fa-pen-to-square"></i> EDIT
+                        </button>
+                        <button class="card-btn del" onclick="deleteItem(${item.id})">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
                     </div>
                 </div>`;
             }).join('');
@@ -781,7 +1029,7 @@
             const q = document.getElementById('searchInv').value.toLowerCase().trim();
             let list = allItems;
             if (activeTypeFilter !== 'all') list = list.filter(i => i.item_type === activeTypeFilter);
-            if (q) list = list.filter(i => i.title.toLowerCase().includes(q) || (i.isbn && i.isbn.toLowerCase().includes(q)));
+            if (q) list = list.filter(i => i.title.toLowerCase().includes(q) || (i.title_en && i.title_en.toLowerCase().includes(q)) || (i.isbn && i.isbn.toLowerCase().includes(q)));
             renderItems(list);
         }
 
@@ -792,47 +1040,75 @@
             filterItems();
         }
 
-        /* ---- Modal ---- */
         function openModal(editMode = false) {
-            document.getElementById('modalTitle').innerText = editMode ? 'Edit Item' : 'Add New Item';
+            document.getElementById('modalTitle').innerText = editMode ? 'Update Book Details' : 'Add New Book';
             document.getElementById('addModal').style.display = 'flex';
+            document.getElementById('addModal').scrollTop = 0;
+            document.body.style.overflow = 'hidden';
         }
+
         function closeModal() {
             document.getElementById('addModal').style.display = 'none';
             document.getElementById('addItemForm').reset();
             document.getElementById('editId').value = '';
+            document.body.style.overflow = '';
         }
 
+
         function editItem(item) {
-            document.getElementById('editId').value = item.id;
-            document.getElementById('itemTitle').value = item.title;
-            document.getElementById('itemType').value = item.item_type;
-            document.getElementById('itemPrice').value = item.sell_price;
-            document.getElementById('itemCost').value = item.purchase_price || 0;
-            document.getElementById('itemStock').value = item.stock_qty;
-            document.getElementById('itemBarcode').value = item.isbn || '';
             openModal(true);
+            document.getElementById('editId').value = item.id;
+            // Section 1 — Core
+            document.getElementById('itemTitle').value = item.title || '';
+            document.getElementById('itemTitleEn').value = item.title_en || '';
+            document.getElementById('itemSubtitle').value = item.subtitle || '';
+            document.getElementById('itemType').value = item.item_type || 'General';
+            document.getElementById('itemGenre').value = item.genre || '';
+            document.getElementById('itemLanguage').value = item.language || '';
+            document.getElementById('itemDescription').value = item.description || '';
+            // Section 2 — Authors & Publication
+            document.getElementById('itemAuthor').value = item.author || '';
+            document.getElementById('itemAuthorEn').value = item.author_en || '';
+            document.getElementById('itemCoAuthor').value = item.co_author || '';
+            document.getElementById('itemPublisher').value = item.publisher || '';
+            document.getElementById('itemYear').value = item.publish_year || '';
+            document.getElementById('itemEdition').value = item.edition || '';
+            document.getElementById('itemBarcode').value = item.isbn || '';
+            document.getElementById('itemSupplier').value = item.supplier_name || '';
+            document.getElementById('itemFormat').value = item.format || '';
+            // Section 3 — Physical & Stock
+            document.getElementById('itemCondition').value = item.book_condition || 'New';
+            document.getElementById('itemPageCount').value = item.page_count || '';
+            document.getElementById('itemShelf').value = item.shelf_location || '';
+            document.getElementById('itemRack').value = item.rack_number || '';
+            document.getElementById('itemStock').value = item.stock_qty || 0;
+            document.getElementById('itemMinStock').value = item.min_stock_level || 5;
+            document.getElementById('itemPrice').value = item.sell_price || 0;
+            document.getElementById('itemCost').value = item.purchase_price || 0;
+            // Toggles
+            document.getElementById('itemIsBorrowable').checked = parseInt(item.is_borrowable) !== 0;
+            document.getElementById('itemIsSuggested').checked = parseInt(item.is_suggested) === 1;
         }
 
         async function handleSave(e) {
             e.preventDefault();
-            const btn = document.getElementById('btnSaveItem');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
-            btn.disabled = true;
-
             const editId = document.getElementById('editId').value;
-            const payload = {
-                id: editId || null,
-                title: document.getElementById('itemTitle').value,
-                item_type: document.getElementById('itemType').value,
-                price: document.getElementById('itemPrice').value,
-                cost: document.getElementById('itemCost').value,
-                stock: document.getElementById('itemStock').value,
-                barcode: document.getElementById('itemBarcode').value
-            };
             const action = editId ? 'updateItem' : 'addItem';
-
+            const btn = document.getElementById('btnSaveItem');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i>Saving...';
             try {
+                const form = e.target;
+                const formData = new FormData(form);
+                // Collect all text/number/select fields into a plain object
+                const payload = {};
+                for (const [k, v] of formData.entries()) {
+                    payload[k] = v;
+                }
+                // Handle checkboxes explicitly (unchecked ones are not in FormData)
+                payload.is_borrowable = document.getElementById('itemIsBorrowable').checked ? 1 : 0;
+                payload.is_suggested  = document.getElementById('itemIsSuggested').checked ? 1 : 0;
+
                 const res = await fetch(`../../api/controllers/InventoryController.php?action=${action}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -840,34 +1116,31 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    toast(editId ? 'Item updated!' : 'Item added!', 'success');
+                    toast(editId ? 'Book Updated ✓' : 'Book Added ✓', 'success');
                     closeModal();
                     fetchInventory();
                 } else {
-                    toast('Error: ' + data.error, 'error');
+                    toast('Error: ' + (data.error || data.message || 'Unknown'), 'error');
                 }
-            } catch { toast('Connection error', 'error'); }
-            finally {
-                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> SAVE ITEM';
+            } catch (err) {
+                console.error(err);
+                toast('Network Error', 'error');
+            } finally {
                 btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk" style="margin-right:8px;"></i>SAVE INFORMATION';
             }
         }
 
         async function deleteItem(id) {
-            if (!confirm('Delete this item from inventory?')) return;
+            if (!confirm('Permanently delete this item?')) return;
             try {
-                const res = await fetch('../../api/controllers/InventoryController.php?action=deleteItem', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
+                const res = await fetch(`../../api/controllers/InventoryController.php?action=deleteItem`, { method: 'POST', body: JSON.stringify({ id }) });
                 const data = await res.json();
-                if (data.success) { toast('Item deleted', 'info'); fetchInventory(); }
+                if (data.success) { toast('Item Removed', 'info'); fetchInventory(); }
                 else toast('Error: ' + data.error, 'error');
-            } catch { toast('Connection error', 'error'); }
+            } catch { toast('System Error', 'error'); }
         }
 
-        /* ---- Restock ---- */
         function openRestock(id) {
             document.getElementById('restockId').value = id;
             document.getElementById('restockQty').value = 1;
@@ -879,20 +1152,15 @@
             const id = document.getElementById('restockId').value;
             const qty = parseInt(document.getElementById('restockQty').value) || 1;
             try {
-                const res = await fetch('../../api/controllers/InventoryController.php?action=restockItem', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, qty })
-                });
+                const res = await fetch('../../api/controllers/InventoryController.php?action=restockItem', { method: 'POST', body: JSON.stringify({ id, qty }) });
                 const data = await res.json();
-                if (data.success) { toast(`+${qty} units added!`, 'success'); closeRestock(); fetchInventory(); }
+                if (data.success) { toast(`+${qty} Stock Added`, 'success'); closeRestock(); fetchInventory(); }
                 else toast('Error: ' + data.error, 'error');
-            } catch { toast('Connection error', 'error'); }
+            } catch { toast('Network Error', 'error'); }
         }
 
         window.onload = function () {
             fetchInventory();
-            // Background sync - refresh inventory every 15 seconds (silently)
             setInterval(() => fetchInventory(true), 15000);
         };
     </script>
