@@ -617,6 +617,7 @@
         }
         .bk-switch input:checked + .bk-slider { background: #1e293b; }
         .bk-switch input:checked + .bk-slider:before { transform: translateX(20px); }
+        .book-only.hidden { display: none !important; }
         @media (max-width: 640px) {
             .bk-grid-2, .bk-grid-3, .bk-grid-4 { grid-template-columns: 1fr; }
             .bk-span-2 { grid-column: span 1; }
@@ -727,20 +728,21 @@
             <!-- Form -->
             <form id="addItemForm" onsubmit="handleSave(event)" style="padding:28px 32px; display:flex; flex-direction:column; gap:24px;">
                 <input type="hidden" id="editId" name="id" value="">
+                <input type="hidden" id="editSourceTable" name="source_table" value="">
 
                 <!-- Section 1: Basic Info -->
                 <div>
                     <div class="bk-section-label"><span class="bk-section-line"></span><span>Basic Information</span></div>
                     <div class="bk-grid-2" style="margin-top:14px;">
                         <div class="bk-group">
-                            <label class="bk-label">Title (Bengali)</label>
-                            <input type="text" name="title" id="itemTitle" placeholder="বইয়ের নাম লিখুন" class="bk-field">
+                            <label class="bk-label">Title (Main)</label>
+                            <input type="text" name="title" id="itemTitle" placeholder="Enter item name" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Title (English)</label>
                             <input type="text" name="title_en" id="itemTitleEn" placeholder="Enter English title" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Subtitle / Series</label>
                             <input type="text" name="subtitle" id="itemSubtitle" placeholder="e.g. Part 1, Special Edition" class="bk-field">
                         </div>
@@ -754,11 +756,11 @@
                                 <option value="General">📦 General / Other</option>
                             </select>
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Genre</label>
                             <input type="text" name="genre" id="itemGenre" placeholder="e.g. Thriller, Biography" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Language</label>
                             <input type="text" name="language" id="itemLanguage" placeholder="e.g. Bangla, English" class="bk-field">
                         </div>
@@ -771,29 +773,29 @@
 
                 <!-- Section 2: Authors & Publication -->
                 <div>
-                    <div class="bk-section-label"><span class="bk-section-line"></span><span>Authors &amp; Publication</span></div>
+                    <div class="bk-section-label book-only" id="secPubLabel"><span class="bk-section-line"></span><span>Authors &amp; Publication</span></div>
                     <div class="bk-grid-3" style="margin-top:14px;">
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Author (Bangla)</label>
                             <input type="text" name="author" id="itemAuthor" placeholder="লেখকের নাম" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Author (English)</label>
                             <input type="text" name="author_en" id="itemAuthorEn" placeholder="Author name" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Co-Author</label>
                             <input type="text" name="co_author" id="itemCoAuthor" placeholder="Secondary author" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Publisher</label>
                             <input type="text" name="publisher" id="itemPublisher" placeholder="e.g. Oprokash" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Publish Year</label>
                             <input type="text" name="publish_year" id="itemYear" placeholder="e.g. 2024" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Edition</label>
                             <input type="text" name="edition" id="itemEdition" placeholder="1st / Revised" class="bk-field">
                         </div>
@@ -805,7 +807,7 @@
                             <label class="bk-label">Supplier Name</label>
                             <input type="text" name="supplier_name" id="itemSupplier" placeholder="e.g. Book Palace" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Format</label>
                             <select name="format" id="itemFormat" class="bk-field">
                                 <option value="">— Select Format —</option>
@@ -821,7 +823,7 @@
                 <div>
                     <div class="bk-section-label"><span class="bk-section-line"></span><span>Stock, Physical &amp; Pricing</span></div>
                     <div class="bk-grid-4" style="margin-top:14px;">
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Condition</label>
                             <select name="book_condition" id="itemCondition" class="bk-field">
                                 <option value="New">✨ New</option>
@@ -829,15 +831,15 @@
                                 <option value="Damaged">⚠️ Damaged</option>
                             </select>
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Page Count</label>
                             <input type="number" name="page_count" id="itemPageCount" placeholder="e.g. 320" min="1" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Shelf Location</label>
                             <input type="text" name="shelf_location" id="itemShelf" placeholder="e.g. A1" class="bk-field">
                         </div>
-                        <div class="bk-group">
+                        <div class="bk-group book-only">
                             <label class="bk-label">Rack Number</label>
                             <input type="text" name="rack_number" id="itemRack" placeholder="e.g. R-12" class="bk-field">
                         </div>
@@ -862,7 +864,7 @@
 
                 <!-- Section 4: Toggles -->
                 <div style="display:flex; gap:14px; flex-wrap:wrap;">
-                    <label class="bk-toggle-card">
+                    <label class="bk-toggle-card book-only">
                         <div>
                             <p class="bk-toggle-title">Enable Borrowing</p>
                             <p class="bk-toggle-sub">Allow students to borrow this book</p>
@@ -872,7 +874,7 @@
                             <span class="bk-slider"></span>
                         </div>
                     </label>
-                    <label class="bk-toggle-card">
+                    <label class="bk-toggle-card book-only">
                         <div>
                             <p class="bk-toggle-title">Suggest on Website</p>
                             <p class="bk-toggle-sub">Feature in website recommendations</p>
@@ -908,6 +910,7 @@
                     style="padding:11px 14px; border:2px solid #e2e8f0; border-radius:12px; font-family:inherit; font-size:0.9rem; transition:0.2s; width:100%;">
             </div>
             <input type="hidden" id="restockId">
+            <input type="hidden" id="restockSourceTable">
             <button onclick="confirmRestock()" class="btn-save"><i class="fa-solid fa-plus"></i> ADD STOCK</button>
         </div>
     </div>
@@ -997,14 +1000,14 @@
                     <div class="card-footer">
                         <div class="price-tag">৳${parseFloat(item.sell_price).toFixed(0)}</div>
                         <div style="display:flex; gap:5px;">
-                            <button class="card-btn stock-btn" onclick="openRestock(${item.id})" title="Restock"><i class="fa-solid fa-plus"></i></button>
+                            <button class="card-btn stock-btn" onclick="openRestock(${item.id}, '${item.source_table}')" title="Restock"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
                     <div class="card-actions">
                         <button class="card-btn edit" onclick='editItem(${JSON.stringify(item).replace(/'/g, "&apos;")})'>
                             <i class="fa-solid fa-pen-to-square"></i> EDIT
                         </button>
-                        <button class="card-btn del" onclick="deleteItem(${item.id})">
+                        <button class="card-btn del" onclick="deleteItem(${item.id}, '${item.source_table}')">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
@@ -1041,16 +1044,21 @@
         }
 
         function openModal(editMode = false) {
-            document.getElementById('modalTitle').innerText = editMode ? 'Update Book Details' : 'Add New Book';
+            document.getElementById('modalTitle').innerText = editMode ? 'Update Item Details' : 'Add New Item';
             document.getElementById('addModal').style.display = 'flex';
             document.getElementById('addModal').scrollTop = 0;
             document.body.style.overflow = 'hidden';
+            if(!editMode) {
+                document.getElementById('itemType').value = 'Books';
+                toggleBookFields();
+            }
         }
 
         function closeModal() {
             document.getElementById('addModal').style.display = 'none';
             document.getElementById('addItemForm').reset();
             document.getElementById('editId').value = '';
+            document.getElementById('editSourceTable').value = '';
             document.body.style.overflow = '';
         }
 
@@ -1058,6 +1066,7 @@
         function editItem(item) {
             openModal(true);
             document.getElementById('editId').value = item.id;
+            document.getElementById('editSourceTable').value = item.source_table || 'books';
             // Section 1 — Core
             document.getElementById('itemTitle').value = item.title || '';
             document.getElementById('itemTitleEn').value = item.title_en || '';
@@ -1088,6 +1097,8 @@
             // Toggles
             document.getElementById('itemIsBorrowable').checked = parseInt(item.is_borrowable) !== 0;
             document.getElementById('itemIsSuggested').checked = parseInt(item.is_suggested) === 1;
+
+            toggleBookFields();
         }
 
         async function handleSave(e) {
@@ -1131,18 +1142,19 @@
             }
         }
 
-        async function deleteItem(id) {
+        async function deleteItem(id, source_table) {
             if (!confirm('Permanently delete this item?')) return;
             try {
-                const res = await fetch(`../../api/controllers/InventoryController.php?action=deleteItem`, { method: 'POST', body: JSON.stringify({ id }) });
+                const res = await fetch(`../../api/controllers/InventoryController.php?action=deleteItem`, { method: 'POST', body: JSON.stringify({ id, source_table }) });
                 const data = await res.json();
                 if (data.success) { toast('Item Removed', 'info'); fetchInventory(); }
                 else toast('Error: ' + data.error, 'error');
             } catch { toast('System Error', 'error'); }
         }
 
-        function openRestock(id) {
+        function openRestock(id, source_table) {
             document.getElementById('restockId').value = id;
+            document.getElementById('restockSourceTable').value = source_table;
             document.getElementById('restockQty').value = 1;
             document.getElementById('restockModal').style.display = 'flex';
         }
@@ -1150,18 +1162,30 @@
 
         async function confirmRestock() {
             const id = document.getElementById('restockId').value;
+            const source_table = document.getElementById('restockSourceTable').value;
             const qty = parseInt(document.getElementById('restockQty').value) || 1;
             try {
-                const res = await fetch('../../api/controllers/InventoryController.php?action=restockItem', { method: 'POST', body: JSON.stringify({ id, qty }) });
+                const res = await fetch('../../api/controllers/InventoryController.php?action=restockItem', { method: 'POST', body: JSON.stringify({ id, qty, source_table }) });
                 const data = await res.json();
                 if (data.success) { toast(`+${qty} Stock Added`, 'success'); closeRestock(); fetchInventory(); }
                 else toast('Error: ' + data.error, 'error');
             } catch { toast('Network Error', 'error'); }
         }
 
+        function toggleBookFields() {
+            const type = document.getElementById('itemType').value;
+            const isBook = (type === 'Books');
+            document.querySelectorAll('.book-only').forEach(el => {
+                if(isBook) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+        }
+        document.getElementById('itemType').addEventListener('change', toggleBookFields);
+
         window.onload = function () {
             fetchInventory();
             setInterval(() => fetchInventory(true), 15000);
+            toggleBookFields();
         };
     </script>
 </body>

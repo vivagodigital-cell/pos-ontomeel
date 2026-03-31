@@ -39,15 +39,24 @@ if ($action === 'migrate') {
 
 try {
     if ($action === 'getItems') {
-        // Fetch all items from books table (including non-book items via item_type)
-        $stmt = $pdo->query("SELECT * FROM books WHERE is_active = 1 ORDER BY id DESC");
-        $items = $stmt->fetchAll();
-        echo json_encode(["success" => true, "items" => $items]);
+        // Fetch books
+        $stmt_b = $pdo->query("SELECT *, 'books' as source_table FROM books WHERE is_active = 1");
+        $books = $stmt_b->fetchAll(PDO::FETCH_ASSOC);
+
+        // Fetch inventory items mapped to same structure
+        $stmt_i = $pdo->query("SELECT id, item_name as title, item_type, quantity as stock_qty, sell_price, unit_cost as purchase_price, supplier_name, barcode as isbn, is_active, '' as cover_image, '' as author, 'inventory_items' as source_table FROM inventory_items WHERE is_active = 1");
+        $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
+
+        $allItems = array_merge($books, $items);
+        usort($allItems, function($a, $b) { return $b['id'] <=> $a['id']; });
+
+        echo json_encode(["success" => true, "items" => $allItems]);
     } elseif ($action === 'addItem' || $action === 'updateItem') {
         // Read JSON body (sent by JS as application/json)
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
         $id            = (int)($data['id'] ?? 0);
+        $source_table  = $data['source_table'] ?? 'books';
         $title         = trim($data['title'] ?? '');
         $title_en      = trim($data['title_en'] ?? '');
         $subtitle      = trim($data['subtitle'] ?? '');
@@ -80,65 +89,82 @@ try {
         $cost          = (float)($data['purchase_price'] ?? 0.00);
 
         if ($action === 'addItem') {
-            $stmt = $pdo->prepare("INSERT INTO books (
-                title, title_en, subtitle, description, item_type, category_id, genre, language,
-                author, author_en, co_author, publisher, publish_year, edition, isbn,
-                format, page_count, book_condition, shelf_location, rack_number, stock_qty, min_stock_level, is_borrowable, is_suggested,
-                sell_price, purchase_price, supplier_name
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            if (strtolower($type) === 'books' || strtolower($type) === 'book') {
+                $stmt = $pdo->prepare("INSERT INTO books (
+                    title, title_en, subtitle, description, item_type, category_id, genre, language,
+                    author, author_en, co_author, publisher, publish_year, edition, isbn,
+                    format, page_count, book_condition, shelf_location, rack_number, stock_qty, min_stock_level, is_borrowable, is_suggested,
+                    sell_price, purchase_price, supplier_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-            $stmt->execute([
-                $title, $title_en, $subtitle, $description, $type, $category_id, $genre, $language,
-                $author, $author_en, $co_author, $publisher, $publish_year, $edition, $isbn,
-                $format, $page_count, $book_condition, $shelf_location, $rack_number, $stock, $min_stock, $is_borrowable, $is_suggested,
-                $price, $cost, $supplier_name
-            ]);
-            echo json_encode(["success" => true, "message" => "Book added!", "id" => $pdo->lastInsertId()]);
+                $stmt->execute([
+                    $title, $title_en, $subtitle, $description, $type, $category_id, $genre, $language,
+                    $author, $author_en, $co_author, $publisher, $publish_year, $edition, $isbn,
+                    $format, $page_count, $book_condition, $shelf_location, $rack_number, $stock, $min_stock, $is_borrowable, $is_suggested,
+                    $price, $cost, $supplier_name
+                ]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_name, barcode) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$title, $type, $stock, $cost, $price, $supplier_name, $isbn]);
+            }
+            echo json_encode(["success" => true, "message" => "Item added!", "id" => $pdo->lastInsertId()]);
         } else {
-            $stmt = $pdo->prepare("UPDATE books SET
-                title=?, title_en=?, subtitle=?, description=?, item_type=?, category_id=?, genre=?, language=?,
-                author=?, author_en=?, co_author=?, publisher=?, publish_year=?, edition=?, isbn=?,
-                format=?, page_count=?, book_condition=?, shelf_location=?, rack_number=?, stock_qty=?, min_stock_level=?, is_borrowable=?, is_suggested=?,
-                sell_price=?, purchase_price=?, supplier_name=?
-                WHERE id=?");
+            if ($source_table === 'inventory_items') {
+                $stmt = $pdo->prepare("UPDATE inventory_items SET item_name=?, item_type=?, quantity=?, unit_cost=?, sell_price=?, supplier_name=?, barcode=? WHERE id=?");
+                $stmt->execute([$title, $type, $stock, $cost, $price, $supplier_name, $isbn, $id]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE books SET
+                    title=?, title_en=?, subtitle=?, description=?, item_type=?, category_id=?, genre=?, language=?,
+                    author=?, author_en=?, co_author=?, publisher=?, publish_year=?, edition=?, isbn=?,
+                    format=?, page_count=?, book_condition=?, shelf_location=?, rack_number=?, stock_qty=?, min_stock_level=?, is_borrowable=?, is_suggested=?,
+                    sell_price=?, purchase_price=?, supplier_name=?
+                    WHERE id=?");
 
-            $stmt->execute([
-                $title, $title_en, $subtitle, $description, $type, $category_id, $genre, $language,
-                $author, $author_en, $co_author, $publisher, $publish_year, $edition, $isbn,
-                $format, $page_count, $book_condition, $shelf_location, $rack_number, $stock, $min_stock, $is_borrowable, $is_suggested,
-                $price, $cost, $supplier_name,
-                $id
-            ]);
-            echo json_encode(["success" => true, "message" => "Book updated!"]);
+                $stmt->execute([
+                    $title, $title_en, $subtitle, $description, $type, $category_id, $genre, $language,
+                    $author, $author_en, $co_author, $publisher, $publish_year, $edition, $isbn,
+                    $format, $page_count, $book_condition, $shelf_location, $rack_number, $stock, $min_stock, $is_borrowable, $is_suggested,
+                    $price, $cost, $supplier_name,
+                    $id
+                ]);
+            }
+            echo json_encode(["success" => true, "message" => "Item updated!"]);
         }
     } elseif ($action === 'deleteItem') {
         $data = json_decode(file_get_contents('php://input'), true);
         $id = (int) ($data['id'] ?? 0);
+        $source = $data['source_table'] ?? 'books';
 
         if (!$id) {
             echo json_encode(["success" => false, "error" => "Invalid ID."]);
             exit;
         }
 
-        // Soft-delete: set is_active = 0 
-        $stmt = $pdo->prepare("UPDATE books SET is_active = 0 WHERE id = ?");
+        if ($source === 'inventory_items') {
+            $stmt = $pdo->prepare("UPDATE inventory_items SET is_active = 0 WHERE id = ?");
+        } else {
+            $stmt = $pdo->prepare("UPDATE books SET is_active = 0 WHERE id = ?");
+        }
         $stmt->execute([$id]);
         echo json_encode(["success" => true, "message" => "Item deleted."]);
     } elseif ($action === 'restockItem') {
         $data = json_decode(file_get_contents('php://input'), true);
         $id = (int) ($data['id'] ?? 0);
         $qty = (int) ($data['qty'] ?? 0);
+        $source = $data['source_table'] ?? 'books';
 
         if (!$id || $qty < 1) {
             echo json_encode(["success" => false, "error" => "Invalid restock data."]);
             exit;
         }
 
-        // Restock in books table
-        $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty + ? WHERE id = ? AND is_active = 1");
+        if ($source === 'inventory_items') {
+            $stmt = $pdo->prepare("UPDATE inventory_items SET quantity = quantity + ? WHERE id = ? AND is_active = 1");
+        } else {
+            $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty + ? WHERE id = ? AND is_active = 1");
+        }
         $stmt->execute([$qty, $id]);
 
-        // Verify update happened
         if ($stmt->rowCount() === 0) {
             echo json_encode(["success" => false, "error" => "Item not found or already inactive."]);
             exit;
