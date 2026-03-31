@@ -231,30 +231,44 @@ try {
                 $stmt = $pdo->prepare("INSERT INTO purchase_items (purchase_id, item_name, isbn, unit_cost, quantity, total_item_cost) VALUES (?,?,?,?,?,?)");
                 $stmt->execute([$purchaseId, $p_name, $p_isbn, $p_cost, $p_qty, $p_total]);
 
-                // B. Sync with books table for inventory management (Preventing Duplicates)
-                $existing = null;
-                if (!empty($p_isbn)) {
-                    $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE isbn = ?");
-                    $check->execute([$p_isbn]);
-                    $existing = $check->fetch();
-                }
+                // B. Sync with inventory management (Preventing Duplicates)
+                if (strtolower($category) === 'book' || strtolower($category) === 'books') {
+                    $existing = null;
+                    if (!empty($p_isbn)) {
+                        $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE isbn = ?");
+                        $check->execute([$p_isbn]);
+                        $existing = $check->fetch();
+                    }
 
-                if (!$existing && !empty($p_name)) {
-                    $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND (isbn IS NULL OR isbn = '')");
+                    if (!$existing && !empty($p_name)) {
+                        $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND (isbn IS NULL OR isbn = '')");
+                        $check->execute([$p_name]);
+                        $existing = $check->fetch();
+                    }
+
+                    if ($existing) {
+                        // Update existing inventory
+                        $newQty = $existing['stock_qty'] + $p_qty;
+                        $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ? WHERE id = ?");
+                        $upd->execute([$newQty, $p_cost, $supplierName, $category, $existing['id']]);
+                    } else {
+                        // Insert new item into books table
+                        $ins = $pdo->prepare("INSERT INTO books (title, isbn, item_type, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        $ins->execute([$p_name, $p_isbn, $category, $p_qty, $p_cost, $p_cost, $supplierName]);
+                    }
+                } else {
+                    $check = $pdo->prepare("SELECT id, quantity FROM inventory_items WHERE item_name = ?");
                     $check->execute([$p_name]);
                     $existing = $check->fetch();
-                }
 
-                if ($existing) {
-                    // Update existing inventory
-                    $newQty = $existing['stock_qty'] + $p_qty;
-                    $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ? WHERE id = ?");
-                    $upd->execute([$newQty, $p_cost, $supplierName, $category, $existing['id']]);
-                } else {
-                    // Insert new item into books table
-                    // Default sell_price = unit_cost for now (adjust in Inventory page later)
-                    $ins = $pdo->prepare("INSERT INTO books (title, isbn, item_type, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $ins->execute([$p_name, $p_isbn, $category, $p_qty, $p_cost, $p_cost, $supplierName]);
+                    if ($existing) {
+                        $newQty = $existing['quantity'] + $p_qty;
+                        $upd = $pdo->prepare("UPDATE inventory_items SET quantity = ?, unit_cost = ?, supplier_id = ?, supplier_name = ?, item_type = ? WHERE id = ?");
+                        $upd->execute([$newQty, $p_cost, $supplierId, $supplierName, $category, $existing['id']]);
+                    } else {
+                        $ins = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_id, supplier_name, barcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $ins->execute([$p_name, $category, $p_qty, $p_cost, $p_cost, $supplierId, $supplierName, $p_isbn]);
+                    }
                 }
             }
 
