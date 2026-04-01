@@ -9,10 +9,28 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'getBooks') {
-        // Fetch all items with grouping to prevent duplicates in display
-        $stmt = $pdo->query("SELECT MAX(id) as id, title, MAX(author) as author, isbn, MAX(sell_price) as sell_price, MAX(cover_image) as cover_image, SUM(stock_qty) as stock_qty, item_type FROM books WHERE is_active = 1 GROUP BY title, isbn, item_type HAVING SUM(stock_qty) > 0 ORDER BY title ASC");
-        $books = $stmt->fetchAll();
-        echo json_encode($books);
+        // Fetch books (already have unified structure)
+        $stmt_b = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, item_type FROM books WHERE is_active = 1");
+        $books = $stmt_b->fetchAll();
+
+        // Fetch generic inventory items and map to product structure
+        $stmt_i = $pdo->query("SELECT id, item_name as title, '' as author, barcode as isbn, sell_price, '' as cover_image, quantity as stock_qty, item_type FROM inventory_items WHERE is_active = 1");
+        $items = $stmt_i->fetchAll();
+
+        $all = array_merge($books, $items);
+        
+        // Grouping to ensure unique items in Terminal display (optional but recommended)
+        $grouped = [];
+        foreach ($all as $itm) {
+            $key = $itm['title'] . ($itm['isbn'] ?? '');
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = $itm;
+            } else {
+                $grouped[$key]['stock_qty'] += $itm['stock_qty'];
+            }
+        }
+
+        echo json_encode(array_values($grouped));
     }
     elseif ($action === 'searchMembers') {
         $query = $_GET['q'] ?? '';

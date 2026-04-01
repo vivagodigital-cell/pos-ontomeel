@@ -874,7 +874,7 @@
             <div class="header-center-search">
                 <div class="main-search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="bookSearch" placeholder="Search by book title, author, or ISBN..."
+                    <input type="text" id="bookSearch" placeholder="Search title, author, category, or barcode..."
                         onkeyup="filterBooks()">
                 </div>
             </div>
@@ -1319,12 +1319,18 @@
 
         function applyFilter() {
             let displayed;
-            // Since all items now come from the same books table, filter by item_type
+            // Normalize filtering for 'Books' or 'Book' as item_type
             if (activeFilter === 'books') {
-                displayed = allItems.filter(b => b.item_type === 'Book' || b.item_type === '' || b.item_type === null);
+                displayed = allItems.filter(b => {
+                    const type = (b.item_type || 'Book').toLowerCase();
+                    return type === 'book' || type === 'books';
+                });
             } else if (activeFilter === 'inventory') {
                 // Non-book items: General, Stationery, etc.
-                displayed = allItems.filter(b => b.item_type && b.item_type !== 'Book' && b.item_type !== '');
+                displayed = allItems.filter(b => {
+                    const type = (b.item_type || '').toLowerCase();
+                    return type !== 'book' && type !== 'books' && type !== '';
+                });
             } else {
                 displayed = allItems;
             }
@@ -1334,7 +1340,8 @@
                 displayed = displayed.filter(b =>
                     (b.title && b.title.toLowerCase().includes(searchVal)) ||
                     (b.author && b.author.toLowerCase().includes(searchVal)) ||
-                    (b.isbn && b.isbn.toLowerCase().includes(searchVal))
+                    (b.isbn && b.isbn.toLowerCase().includes(searchVal)) ||
+                    (b.item_type && b.item_type.toLowerCase().includes(searchVal))
                 );
             }
 
@@ -1380,21 +1387,36 @@
             }
         }
 
-        function renderBooks(books) {
-            const grid = document.getElementById('browseGrid');
-            grid.innerHTML = '';
+        let displayedItems = [];
+        let itemsToShow = 50;
+        const INCREMENT = 50;
 
+        function renderBooks(books, append = false) {
+            const grid = document.getElementById('browseGrid');
+            
+            if (!append) {
+                grid.innerHTML = '';
+                grid.scrollTop = 0;
+                itemsToShow = INCREMENT;
+                displayedItems = books;
+            }
+
+            const chunk = displayedItems.slice(grid.children.length, itemsToShow);
+            
             // Image base path
             const isProduction = window.location.hostname.includes('ontomeel.com');
             const imageBasePath = isProduction
                 ? 'https://ontomeel.com/admin/assets/book-images/'
                 : '../../../bookshop/admin/assets/book-images/';
 
-            books.forEach(book => {
+            chunk.forEach(book => {
                 const pill = document.createElement('div');
                 pill.className = 'book-pill fade-in';
+                
+                // Track item ID for badge updates
+                pill.setAttribute('data-card-id', book.id);
 
-                if (book._isInventory) {
+                if (book._isInventory || (book.item_type && book.item_type !== 'Book')) {
                     // Inventory item card
                     book.displayImage = '';
                     const typeIcons = { 'Stationary': 'pen-ruler', 'Flowers': 'seedling', 'Accessories': 'plug', 'General': 'box' };
@@ -1443,6 +1465,21 @@
                 grid.appendChild(pill);
             });
         }
+
+        // Initialize scroll listener for lazy loading
+        document.addEventListener('DOMContentLoaded', () => {
+            const grid = document.getElementById('browseGrid');
+            if (grid) {
+                grid.addEventListener('scroll', () => {
+                    if (grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 200) {
+                        if (grid.children.length < displayedItems.length) {
+                            itemsToShow += INCREMENT;
+                            renderBooks(displayedItems, true);
+                        }
+                    }
+                });
+            }
+        });
 
         function filterBooks() {
             applyFilter();

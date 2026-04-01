@@ -645,6 +645,9 @@
                             Staff</div>
                     </div>
                 </div>
+                <a href="product-import.html" class="btn-add" style="background: #6366f1; text-decoration: none;">
+                    <i class="fa-solid fa-file-import"></i> IMPORT
+                </a>
                 <button class="btn-add" onclick="openModal()">
                     <i class="fa-solid fa-plus"></i> ADD ITEM
                 </button>
@@ -960,16 +963,31 @@
             document.getElementById('statTypes').innerText = [...new Set(items.map(i => i.item_type))].length;
         }
 
-        function renderItems(items) {
+        let displayedItems = [];
+        let itemsToShow = 40;
+        const INCREMENT = 40;
+
+        function renderItems(items, append = false) {
             const g = document.getElementById('inventoryGrid');
-            if (items.length === 0) {
+            
+            if (!append) {
+                g.innerHTML = '';
+                itemsToShow = INCREMENT;
+                displayedItems = items;
+            }
+
+            if (displayedItems.length === 0) {
                 g.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:5rem 2rem; color:var(--text-muted);">
                     <i class="fa-solid fa-box-open" style="font-size:3rem; opacity:0.1; display:block; margin-bottom:1rem;"></i>
                     No items found. Add some to get started!
                 </div>`;
                 return;
             }
-            g.innerHTML = items.map(item => {
+
+            const startIndex = append ? g.childElementCount : 0;
+            const chunk = displayedItems.slice(startIndex, itemsToShow);
+
+            const html = chunk.map(item => {
                 const ico = icons[item.item_type] || 'box';
                 const bg = bgColors[item.item_type] || '#f1f5f9';
                 const col = iconColors[item.item_type] || '#64748b';
@@ -1013,7 +1031,23 @@
                     </div>
                 </div>`;
             }).join('');
+
+            if (append) {
+                g.insertAdjacentHTML('beforeend', html);
+            } else {
+                g.innerHTML = html;
+            }
         }
+
+        // Infinite Scroll listener for inventory grid
+        window.addEventListener('scroll', () => {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 600) {
+                if (displayedItems.length > itemsToShow) {
+                    itemsToShow += INCREMENT;
+                    renderItems(displayedItems, true);
+                }
+            }
+        });
 
         async function fetchInventory(isSilent = false) {
             if (!isSilent) renderSkeletons();
