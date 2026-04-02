@@ -46,6 +46,31 @@ try {
             throw new Exception("Invalid username or password.");
         }
     } 
+    elseif ($action === 'signup') {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $username = $data['username'] ?? '';
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
+        $full_name = $data['full_name'] ?? '';
+
+        if (empty($username) || empty($email) || empty($password) || empty($full_name)) {
+            throw new Exception("All fields are required.");
+        }
+
+        // Check if exists
+        $stmt = $pdo->prepare("SELECT id FROM admins WHERE username = ? OR email = ?");
+        $stmt->execute([$username, $email]);
+        if ($stmt->fetch()) {
+            throw new Exception("Username or email already exists.");
+        }
+
+        // Create user
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("INSERT INTO admins (username, email, password, full_name, role, pos_access, created_at) VALUES (?, ?, ?, ?, 'Manager', 1, NOW())");
+        $stmt->execute([$username, $email, $hashed, $full_name]);
+
+        echo json_encode(['success' => true]);
+    }
     elseif ($action === 'logout') {
         session_destroy();
         echo json_encode(['success' => true]);
