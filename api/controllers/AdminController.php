@@ -10,6 +10,7 @@ const MAX_POS_USERS = 3;
 
 // Only Super Admin can access this controller
 $currentRole = strtolower($_SESSION['admin_role'] ?? '');
+// Allow 'super admin', 'superadmin'
 if (!isset($_SESSION['admin_id']) || ($currentRole !== 'super admin' && $currentRole !== 'superadmin')) {
     http_response_code(403);
     echo json_encode(['error' => 'Permission denied. Only Super Admin can manage users.']);
@@ -42,12 +43,21 @@ try {
         $email = $data['email'] ?? '';
         $password = $data['password'] ?? '';
         $full_name = $data['full_name'] ?? '';
-        $role = $data['role'] ?? 'editor'; // manager, editor
+        $role = $data['role'] ?? 'Editor'; 
         $pos_access = $data['pos_access'] ?? 0;
 
         if (empty($username) || empty($password) || empty($email)) {
             throw new Exception("Username, email and password are required.");
         }
+
+        // Map role to ENUM values if needed: SuperAdmin, Manager, Editor
+        $roleMap = [
+            'super admin' => 'SuperAdmin',
+            'superadmin' => 'SuperAdmin',
+            'manager' => 'Manager',
+            'editor' => 'Editor'
+        ];
+        $roleValue = $roleMap[strtolower($role)] ?? 'Editor';
 
         // Count current POS users if trying to add a new one with access
         if ($pos_access) {
@@ -60,7 +70,7 @@ try {
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("INSERT INTO admins (username, email, password, full_name, role, pos_access, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
-        $stmt->execute([$username, $email, $hashedPassword, $full_name, $role, $pos_access]);
+        $stmt->execute([$username, $email, $hashedPassword, $full_name, $roleValue, $pos_access]);
 
         echo json_encode(['success' => true, 'message' => 'User created successfully.']);
     }

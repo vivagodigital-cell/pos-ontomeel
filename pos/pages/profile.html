@@ -438,9 +438,9 @@
                     <input type="password" id="new-password" placeholder="Password" required
                         style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
                     <select id="new-role" style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                        <option value="manager">Manager</option>
-                        <option value="editor">Editor</option>
-                        <option value="super admin">Super Admin (Careful!)</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Editor">Editor</option>
+                        <option value="SuperAdmin">Super Admin (Careful!)</option>
                     </select>
                     <div style="grid-column: span 2; display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="new-pos-access" checked>
@@ -522,6 +522,9 @@
                     data.users.forEach(user => {
                         if (user.pos_access == 1) activeCount++;
 
+                        const roleLower = (user.role || '').toLowerCase().replace(/\s+/g, '');
+                        const displayRole = user.role === 'SuperAdmin' ? 'Super Admin' : user.role;
+                        
                         const tr = document.createElement('tr');
                         tr.style.borderBottom = '1px solid #f8fafc';
                         tr.innerHTML = `
@@ -533,7 +536,7 @@
                                 ${user.email || '<i style="color: #cbd5e1;">Not set</i>'}
                             </td>
                             <td style="padding: 1rem;">
-                                <span class="role-badge" style="font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; background: ${getRoleBg(user.role)}; color: ${getRoleColor(user.role)};">${user.role}</span>
+                                <span class="role-badge role-${roleLower}" style="font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; text-transform: uppercase;">${displayRole}</span>
                             </td>
                             <td style="padding: 1rem;">
                                 <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 22px;">
@@ -556,16 +559,7 @@
             } catch (e) { console.error('Failed to load users', e); }
         }
 
-        function getRoleBg(role) {
-            if (role === 'super admin') return '#fef2f2';
-            if (role === 'manager') return '#f0fdf4';
-            return '#f0f9ff';
-        }
-        function getRoleColor(role) {
-            if (role === 'super admin') return '#ef4444';
-            if (role === 'manager') return '#22c55e';
-            return '#3b82f6';
-        }
+        // Role colors moved to CSS classes in sidebar.js/auth-guard.js
 
         async function togglePosAccess(userId, status) {
             try {
