@@ -24,7 +24,94 @@ function checkAuth($isSubPage = false) {
 
     // Optional: Check POS Access
     if (!isset($_SESSION['admin_pos_access']) || $_SESSION['admin_pos_access'] == 0) {
-        echo "<div style='text-align:center; padding:50px; font-family:sans-serif;'><h1>Access Denied</h1><p>Your account does not have POS access. <a href='logout.php' style='color:red;'>Logout</a></p></div>";
+        $logoutPath = $isSubPage ? '../logout.php' : 'logout.php';
+        ?>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Access Denied | Ontomeel POS</title>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+            <style>
+                body {
+                    background: radial-gradient(circle at top right, #fef2f2 0%, #fff1f2 100%);
+                    height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                    font-family: 'Inter', sans-serif;
+                    margin: 0;
+                }
+                .denied-card {
+                    background: rgba(255, 255, 255, 0.9);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(220, 38, 38, 0.1);
+                    width: 440px;
+                    padding: 3.5rem 3rem;
+                    border-radius: 40px;
+                    text-align: center;
+                    box-shadow: 0 40px 100px -20px rgba(220, 38, 38, 0.08);
+                    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+                @keyframes slideUp {
+                    from { transform: translateY(40px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                .icon-box {
+                    width: 100px;
+                    height: 100px;
+                    background: #fef2f2;
+                    color: #dc2626;
+                    font-size: 3rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 30px;
+                    margin: 0 auto 2rem;
+                    box-shadow: inset 0 2px 4px rgba(220, 38, 38, 0.05);
+                }
+                h1 { font-weight: 800; color: #0f172a; font-size: 1.75rem; margin-bottom: 1rem; }
+                p { color: #64748b; font-size: 1rem; line-height: 1.6; margin-bottom: 2.5rem; }
+                .btn-logout {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    width: 100%;
+                    padding: 1.1rem;
+                    border-radius: 18px;
+                    background: #0f172a;
+                    color: white;
+                    text-decoration: none;
+                    font-weight: 700;
+                    font-size: 1rem;
+                    transition: all 0.3s;
+                    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.3);
+                }
+                .btn-logout:hover {
+                    background: #1e293b;
+                    transform: translateY(-2px);
+                    box-shadow: 0 15px 35px -5px rgba(15, 23, 42, 0.4);
+                }
+            </style>
+        </head>
+        <body>
+            <div class="denied-card">
+                <div class="icon-box">
+                    <i class="fa-solid fa-shield-lock"></i>
+                </div>
+                <h1>Access Denied</h1>
+                <p>Your account does not have authorization to access the POS system. Please contact your administrator if you believe this is an error.</p>
+                <a href="<?php echo $logoutPath; ?>" class="btn-logout">
+                    LOGOUT & SESSION END <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </body>
+        </html>
+        <?php
         exit;
     }
 }
