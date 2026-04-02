@@ -879,21 +879,21 @@
                 </div>
             </div>
 
-            <div class="header-tools"
-                style="min-width: 250px; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
-                <div class="user-profile" style="display: flex; align-items: center; gap: 12px;">
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);"
-                            class="user-name-display">System Admin</div>
-                        <div
-                            style="font-size: 0.7rem; color: var(--accent-mint); font-weight: 800; text-transform: uppercase;">
-                            Online</div>
+            <div class="header-tools" style="display: flex; justify-content: flex-end; align-items: center; gap: 1.5rem;">
+                <!-- Profile Link as Initials Box -->
+                <a href="profile.html" class="header-profile-link" style="text-decoration: none;">
+                    <div style="width: 42px; height: 42px; background: #eff6ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #2563eb; font-size: 0.9rem; border: 1px solid #dbeafe; transition: all 0.2s;" class="user-initials-display">
+                        AD
                     </div>
-                    <img src="https://ui-avatars.com/api/?name=Admin&background=eff6ff&color=2563eb&bold=true"
-                        alt="Admin"
-                        style="width: 44px; height: 44px; border-radius: 14px; border: 2px solid white; box-shadow: var(--shadow-sm);">
-                </div>
+                </a>
             </div>
+            <style>
+                .header-profile-link:hover div {
+                    background: #dbeafe;
+                    transform: scale(1.05);
+                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+                }
+            </style>
         </header>
 
         <div class="terminal-layout">

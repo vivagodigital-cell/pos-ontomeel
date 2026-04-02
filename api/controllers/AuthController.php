@@ -17,7 +17,7 @@ try {
             throw new Exception("Username and password are required.");
         }
 
-        $stmt = $pdo->prepare("SELECT id, username, password, full_name, role FROM admins WHERE username = ? OR email = ?");
+        $stmt = $pdo->prepare("SELECT id, username, password, full_name, role, pos_access FROM admins WHERE username = ? OR email = ?");
         $stmt->execute([$username, $username]);
         $user = $stmt->fetch();
 
@@ -27,6 +27,7 @@ try {
             $_SESSION['admin_username'] = $user['username'];
             $_SESSION['admin_name'] = $user['full_name'];
             $_SESSION['admin_role'] = $user['role'];
+            $_SESSION['admin_pos_access'] = $user['pos_access'];
 
             // Update last login
             $update = $pdo->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?");
@@ -37,7 +38,8 @@ try {
                 'user' => [
                     'username' => $user['username'],
                     'full_name' => $user['full_name'],
-                    'role' => $user['role']
+                    'role' => $user['role'],
+                    'pos_access' => $user['pos_access']
                 ]
             ]);
         } else {
@@ -50,12 +52,21 @@ try {
     }
     elseif ($action === 'check') {
         if (isset($_SESSION['admin_id'])) {
+            // Re-fetch pos_access in case it was toggled by another admin
+            $stmt = $pdo->prepare("SELECT role, pos_access FROM admins WHERE id = ?");
+            $stmt->execute([$_SESSION['admin_id']]);
+            $user = $stmt->fetch();
+            
+            $_SESSION['admin_role'] = $user['role'];
+            $_SESSION['admin_pos_access'] = $user['pos_access'];
+
             echo json_encode([
                 'authenticated' => true,
                 'user' => [
                     'username' => $_SESSION['admin_username'],
                     'full_name' => $_SESSION['admin_name'],
-                    'role' => $_SESSION['admin_role']
+                    'role' => $_SESSION['admin_role'],
+                    'pos_access' => $_SESSION['admin_pos_access']
                 ]
             ]);
         } else {

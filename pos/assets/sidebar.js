@@ -19,6 +19,7 @@
             </div>
             <span class="logo-text">ONTOMEEL</span>
         </div>
+
         <ul class="nav-links">
             <li class="nav-item">
                 <a href="${dashboardPath}" class="nav-link ${currentPage === 'index' || currentPage === '' ? 'active' : ''}">
@@ -64,12 +65,23 @@
             </li>
         </ul>
         <div style="margin-top: auto; padding: 1rem;">
-            <a href="javascript:void(0)" onclick="logout()" class="nav-link" style="color: #ef4444;">
+            <a href="javascript:void(0)" onclick="logout()" class="nav-link logout-btn" style="color: #ef4444; display: flex; align-items: center; gap: 12px; padding: 0.75rem; border-radius: 8px; transition: all 0.2s;">
                 <i class="fa-solid fa-right-from-bracket"></i>
-                <span class="nav-text">Logout</span>
+                <span class="nav-text" style="font-weight: 600;">Logout</span>
             </a>
         </div>
-    </nav>`;
+    </nav>
+    <style>
+        /* Role Colors */
+        .role-super-admin, .role-superadmin { background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; }
+        .role-manager { background: #f0fdf4; color: #22c55e; border: 1px solid #dcfce7; }
+        .role-editor { background: #f0f9ff; color: #3b82f6; border: 1px solid #e0f2fe; }
+        .logout-btn:hover {
+            background: #fef2f2;
+            transform: translateX(4px);
+        }
+    </style>
+    `;
 
         // Traditional fallback: Insert it before the main content
         document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
