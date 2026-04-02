@@ -1272,25 +1272,29 @@
         }
 
         async function fetchBooks(isSync = false) {
-            try {
-                // Fetch all items from TerminalController (now includes all items: Books, General, Stationery, etc.)
-                const booksRes = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
+            // Initial render from local cache for instant experience
+            const cachedBooks = localStorage.getItem('pos_books_cache');
+            if (cachedBooks && !isSync && allItems.length === 0) {
+                allItems = JSON.parse(cachedBooks);
+                applyFilter();
+            }
 
+            try {
+                const booksRes = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
                 if (!booksRes.ok) throw new Error('Sync failed');
 
                 const booksData = await booksRes.json();
-                // Now all items come from the same source - the books table with item_type
                 allItems = booksData.map(b => ({ ...b, _isInventory: false }));
+                
+                // Update local cache
+                localStorage.setItem('pos_books_cache', JSON.stringify(allItems));
 
                 if (isSync) {
-                    // Silent sync: only update data, do NOT re-render the grid
-                    // Just update stock badges in-place if the grid is already populated
                     updateStockBadges();
                     console.log('Background sync at ' + new Date().toLocaleTimeString());
                 } else {
                     applyFilter();
                 }
-
             } catch (error) {
                 console.error('Background Sync Error:', error);
             }

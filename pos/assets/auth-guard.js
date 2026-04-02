@@ -45,15 +45,31 @@
                 return;
             }
 
-            // 2. Auth Check
+            // 2. Auth Check (with session caching for speed)
             const isSubPage = window.location.pathname.includes('/pages/');
             const apiPath = isSubPage ? '../../api/controllers/AuthController.php' : '../api/controllers/AuthController.php';
             const loginPath = isSubPage ? '../login.html' : 'login.html';
 
-            const response = await fetch(`${apiPath}?action=check`);
-            const data = await response.json();
+            // Try to get cached session
+            const cachedSession = sessionStorage.getItem('pos_session_cache');
+            const cacheTime = sessionStorage.getItem('pos_session_time');
+            let data = null;
+
+            // Cache valid for 5 minutes
+            if (cachedSession && cacheTime && (Date.now() - parseInt(cacheTime) < 300000)) {
+                data = JSON.parse(cachedSession);
+            } else {
+                const response = await fetch(`${apiPath}?action=check`);
+                data = await response.json();
+                
+                if (data.authenticated) {
+                    sessionStorage.setItem('pos_session_cache', JSON.stringify(data));
+                    sessionStorage.setItem('pos_session_time', Date.now().toString());
+                }
+            }
 
             if (!data.authenticated) {
+                sessionStorage.removeItem('pos_session_cache');
                 window.location.href = loginPath;
             } else {
                 window.posUserName = data.user.full_name || 'Admin';
@@ -163,6 +179,8 @@ async function logout() {
         const response = await fetch(`${apiPath}?action=logout`);
         const data = await response.json();
         if (data.success) {
+            sessionStorage.removeItem('pos_session_cache');
+            sessionStorage.removeItem('pos_session_time');
             window.location.href = loginPath;
         }
     } catch (error) {

@@ -1050,12 +1050,22 @@
         });
 
         async function fetchInventory(isSilent = false) {
-            if (!isSilent) renderSkeletons();
+            // Initial render from local cache for speed
+            const cachedItems = localStorage.getItem('pos_inventory_cache');
+            if (cachedItems && !isSilent && allItems.length === 0) {
+                allItems = JSON.parse(cachedItems);
+                updateStats(allItems);
+                filterItems();
+            }
+
+            if (!isSilent && allItems.length === 0) renderSkeletons();
+            
             try {
                 const res = await fetch('../../api/controllers/InventoryController.php?action=getItems');
                 const data = await res.json();
                 if (data.success) {
                     allItems = data.items;
+                    localStorage.setItem('pos_inventory_cache', JSON.stringify(allItems));
                     updateStats(allItems);
                     filterItems();
                 }
