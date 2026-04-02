@@ -91,6 +91,21 @@
 
         // Traditional fallback: Insert it before the main content
         document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
+
+        // --- PREFETCH LOGIC FOR FASTER TRANSITIONS ---
+        // Pre-fetch the next pages when hovering over sidebar links
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            const url = link.getAttribute('href');
+            if (url && url !== '#' && !url.includes('javascript:')) {
+                link.addEventListener('mouseenter', () => {
+                    const prefetchLink = document.createElement('link');
+                    prefetchLink.rel = 'prefetch';
+                    prefetchLink.href = url;
+                    document.head.appendChild(prefetchLink);
+                }, { once: true }); // Only prefetch once per link
+            }
+        });
     }
 
     // Run when DOM is ready
