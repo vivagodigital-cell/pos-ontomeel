@@ -1,3 +1,4 @@
+<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <script src="../assets/auth-guard.js"></script>
+    
     <style>
         /* ---- Stats Bar ---- */
         .stats-row {
@@ -645,7 +646,7 @@
                             Staff</div>
                     </div>
                 </div>
-                <a href="product-import.html" class="btn-add" style="background: #6366f1; text-decoration: none;">
+                <a href="product-import.php" class="btn-add" style="background: #6366f1; text-decoration: none;">
                     <i class="fa-solid fa-file-import"></i> IMPORT
                 </a>
                 <button class="btn-add" onclick="openModal()">

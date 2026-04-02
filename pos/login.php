@@ -1,3 +1,4 @@
+<?php require_once '../api/shared/auth_check.php'; checkLogin(); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -235,7 +236,7 @@
 
                 if (data.success) {
                     // Success! Redirect to dashboard
-                    window.location.href = 'index.html';
+                    window.location.href = 'index.php';
                 } else {
                     throw new Error(data.error || 'Login failed.');
                 }
@@ -253,12 +254,11 @@
                 const response = await fetch('../api/controllers/AuthController.php?action=check');
                 const data = await response.json();
                 if (data.authenticated) {
-                    window.location.href = 'index.html';
+                    window.location.href = 'index.php';
                 }
             } catch (e) {}
         }
 
-        checkAuth();
     </script>
 </body>
 </html>

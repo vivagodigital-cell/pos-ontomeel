@@ -1,3 +1,4 @@
+<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,7 +9,7 @@
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="../assets/auth-guard.js"></script>
+    
     <style>
         .profile-container {
             max-width: 800px;
@@ -308,7 +309,7 @@
 <body>
     <div class="profile-container">
         <div style="margin-bottom: 2rem;">
-            <a href="terminal.html"
+            <a href="terminal.php"
                 style="color: #64748b; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-arrow-left"></i>
                 Back to Terminal

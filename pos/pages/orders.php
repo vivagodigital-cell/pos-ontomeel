@@ -1,3 +1,4 @@
+<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,7 +9,7 @@
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="../assets/auth-guard.js"></script>
+    
     <style>
         .order-table-container {
             background: white;

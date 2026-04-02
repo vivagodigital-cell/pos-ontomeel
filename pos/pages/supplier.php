@@ -1,3 +1,4 @@
+<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -179,7 +180,7 @@
             }
         }
     </style>
-    <script src="../assets/auth-guard.js"></script>
+    
 </head>
 
 <body>

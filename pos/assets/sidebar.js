@@ -4,12 +4,12 @@
         const isSubPage = window.location.pathname.includes('/pages/');
         const basePath = isSubPage ? '../' : '';
         const pagesPath = isSubPage ? '' : 'pages/';
-        const dashboardPath = isSubPage ? '../index.html' : 'index.html';
+        const dashboardPath = isSubPage ? '../index.php' : 'index.php';
         
         // Detailed current page detection
         const pathSegments = window.location.pathname.split('/');
-        const currentFile = pathSegments[pathSegments.length - 1] || 'index.html';
-        const currentPage = currentFile.replace('.html', '');
+        const currentFile = pathSegments[pathSegments.length - 1] || 'index.php';
+        const currentPage = currentFile.replace('.php', '');
 
         const sidebarHTML = `
     <nav class="sidebar">
@@ -28,43 +28,43 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="${pagesPath}terminal.html" class="nav-link ${currentPage === 'terminal' ? 'active' : ''}">
+                <a href="${pagesPath}terminal.php" class="nav-link ${currentPage === 'terminal' ? 'active' : ''}">
                     <i class="fa-solid fa-cash-register"></i>
                     <span class="nav-text">Terminal</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="${pagesPath}inventory.html" class="nav-link ${currentPage === 'inventory' ? 'active' : ''}">
+                <a href="${pagesPath}inventory.php" class="nav-link ${currentPage === 'inventory' ? 'active' : ''}">
                     <i class="fa-solid fa-box-open"></i>
                     <span class="nav-text">Inventory</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="${pagesPath}member.html" class="nav-link ${currentPage === 'member' ? 'active' : ''}">
+                <a href="${pagesPath}member.php" class="nav-link ${currentPage === 'member' ? 'active' : ''}">
                     <i class="fa-solid fa-users"></i>
                     <span class="nav-text">Members</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="${pagesPath}supplier.html" class="nav-link ${currentPage === 'supplier' ? 'active' : ''}">
+                <a href="${pagesPath}supplier.php" class="nav-link ${currentPage === 'supplier' ? 'active' : ''}">
                     <i class="fa-solid fa-truck-ramp-box"></i>
                     <span class="nav-text">Suppliers</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="${pagesPath}report.html" class="nav-link ${currentPage === 'report' ? 'active' : ''}">
+                <a href="${pagesPath}report.php" class="nav-link ${currentPage === 'report' ? 'active' : ''}">
                     <i class="fa-solid fa-chart-line"></i>
                     <span class="nav-text">Reports</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="${pagesPath}orders.html" class="nav-link ${currentPage === 'orders' ? 'active' : ''}">
+                <a href="${pagesPath}orders.php" class="nav-link ${currentPage === 'orders' ? 'active' : ''}">
                     <i class="fa-solid fa-history"></i>
                     <span class="nav-text">Orders</span>
                 </a>
             </li>
             <li class="nav-item admin-only" style="display: none;">
-                <a href="${pagesPath}profile.html" class="nav-link ${currentPage === 'profile' ? 'active' : ''}">
+                <a href="${pagesPath}profile.php" class="nav-link ${currentPage === 'profile' ? 'active' : ''}">
                     <i class="fa-solid fa-user-shield"></i>
                     <span class="nav-text">Users</span>
                 </a>

@@ -1,3 +1,4 @@
+<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -318,7 +319,7 @@
             cursor: not-allowed;
         }
     </style>
-    <script src="../assets/auth-guard.js"></script>
+    
 </head>
 
 <body>

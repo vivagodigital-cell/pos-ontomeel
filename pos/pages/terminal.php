@@ -1,3 +1,4 @@
+<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,7 +9,7 @@
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="../assets/auth-guard.js"></script>
+    
     <style>
         /* Modern Glassmorphism & Refined UI */
         :root {
@@ -881,7 +882,7 @@
 
             <div class="header-tools" style="display: flex; justify-content: flex-end; align-items: center; gap: 1.5rem;">
                 <!-- Profile Link as Initials Box -->
-                <a href="profile.html" class="header-profile-link" style="text-decoration: none;">
+                <a href="profile.php" class="header-profile-link" style="text-decoration: none;">
                     <div style="width: 42px; height: 42px; background: #eff6ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #2563eb; font-size: 0.9rem; border: 1px solid #dbeafe; transition: all 0.2s;" class="user-initials-display">
                         AD
                     </div>

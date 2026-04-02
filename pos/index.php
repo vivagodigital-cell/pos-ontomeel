@@ -1,3 +1,4 @@
+<?php require_once '../api/shared/auth_check.php'; checkAuth(); renderUserUI(); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="assets/auth-guard.js"></script>
+    
     <style>
         .modal-overlay {
             position: fixed;
@@ -192,17 +193,17 @@
                     <h3>Pick Return</h3>
                     <p>Check-in books and calculate fines</p>
                 </div>
-                <div class="action-card" onclick="window.location.href='pages/terminal.html'" style="cursor: pointer;">
+                <div class="action-card" onclick="window.location.href='pages/terminal.php'" style="cursor: pointer;">
                     <i class="fa-solid fa-cart-shopping" style="color: #f59e0b;"></i>
                     <h3>Direct Sale</h3>
                     <p>Generate invoice for book purchase</p>
                 </div>
-                <div class="action-card" onclick="window.location.href='pages/member.html'" style="cursor: pointer;">
+                <div class="action-card" onclick="window.location.href='pages/member.php'" style="cursor: pointer;">
                     <i class="fa-solid fa-user-plus" style="color: #ec4899;"></i>
                     <h3>New Member</h3>
                     <p>Create a membership profile</p>
                 </div>
-                <div class="action-card admin-only" onclick="window.location.href='pages/profile.html#admin-management-section'" style="cursor: pointer; display: none;">
+                <div class="action-card admin-only" onclick="window.location.href='pages/profile.php#admin-management-section'" style="cursor: pointer; display: none;">
                     <i class="fa-solid fa-users-gear" style="color: #6366f1;"></i>
                     <h3>Team Management</h3>
                     <p>Add and manage POS operators</p>

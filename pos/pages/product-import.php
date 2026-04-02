@@ -1,17 +1,18 @@
+<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ontomeel POS | Import Members</title>
+    <title>Ontomeel POS | Import Products</title>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="../assets/auth-guard.js"></script>
+    
     <style>
         .import-card {
             background: white;
@@ -77,6 +78,8 @@
             padding: 1rem;
             border-radius: 12px;
             display: none;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .success-box {
@@ -89,8 +92,47 @@
             background: #fef2f2;
             border: 1px solid #fecaca;
             color: #991b1b;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
+        }
+
+        .mapping-info {
+            margin-top: 2rem;
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+
+        .mapping-info h4 {
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+
+        .mapping-list {
+            list-style: none;
+            padding: 0;
+            font-size: 0.85rem;
+        }
+
+        .mapping-list li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .mapping-list li:last-child {
+            border-bottom: none;
+        }
+
+        .header-tag {
+            font-family: monospace;
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -102,12 +144,12 @@
     <div class="main-wrapper">
         <header>
             <div class="page-title">
-                <h1>Import <span style="color: var(--primary-blue);">Members</span></h1>
-                <p>Transfer bulk member data from a CSV file into the library system.</p>
+                <h1>Import <span style="color: var(--primary-blue);">Products</span></h1>
+                <p>Bulk upload books and inventory items from a CSV file.</p>
             </div>
             <div class="header-tools">
-                <a href="member.html" class="btn-secondary" style="border: 1px solid var(--border-light); padding: 0.8rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; color: inherit;">
-                    Back to Members
+                <a href="inventory.php" class="btn-secondary" style="border: 1px solid var(--border-light); padding: 0.8rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; color: inherit;">
+                    Back to Inventory
                 </a>
             </div>
         </header>
@@ -116,8 +158,8 @@
             <div class="import-card">
                 <form id="importForm">
                     <div class="upload-area" id="dropZone">
-                        <i class="fa-solid fa-file-csv"></i>
-                        <h3 style="margin-bottom: 0.5rem;">Select Member CSV</h3>
+                        <i class="fa-solid fa-box-open"></i>
+                        <h3 style="margin-bottom: 0.5rem;">Select Product CSV</h3>
                         <p style="color: var(--text-muted); font-size: 0.9rem;">Drag & drop your CSV file here, or click to browse.</p>
                         <input type="file" name="csv_file" id="csvFile" accept=".csv" required>
                     </div>
@@ -126,22 +168,21 @@
                         Selected: <span id="fileName"></span>
                     </div>
 
-                    <div style="margin-top: 2rem;">
-                        <h4 style="margin-bottom: 1rem; font-size: 0.95rem;">Default Import Settings:</h4>
-                        <div style="background: #f8fafc; padding: 1rem; border-radius: 10px; font-size: 0.85rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                <span style="color: var(--text-muted);">Default Password:</span>
-                                <span style="font-weight: 700;">123456</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                <span style="color: var(--text-muted);">ID Format:</span>
-                                <span style="font-weight: 700;">OM-2026-XXXX</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span style="color: var(--text-muted);">Default Plan:</span>
-                                <span style="font-weight: 700;">General</span>
-                            </div>
-                        </div>
+                    <div class="mapping-info">
+                        <h4>Required CSV Headers:</h4>
+                        <ul class="mapping-list">
+                            <li><span>Product Name</span> <span class="header-tag">name</span></li>
+                            <li><span>Category (Book/Other)</span> <span class="header-tag">category</span></li>
+                            <li><span>Barcode / ISBN</span> <span class="header-tag">barcode</span></li>
+                            <li><span>Selling Price</span> <span class="header-tag">selling_price</span></li>
+                            <li><span>Purchase Price</span> <span class="header-tag">purchase_price</span></li>
+                            <li><span>Stock Quantity</span> <span class="header-tag">opening_stock_qty</span></li>
+                            <li><span>Author (for Books)</span> <span class="header-tag">author</span></li>
+                            <li><span>Subcategory / Genre</span> <span class="header-tag">subcategory</span></li>
+                        </ul>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;">
+                            * If category is "Book", the item will be added to the Books table.
+                        </p>
                     </div>
 
                     <button type="submit" class="btn-import" id="submitBtn">
@@ -178,7 +219,7 @@
             results.style.display = 'none';
 
             try {
-                const response = await fetch('../../api/controllers/MemberImportController.php', {
+                const response = await fetch('../../api/controllers/ProductImportController.php', {
                     method: 'POST',
                     body: formData
                 });
@@ -189,8 +230,16 @@
                     results.className = 'results-box success-box';
                     results.innerHTML = `
                         <div style="font-weight: 800; margin-bottom: 5px;">Import Successful!</div>
-                        <div>Successfully imported <strong>${data.count}</strong> members.</div>
-                        ${data.errors.length > 0 ? `<div style="margin-top: 10px; font-size: 0.8rem; color: #991b1b;">Note: ${data.errors.length} rows were skipped due to errors.</div>` : ''}
+                        <div>Successfully imported <strong>${data.count}</strong> items.</div>
+                        ${data.skipped > 0 ? `<div style="margin-top: 5px;">Skipped <strong>${data.skipped}</strong> existing items (duplicates).</div>` : ''}
+                        ${data.errors.length > 0 ? `
+                            <div style="margin-top: 10px; font-size: 0.8rem; color: #991b1b;">
+                                <strong>Errors (${data.errors.length}):</strong>
+                                <ul style="margin-top: 5px; padding-left: 15px;">
+                                    ${data.errors.map(err => `<li>${err}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
                     `;
                 } else {
                     results.className = 'results-box error-box';
