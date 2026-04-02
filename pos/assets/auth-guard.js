@@ -1,5 +1,11 @@
 // pos/assets/auth-guard.js
 (function() {
+    // 0. Immediate Security Lock: Hide body before any parsing happens to prevent flashes
+    const lockStyle = document.createElement('style');
+    lockStyle.id = 'auth-lock-style';
+    lockStyle.innerHTML = 'body { display: none !important; }';
+    document.head.appendChild(lockStyle);
+
     window.NEXT_PAYMENT_DATE = '2026-05-01'; // YYYY-MM-DD - FOR SYSTEM LOGIC
     window.NEXT_PAYMENT_DISPLAY = 'May 1, 2026'; // DISPLAY FORMAT - FOR SIDEBAR
 
@@ -127,10 +133,15 @@
                         el.insertAdjacentHTML('beforeend', profileHTML);
                     }
                 });
+
+                // Unlock UI for authorized user
+                const lock = document.getElementById('auth-lock-style');
+                if (lock) lock.remove();
             }
         } catch (error) {
             console.error('Auth check failed:', error);
-            window.posUserName = 'System User'; // default fallback
+            // On hard error, redirect to login for safety
+            window.location.href = isSubPage ? '../login.html' : 'login.html';
         }
     }
 
