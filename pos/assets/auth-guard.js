@@ -99,6 +99,11 @@
                     el.classList.add(roleClass);
                 });
 
+                // Show Admin Only sections
+                if (roleLower === 'super admin' || roleLower === 'superadmin') {
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                }
+
                 // Update Initials in Header
                 const initials = window.posUserName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
                 const profilePath = isSubPage ? 'profile.html' : 'pages/profile.html';

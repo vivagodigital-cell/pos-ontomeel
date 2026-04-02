@@ -20,7 +20,14 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'list') {
-        $stmt = $pdo->query("SELECT id, username, full_name, role, pos_access, last_login FROM admins ORDER BY role DESC");
+        // One-time check for email column
+        try {
+            $pdo->query("SELECT email FROM admins LIMIT 1");
+        } catch (Exception $e) {
+            $pdo->exec("ALTER TABLE admins ADD COLUMN email VARCHAR(255) AFTER full_name");
+        }
+
+        $stmt = $pdo->query("SELECT id, username, full_name, email, role, pos_access, last_login FROM admins ORDER BY role DESC");
         $users = $stmt->fetchAll();
         
         echo json_encode([
@@ -32,13 +39,14 @@ try {
     elseif ($action === 'create') {
         $data = json_decode(file_get_contents('php://input'), true);
         $username = $data['username'] ?? '';
+        $email = $data['email'] ?? '';
         $password = $data['password'] ?? '';
         $full_name = $data['full_name'] ?? '';
         $role = $data['role'] ?? 'editor'; // manager, editor
         $pos_access = $data['pos_access'] ?? 0;
 
-        if (empty($username) || empty($password)) {
-            throw new Exception("Username and password are required.");
+        if (empty($username) || empty($password) || empty($email)) {
+            throw new Exception("Username, email and password are required.");
         }
 
         // Count current POS users if trying to add a new one with access
@@ -51,8 +59,8 @@ try {
         }
 
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO admins (username, password, full_name, role, pos_access, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
-        $stmt->execute([$username, $hashedPassword, $full_name, $role, $pos_access]);
+        $stmt = $pdo->prepare("INSERT INTO admins (username, email, password, full_name, role, pos_access, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([$username, $email, $hashedPassword, $full_name, $role, $pos_access]);
 
         echo json_encode(['success' => true, 'message' => 'User created successfully.']);
     }

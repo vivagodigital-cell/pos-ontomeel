@@ -63,6 +63,12 @@
                     <span class="nav-text">Orders</span>
                 </a>
             </li>
+            <li class="nav-item admin-only" style="display: none;">
+                <a href="${pagesPath}profile.html" class="nav-link ${currentPage === 'profile' ? 'active' : ''}">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span class="nav-text">Users</span>
+                </a>
+            </li>
         </ul>
         <div style="margin-top: auto; padding: 1rem;">
             <a href="javascript:void(0)" onclick="logout()" class="nav-link logout-btn" style="color: #ef4444; display: flex; align-items: center; gap: 12px; padding: 0.75rem; border-radius: 8px; transition: all 0.2s;">
