@@ -9,8 +9,8 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'getBooks') {
-        // Fetch books (already have unified structure)
-        $stmt_b = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, item_type FROM books WHERE is_active = 1");
+        // Fetch books and ensure item_type is 'Book' (singular) for frontend logic
+        $stmt_b = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, 'Book' as item_type FROM books WHERE is_active = 1");
         $books = $stmt_b->fetchAll();
 
         // Fetch generic inventory items and map to product structure
@@ -98,19 +98,20 @@ try {
                 $stmt = $pdo->prepare("INSERT INTO transactions (member_id, amount, type, description, reference_id) VALUES (?, ?, 'Purchase', 'Book purchase at terminal', ?)");
                 $stmt->execute([$data['memberId'], $data['total'], $invoice_no]);
 
-                // If Wallet, deduct from member balance
-                if ($data['paymentMethod'] === 'Wallet') {
+                // Handle Member Wallet/Fund deduction if used in split payment
+                $walletAmount = floatval($data['walletAmount'] ?? 0);
+                if ($walletAmount > 0) {
                     // Re-verify balance using a row lock for safety
                     $stmt = $pdo->prepare("SELECT acc_balance FROM members WHERE id = ? FOR UPDATE");
                     $stmt->execute([$data['memberId']]);
                     $balance = $stmt->fetchColumn();
 
-                    if ($balance < $data['total']) {
-                        throw new Exception("Insufficient member balance. Available: ৳$balance");
+                    if ($balance < $walletAmount) {
+                        throw new Exception("Insufficient member balance for fund allocation. Available: ৳$balance");
                     }
 
                     $stmt = $pdo->prepare("UPDATE members SET acc_balance = acc_balance - ? WHERE id = ?");
-                    $stmt->execute([$data['total'], $data['memberId']]);
+                    $stmt->execute([$walletAmount, $data['memberId']]);
                 }
 
                 // Send Email Notification for Members
@@ -306,7 +307,7 @@ try {
         }
     }
     elseif ($action === 'getOrders') {
-        $stmt = $pdo->query("SELECT o.*, m.full_name as member_name FROM orders o LEFT JOIN members m ON o.member_id = m.id ORDER BY o.order_date DESC LIMIT 50");
+        $stmt = $pdo->query("SELECT o.*, m.full_name as member_name, m.phone as member_phone, m.email as member_email FROM orders o LEFT JOIN members m ON o.member_id = m.id ORDER BY o.order_date DESC LIMIT 50");
         echo json_encode(['success' => true, 'orders' => $stmt->fetchAll()]);
     }
     elseif ($action === 'getOrderDetails') {

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
     
     <style>
         .order-table-container {
@@ -79,7 +80,110 @@
             transform: translateY(-1px);
         }
 
-        /* Invoice Print Styles (80mm) */
+        /* Receipt Styles (optimized for 576px / 80mm thermal printing) */
+        .invoice-receipt {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            width: 576px;
+            padding: 20px;
+            margin: auto;
+            color: #000;
+            background: #fff;
+            font-size: 14px;
+            line-height: 1.4;
+            min-height: 300px;
+            max-height: 1500px;
+            text-align: left;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1.5px dashed #000;
+            padding-bottom: 20px;
+        }
+
+        .receipt-header img {
+            max-width: 80px;
+            margin-bottom: 12px;
+            filter: grayscale(1);
+        }
+
+        .receipt-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .receipt-header p {
+            margin: 4px 0;
+            font-size: 13px;
+            color: #000;
+            font-weight: 500;
+        }
+
+        .receipt-info {
+            padding: 12px 0;
+            border-bottom: 1px dashed #eee;
+            margin-bottom: 12px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .receipt-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .receipt-items th {
+            text-align: left;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .receipt-items td {
+            padding: 10px 0;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .receipt-totals {
+            border-top: 2.5px solid #000;
+            margin-top: 20px;
+            padding-top: 15px;
+        }
+
+        .total-bold {
+            font-weight: 800;
+            font-size: 18px;
+            border-top: 1px solid #000;
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+
+        .barcode-container {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #000;
+        }
+
+        .in-words {
+            font-style: italic;
+            font-size: 13px;
+            margin-top: 15px;
+            border-top: 1px dotted #ccc;
+            padding-top: 15px;
+        }
+
         @media print {
             body * {
                 visibility: hidden;
@@ -94,84 +198,27 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 80mm;
-                padding: 5mm;
-                color: black !important;
-                background: white !important;
+                width: 576px;
+                background: white;
             }
 
-            .no-print {
+            @page {
+                size: 576px 1500px;
+                margin: 0;
+            }
+
+            .invoice-receipt {
+                width: 576px;
+                margin: 0;
+                padding: 30px;
+            }
+
+            #invoiceModal,
+            .modal-overlay,
+            header,
+            .main-wrapper {
                 display: none !important;
             }
-        }
-
-        .invoice-receipt {
-            font-family: 'Inter', sans-serif;
-            width: 80mm;
-            background: white;
-            padding: 20px;
-            font-size: 13px;
-        }
-
-        .receipt-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .receipt-header img {
-            width: 50px;
-            margin-bottom: 5px;
-        }
-
-        .receipt-header h2 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 800;
-        }
-
-        .receipt-info {
-            margin-bottom: 15px;
-            border-bottom: 1px dashed #ccc;
-            padding-bottom: 10px;
-        }
-
-        .receipt-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .receipt-items {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-        }
-
-        .receipt-items th {
-            text-align: left;
-            font-size: 11px;
-            padding: 5px 0;
-            border-bottom: 1px solid #000;
-        }
-
-        .receipt-items td {
-            padding: 8px 0;
-            font-size: 12px;
-            vertical-align: top;
-        }
-
-        .receipt-totals {
-            border-top: 1px dashed #ccc;
-            padding-top: 10px;
-        }
-
-        .total-bold {
-            font-weight: 800;
-            font-size: 15px;
-        }
-
-        #invoiceModal .modal-overlay {
-            background: rgba(15, 23, 42, 0.6);
         }
 
         .print-btn {
@@ -218,6 +265,7 @@
                         <th>Date</th>
                         <th>Invoice #</th>
                         <th>Member/Guest</th>
+                        <th>Contact Info</th>
                         <th>Amount</th>
                         <th>Method</th>
                         <th>Status</th>
@@ -226,7 +274,7 @@
                 </thead>
                 <tbody id="orderTableBody">
                     <tr>
-                        <td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i
+                        <td colspan="8" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i
                                 class="fa-solid fa-spinner fa-spin"></i> Fetching orders...</td>
                     </tr>
                 </tbody>
@@ -236,25 +284,69 @@
 
     <!-- Invoice View Modal -->
     <div class="modal-overlay" id="invoiceModal"
-        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: white; padding: 2rem; border-radius: 24px; max-width: 400px; width: 95%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 0; border-radius: 24px; max-width: 600px; width: 95%; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0; font-weight: 800;">Sale Receipt</h3>
                 <button onclick="closeInvoiceModal()"
                     style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
             </div>
 
-            <div id="invoicePrintContainer">
-                <!-- Receipt content populated by JS -->
+            <div style="padding: 20px; max-height: 70vh; overflow-y: auto; background: #f8fafc;">
+                <div id="invoicePrintContainer">
+                    <!-- Receipt content populated by JS -->
+                </div>
             </div>
 
-            <button class="print-btn" onclick="printInvoice()">
-                <i class="fa-solid fa-print"></i> PRINT RECEIPT (80mm)
-            </button>
+            <div style="padding: 20px; border-top: 1px solid #f1f5f9;">
+                <button class="print-btn" onclick="printInvoice()">
+                    <i class="fa-solid fa-print"></i> PRINT RECEIPT (80mm)
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
+        function numberToWords(number) {
+            const words = {
+                0: 'Zero', 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine',
+                10: 'Ten', 11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen', 18: 'Eighteen', 19: 'Nineteen',
+                20: 'Twenty', 30: 'Thirty', 40: 'Forty', 50: 'Fifty', 60: 'Sixty', 70: 'Seventy', 80: 'Eighty', 90: 'Ninety'
+            };
+
+            if (number in words) return words[number];
+
+            let amountInWords = '';
+            if (number >= 100) {
+                amountInWords += numberToWords(Math.floor(number / 100)) + ' Hundred ';
+                number %= 100;
+            }
+
+            if (number > 0) {
+                if (amountInWords !== '') amountInWords += 'and ';
+                if (number < 20) {
+                    amountInWords += words[number];
+                } else {
+                    amountInWords += words[Math.floor(number / 10) * 10];
+                    if (number % 10 > 0) {
+                        amountInWords += '-' + words[number % 10];
+                    }
+                }
+            }
+            return amountInWords.trim();
+        }
+
+        function formatAmountInWords(amount) {
+            const integerPart = Math.floor(amount);
+            const decimalPart = Math.round((amount - integerPart) * 100);
+
+            let result = numberToWords(integerPart) + ' Taka';
+            if (decimalPart > 0) {
+                result += ' and ' + numberToWords(decimalPart) + ' Paisa';
+            }
+            return result + ' Only';
+        }
+
         async function fetchOrders() {
             try {
                 const res = await fetch('../../api/controllers/TerminalController.php?action=getOrders');
@@ -267,17 +359,24 @@
                         return;
                     }
 
-                    tbody.innerHTML = data.orders.map(o => `
-                        <tr>
-                            <td>${new Date(o.order_date).toLocaleString()}</td>
-                            <td style="font-weight: 700;">${o.invoice_no}</td>
-                            <td>${o.member_name || o.guest_name || 'Anonymous'}</td>
-                            <td style="font-weight: 800;">৳${o.total_amount}</td>
-                            <td>${o.payment_method}</td>
-                            <td><span class="status-badge ${o.payment_status.toLowerCase()}">${o.payment_status}</span></td>
-                            <td><button class="btn-view" onclick="viewInvoice(${o.id})">View/Print</button></td>
-                        </tr>
-                    `).join('');
+                    tbody.innerHTML = data.orders.map(o => {
+                        const contactPhone = o.member_phone || o.guest_phone || '--';
+                        const contactEmail = o.member_email || o.guest_email || '';
+                        const contactHtml = `<div style="font-size:0.8rem; font-weight:700;">${contactPhone}</div>` + (contactEmail ? `<div style="font-size:0.7rem; color:var(--text-muted);">${contactEmail}</div>` : '');
+                        
+                        return `
+                            <tr>
+                                <td>${new Date(o.order_date).toLocaleString()}</td>
+                                <td style="font-weight: 700;">${o.invoice_no}</td>
+                                <td>${o.member_name || o.guest_name || 'Anonymous'}</td>
+                                <td>${contactHtml}</td>
+                                <td style="font-weight: 800;">৳${parseFloat(o.total_amount).toFixed(2)}</td>
+                                <td>${o.payment_method}</td>
+                                <td><span class="status-badge ${o.payment_status.toLowerCase()}">${o.payment_status}</span></td>
+                                <td><button class="btn-view" onclick="viewInvoice(${o.id})">View/Print</button></td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
             } catch (e) { console.error(e); }
         }
@@ -291,22 +390,38 @@
                     const order = data.order;
                     const items = data.items;
 
+                    // Format split balance breakdown or single method
+                    let paymentDetailsHtml = '';
+                    if (order.payment_method && order.payment_method.includes(':')) {
+                        paymentDetailsHtml = order.payment_method.split(', ').map(line => {
+                            const parts = line.split(': ');
+                            const method = parts[0] || 'Unknown';
+                            const amount = parts[1] || '';
+                            return `<div class="receipt-row"><span>Paid via ${method}:</span> <span>${amount}</span></div>`;
+                        }).join('');
+                    } else {
+                        paymentDetailsHtml = `<div class="receipt-row"><span>Payment Method:</span> <span>${order.payment_method || 'Cash'}</span></div>`;
+                    }
+
                     document.getElementById('invoicePrintContainer').innerHTML = `
-                        <div class="invoice-receipt">
-                            <div class="receipt-header">
+                        <div class="invoice-receipt" id="receiptToPrint">
+                             <div class="receipt-header">
                                 <img src="../assets/logo.webp" alt="Logo">
                                 <h2>ONTOMEEL</h2>
-                                <p style="font-size: 10px; margin: 4px 0;">Library & Bookstore<br>Cox's Bazar, Bangladesh</p>
+                                <p style="font-weight:700;">Library & Bookstore</p>
+                                <p>Shop no 06, Changing Closet Building, Motel Labonee, Motel Road, Cox's Bazar</p>
+                                <p>Phone: 01330975787 | Email: info@ontomeel.com</p>
                             </div>
                             
-                            <div class="receipt-info">
+                            <div class="receipt-info" style="border-top:1px dashed #000; border-bottom:1px dashed #000;">
                                 <div class="receipt-row"><span>Date:</span> <span>${new Date(order.order_date).toLocaleString()}</span></div>
                                 <div class="receipt-row"><span>Inv #:</span> <span>${order.invoice_no}</span></div>
-                                <div class="receipt-row"><span>Staff:</span> <span>${window.posUserName || 'Admin'}</span></div>
+                                <div class="receipt-row"><span>Sold by:</span> <span style="text-transform:capitalize;">${order.staff_name || 'Admin'}</span></div>
                             </div>
                             
                             <div class="receipt-info">
                                 <div class="receipt-row"><span>Customer:</span> <span>${order.member_name || order.guest_name || 'Cash Customer'}</span></div>
+                                <div class="receipt-row"><span>Phone:</span> <span>${order.phone || order.guest_phone || '--'}</span></div>
                                 ${order.membership_id ? `<div class="receipt-row"><span>Member ID:</span> <span>${order.membership_id}</span></div>` : ''}
                             </div>
                             
@@ -322,18 +437,19 @@
                                     ${(() => {
                                         const grouped = {};
                                         items.forEach(item => {
-                                            if (grouped[item.book_id]) {
-                                                grouped[item.book_id].quantity += parseInt(item.quantity) || 1;
-                                                grouped[item.book_id].total_price += parseFloat(item.total_price);
+                                            const bId = item.book_id || item.id;
+                                            if (grouped[bId]) {
+                                                grouped[bId].quantity += parseInt(item.quantity) || 1;
+                                                grouped[bId].total_price += parseFloat(item.total_price || item.sell_price);
                                             } else {
-                                                grouped[item.book_id] = { ...item, quantity: parseInt(item.quantity) || 1, total_price: parseFloat(item.total_price) };
+                                                grouped[bId] = { ...item, quantity: parseInt(item.quantity) || 1, total_price: parseFloat(item.total_price || item.sell_price) };
                                             }
                                         });
                                         return Object.values(grouped).map(item => `
                                             <tr>
-                                                <td>${item.book_title}</td>
+                                                <td>${item.book_title || item.title}</td>
                                                 <td>${item.quantity}</td>
-                                                <td style="text-align: right;">৳${item.total_price.toFixed(2)}</td>
+                                                <td style="text-align: right;">৳${parseFloat(item.total_price).toFixed(2)}</td>
                                             </tr>
                                         `).join('');
                                     })()}
@@ -341,19 +457,42 @@
                             </table>
                             
                             <div class="receipt-totals">
-                                <div class="receipt-row"><span>Subtotal:</span> <span>৳${order.subtotal}</span></div>
-                                <div class="receipt-row"><span>Discount:</span> <span>৳${order.discount}</span></div>
-                                <hr style="border: none; border-top: 1px solid #000; margin: 8px 0;">
-                                <div class="receipt-row total-bold"><span>Total:</span> <span>৳${order.total_amount}</span></div>
+                                <div class="receipt-row"><span>Subtotal:</span> <span>৳${parseFloat(order.subtotal || order.total_amount).toFixed(2)}</span></div>
+                                <div class="receipt-row"><span>Discount:</span> <span>৳${parseFloat(order.discount || 0).toFixed(2)}</span></div>
+                                <div class="receipt-row total-bold"><span>Total:</span> <span>৳${parseFloat(order.total_amount).toFixed(2)}</span></div>
+                            </div>
+
+                            <div class="in-words">
+                                <strong>Amount in Words:</strong><br>
+                                ${formatAmountInWords(parseFloat(order.total_amount))}
+                            </div>
+
+                            <div style="margin-top:15px; border-top:1px dotted #000; padding-top:10px;">
+                                <div style="font-weight: 800; text-transform: uppercase; font-size: 10px; margin-bottom: 5px;">Payment Details</div>
+                                ${paymentDetailsHtml}
                             </div>
                             
-                            <div style="margin-top: 20px; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
-                                <p style="margin: 0; font-size: 11px;">Payment Mode: ${order.payment_method}</p>
-                                <p style="margin: 10px 0 0 0; font-weight: 700;">Thank You!</p>
-                                <p style="margin: 0; font-size: 10px;">Keep your receipt for any support</p>
+                            <div class="barcode-container">
+                                <svg id="history-barcode"></svg>
+                            </div>
+
+                            <div style="margin-top: 15px; text-align: center; opacity: 0.8;">
+                                <p style="margin: 0; font-size: 11px; font-weight: 800;">Thank You for Shopping!</p>
+                                <p style="margin: 0; font-size: 9px;">Software by VivaGo Digital</p>
                             </div>
                         </div>
                     `;
+
+                    // Generate Barcode
+                    setTimeout(() => {
+                        JsBarcode("#history-barcode", order.invoice_no, {
+                            format: "CODE128",
+                            width: 1.2,
+                            height: 35,
+                            displayValue: false,
+                            margin: 0
+                        });
+                    }, 50);
 
                     document.getElementById('invoiceModal').style.display = 'flex';
                 }

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
     
     <style>
         /* Modern Glassmorphism & Refined UI */
@@ -171,6 +172,8 @@
             border-radius: 24px;
             padding: 1.5rem;
             box-shadow: var(--glass-shadow);
+            position: relative;
+            z-index: 10;
         }
 
         .pos-cart {
@@ -366,13 +369,13 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: white;
+            background: white !important;
             border-radius: 12px;
             border: 1px solid var(--border-light);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
             margin-top: 8px;
-            z-index: 100;
-            max-height: 300px;
+            z-index: 1000;
+            max-height: 350px;
             overflow-y: auto;
             display: none;
         }
@@ -544,6 +547,7 @@
             padding: 2px;
             transition: all 0.3s;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            z-index: 101;
         }
 
         .search-container-pos:focus-within {
@@ -564,6 +568,17 @@
 
         .checkout-input:focus {
             border-color: var(--primary-blue);
+        }
+
+        /* Hide Spin Buttons */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
         }
 
         /* Modal Overlay */
@@ -589,7 +604,6 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-
         @keyframes modalPop {
             from {
                 transform: scale(0.9);
@@ -782,81 +796,129 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 80mm;
-                padding: 5mm;
-                color: black !important;
-                background: white !important;
+                width: 576px;
+                background: white;
             }
 
-            .no-print {
+            @page {
+                size: 576px 1500px;
+                margin: 0;
+            }
+
+            .invoice-receipt {
+                width: 576px;
+                margin: 0;
+                padding: 30px;
+            }
+
+            #invoiceModal,
+            .modal-overlay,
+            header,
+            .layout-main {
                 display: none !important;
             }
         }
-
+        /* Receipt Styles (optimized for 576px / 80mm thermal printing) */
         .invoice-receipt {
-            font-family: 'Inter', sans-serif;
-            width: 80mm;
-            background: white;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            width: 576px;
             padding: 20px;
-            font-size: 13px;
-            margin: 0 auto;
+            margin: auto;
+            color: #000;
+            background: #fff;
+            font-size: 14px;
+            line-height: 1.4;
+            min-height: 300px;
+            max-height: 1500px;
         }
 
         .receipt-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            border-bottom: 1.5px dashed #000;
+            padding-bottom: 20px;
         }
 
         .receipt-header img {
-            width: 50px;
-            margin-bottom: 5px;
+            max-width: 80px;
+            margin-bottom: 12px;
+            filter: grayscale(1);
         }
 
         .receipt-header h2 {
             margin: 0;
-            font-size: 18px;
+            font-size: 24px;
             font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .receipt-header p {
+            margin: 4px 0;
+            font-size: 13px;
+            color: #000;
+            font-weight: 500;
         }
 
         .receipt-info {
-            margin-bottom: 15px;
-            border-bottom: 1px dashed #ccc;
-            padding-bottom: 10px;
+            padding: 12px 0;
+            border-bottom: 1px dashed #eee;
+            margin-bottom: 12px;
         }
 
         .receipt-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
 
         .receipt-items {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin: 15px 0;
         }
 
         .receipt-items th {
             text-align: left;
-            font-size: 11px;
-            padding: 5px 0;
-            border-bottom: 1px solid #000;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            font-size: 13px;
+            font-weight: 800;
         }
 
         .receipt-items td {
-            padding: 8px 0;
-            font-size: 12px;
+            padding: 10px 0;
+            font-size: 14px;
             vertical-align: top;
         }
 
         .receipt-totals {
-            border-top: 1px dashed #ccc;
-            padding-top: 10px;
+            border-top: 2.5px solid #000;
+            margin-top: 20px;
+            padding-top: 15px;
         }
 
         .total-bold {
             font-weight: 800;
-            font-size: 15px;
+            font-size: 18px;
+            border-top: 1px solid #000;
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+
+        .barcode-container {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #000;
+        }
+
+        .in-words {
+            font-style: italic;
+            font-size: 13px;
+            margin-top: 15px;
+            border-top: 1px dotted #ccc;
+            padding-top: 15px;
         }
     </style>
 </head>
@@ -1045,11 +1107,20 @@
                         </div>
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;">
-                            <span style="color: var(--text-muted);">Discount (৳)</span>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" id="cartDiscount" class="checkout-input"
-                                    style="width: 80px; padding: 4px 8px; text-align: right; height: 30px; margin: 0; font-size: 0.85rem;"
-                                    value="0" min="0" step="any" onkeyup="updateCartUI()" onchange="updateCartUI()">
+                            <span style="color: var(--text-muted);">Discount</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="position: relative; display: flex; align-items: center;">
+                                    <input type="number" id="cartDiscountPercent" class="checkout-input"
+                                        style="width: 55px; padding: 4px 22px 4px 8px; text-align: right; height: 30px; margin: 0; font-size: 0.85rem; border-radius: 8px;"
+                                        placeholder="0" min="0" max="100" step="any" onkeyup="applyDiscount('percent')" onchange="applyDiscount('percent')">
+                                    <span style="position: absolute; right: 8px; font-size: 0.75rem; color: #94a3b8;">%</span>
+                                </div>
+                                <div style="position: relative; display: flex; align-items: center;">
+                                    <input type="number" id="cartDiscount" class="checkout-input"
+                                        style="width: 80px; padding: 4px 8px 4px 20px; text-align: right; height: 30px; margin: 0; font-size: 0.85rem; border-radius: 8px;"
+                                        placeholder="0" min="0" step="any" onkeyup="applyDiscount('amount')" onchange="applyDiscount('amount')">
+                                    <span style="position: absolute; left: 8px; font-size: 0.75rem; color: #94a3b8;">৳</span>
+                                </div>
                             </div>
                         </div>
 
@@ -1105,25 +1176,52 @@
 
     <!-- Checkout Modal -->
     <div class="modal-overlay" id="checkoutModal">
-        <div class="checkout-modal">
-            <h2 style="font-weight: 800; margin-bottom: 0.5rem;">Finalize Payment</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">Total payable: <span id="modalTotal"
-                    style="color: var(--primary-blue); font-weight: 800; font-size: 1.25rem;">৳0.00</span></p>
-
-            <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-header);">Select Payment
-                Method</label>
-            <div class="pay-method-grid">
-                <div class="pay-btn selected" onclick="setPayMethod('Cash', this)"><i
-                        class="fa-solid fa-money-bill-wave"></i> Cash</div>
-                <div class="pay-btn" onclick="setPayMethod('Bkash', this)"><i class="fa-solid fa-wallet"></i> bKash
+        <div class="checkout-modal" style="width: 500px;">
+            <h2 style="font-weight: 800; margin-bottom: 0.5rem;">Reconcile Payment</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: #f8fafc; padding: 15px; border-radius: 16px;">
+                <div>
+                    <p style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin: 0;">Total Payable</p>
+                    <span id="modalTotal" style="color: var(--primary-blue); font-weight: 800; font-size: 1.5rem;">৳0.00</span>
                 </div>
-                <div class="pay-btn" onclick="setPayMethod('Nagad', this)"><i class="fa-solid fa-mobile-screen"></i>
-                    Nagad</div>
-                <div class="pay-btn" onclick="setPayMethod('Wallet', this)"><i class="fa-solid fa-user-shield"></i>
-                    Member Fund</div>
+                <div style="text-align: right;">
+                    <p style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin: 0;">Remaining</p>
+                    <span id="paymentRemaining" style="color: #ef4444; font-weight: 800; font-size: 1.5rem;">৳0.00</span>
+                </div>
             </div>
 
-            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem;" onclick="processOrder()"
+            <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-header); display: block; margin-bottom: 12px;">Enter Amounts</label>
+            <div class="payment-reconciliation-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="pay-method-row" style="display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #f1f5f9; padding: 8px 12px; border-radius: 14px;">
+                    <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                    </div>
+                    <span style="font-weight: 700; font-size: 0.9rem; flex: 1;">Cash</span>
+                    <input type="number" step="any" class="checkout-input pay-amount-input" data-method="Cash" style="width: 120px; height: 40px; text-align: right; padding-left: 20px;" placeholder="0.00" oninput="calculateSplitPayment()">
+                </div>
+                <div class="pay-method-row" style="display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #f1f5f9; padding: 8px 12px; border-radius: 14px;">
+                    <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <span style="font-weight: 700; font-size: 0.9rem; flex: 1;">bKash</span>
+                    <input type="number" step="any" class="checkout-input pay-amount-input" data-method="Bkash" style="width: 120px; height: 40px; text-align: right; padding-left: 20px;" placeholder="0.00" oninput="calculateSplitPayment()">
+                </div>
+                <div class="pay-method-row" style="display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #f1f5f9; padding: 8px 12px; border-radius: 14px;">
+                    <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                        <i class="fa-solid fa-mobile-screen"></i>
+                    </div>
+                    <span style="font-weight: 700; font-size: 0.9rem; flex: 1;">Nagad</span>
+                    <input type="number" step="any" class="checkout-input pay-amount-input" data-method="Nagad" style="width: 120px; height: 40px; text-align: right; padding-left: 20px;" placeholder="0.00" oninput="calculateSplitPayment()">
+                </div>
+                <div id="walletPayRow" class="pay-method-row" style="display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #f1f5f9; padding: 8px 12px; border-radius: 14px;">
+                    <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <span style="font-weight: 700; font-size: 0.9rem; flex: 1;">Member Fund</span>
+                    <input type="number" step="any" class="checkout-input pay-amount-input" data-method="Wallet" style="width: 120px; height: 40px; text-align: right; padding-left: 20px;" placeholder="0.00" oninput="calculateSplitPayment()">
+                </div>
+            </div>
+
+            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1.5rem;" onclick="processOrder()"
                 id="btnFinalOrder">
                 <i class="fa-solid fa-shield-check"></i> CONFIRM TRANSACTION
             </button>
@@ -1203,152 +1301,166 @@
             </button>
         </div>
     </div>
+    <!-- Toasts -->
+    <div id="toastContainer"></div>
 
-    <!-- Invoice Modal -->
+    <!-- Print Container (Hidden) -->
+    <div id="invoicePrintContainer" style="display: none;"></div>
+
+    <!-- Invoice / Receipt Preview Modal -->
     <div class="modal-overlay" id="invoiceModal">
-        <div class="borrow-modal" style="width: 350px; padding: 1rem;">
-            <div id="invoicePrintContainer">
-                <!-- Invoice content will be loaded here -->
+        <div class="checkout-modal" style="width: 450px; padding: 0; overflow: hidden; background: #fff;">
+            <div style="padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-weight: 800; color: var(--text-header); font-size: 1.1rem;">Sale Preview</h3>
+                <button onclick="closeInvoiceModal()" style="background: none; border: none; font-size: 1.25rem; color: #94a3b8; cursor: pointer;"><i class="fa-solid fa-times"></i></button>
             </div>
-            <button class="btn-action btn-sell" style="width: 100%; margin-top: 1rem;" onclick="window.print()">
-                <i class="fa-solid fa-print"></i> PRINT INVOICE
-            </button>
-            <button class="btn-action"
-                style="width: 100%; margin-top: 0.75rem; background: #f1f5f9; color: var(--text-body);"
-                onclick="closeInvoiceModal()">
-                CLOSE
-            </button>
+            
+            <div id="receiptPreviewContent" style="padding: 20px; max-height: 70vh; overflow-y: auto; background: #f8fafc;">
+                <!-- Receipt content will be cloned here for preview -->
+            </div>
+
+            <div style="padding: 20px; border-top: 1px solid #f1f5f9; display: flex; gap: 10px;">
+                <button onclick="window.print()" class="btn-action btn-sell" style="flex: 1; height: 50px; font-weight: 800;">
+                    <i class="fa-solid fa-print"></i> PRINT RECEIPT (80mm)
+                </button>
+                <button onclick="closeInvoiceModal()" class="btn-action" style="background: #f1f5f9; color: var(--text-body); padding: 0 20px;">
+                    DONE
+                </button>
+            </div>
         </div>
     </div>
 
-    <div id="toastContainer"></div>
-
     <script>
-        let allItems = []; // Unified items from books table (includes Books, General, Stationery, etc.)
+        let allItems = [];
         let cart = [];
-        let customerType = 'member'; // 'member' or 'guest'
         let paymentMethod = 'Cash';
-        let activeFilter = 'all'; // 'all', 'books', 'inventory'
+        let customerType = 'member';
+        let lastDiscountType = 'amount';
+
+        async function init() {
+            renderSkeletons();
+            try {
+                const response = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
+                allItems = await response.json();
+                applyFilter();
+                updateParkedUI();
+
+                // Check for URL params (memberId)
+                const urlParams = new URLSearchParams(window.location.search);
+                const mid = urlParams.get('memberId');
+                if (mid) {
+                    const memberRes = await fetch(`../../api/controllers/TerminalController.php?action=getMemberById&id=${mid}`);
+                    const member = await memberRes.json();
+                    if (member && !member.error) {
+                        selectMember(member);
+                    }
+                }
+            } catch (e) {
+                console.error('Initial load failed:', e);
+                showToast("Failed to load catalog.", "error");
+            }
+        }
+
+        // Sync stock periodically
+        setInterval(async () => {
+            try {
+                const res = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
+                const latest = await res.json();
+                
+                // Update local storage/cache silently
+                allItems = latest;
+                
+                // Update stock badges on screen without re-rendering everything
+                latest.forEach(item => {
+                    const badges = document.querySelectorAll(`[data-item-id="${item.id}"]`);
+                    badges.forEach(badge => {
+                        badge.innerText = item.stock_qty > 0 ? `${item.stock_qty} in stock` : 'Out of stock';
+                        badge.style.color = item.stock_qty > 5 ? 'var(--accent-mint)' : '#ef4444';
+                    });
+                });
+            } catch(e) {}
+        }, 15000);
 
         function switchCustomerTab(type) {
             customerType = type;
-            const tabs = document.querySelectorAll('.cust-tab');
-            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.cust-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
 
             if (type === 'member') {
-                tabs[0].classList.add('active');
                 document.getElementById('memberSection').style.display = 'block';
                 document.getElementById('guestSection').style.display = 'none';
             } else {
-                tabs[1].classList.add('active');
                 document.getElementById('memberSection').style.display = 'none';
                 document.getElementById('guestSection').style.display = 'flex';
-                clearMember();
             }
         }
 
         function setPayMethod(method, btn) {
+            // Deprecated for split payment, but kept for compatibility if needed
             paymentMethod = method;
             document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
+            if (btn) btn.classList.add('selected');
         }
 
-        async function init() {
-            renderSkeletons();
-            await fetchBooks(false);
-
-            // Handle URL Actions (from dashboard)
-            const urlParams = new URLSearchParams(window.location.search);
-            const action = urlParams.get('action');
-            if (action === 'return') {
-                showToast("Please select a member to process their return.", "info");
-            } else if (action === 'issue') {
-                showToast("Select a member and add books to issue them.", "info");
-            }
-
-            // Continuous Background Sync (every 15 seconds)
-            setInterval(() => fetchBooks(true), 15000);
-
-            updateParkedUI();
-        }
-
-        async function fetchBooks(isSync = false) {
-            // Initial render from local cache for instant experience
-            const cachedBooks = localStorage.getItem('pos_books_cache');
-            if (cachedBooks && !isSync && allItems.length === 0) {
-                allItems = JSON.parse(cachedBooks);
-                applyFilter();
-            }
-
-            try {
-                const booksRes = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
-                if (!booksRes.ok) throw new Error('Sync failed');
-
-                const booksData = await booksRes.json();
-                allItems = booksData.map(b => ({ ...b, _isInventory: false }));
-                
-                // Update local cache
-                localStorage.setItem('pos_books_cache', JSON.stringify(allItems));
-
-                if (isSync) {
-                    updateStockBadges();
-                    console.log('Background sync at ' + new Date().toLocaleTimeString());
-                } else {
-                    applyFilter();
-                }
-            } catch (error) {
-                console.error('Background Sync Error:', error);
-            }
-        }
-
-        // Silently update stock numbers in existing cards without re-rendering
-        function updateStockBadges() {
-            const lookup = {};
-            allItems.forEach(item => lookup[item.id] = item.stock_qty);
-            document.querySelectorAll('[data-item-id]').forEach(badge => {
-                const id = parseInt(badge.dataset.itemId);
-                if (lookup[id] !== undefined) {
-                    const qty = lookup[id];
-                    badge.innerText = qty > 0 ? `${qty} in stock` : 'Out of stock';
-                    badge.style.color = qty > 5 ? 'var(--accent-mint)' : '#ef4444';
-                }
+        function calculateSplitPayment() {
+            const totalPayable = parseFloat(document.getElementById('modalTotal').innerText.replace('৳', ''));
+            const inputs = document.querySelectorAll('.pay-amount-input');
+            let totalPaid = 0;
+            
+            inputs.forEach(input => {
+                totalPaid += (parseFloat(input.value) || 0);
             });
+
+            const remaining = totalPayable - totalPaid;
+            const remainingEl = document.getElementById('paymentRemaining');
+            remainingEl.innerText = '৳' + remaining.toFixed(2);
+            
+            if (Math.abs(remaining) < 0.01) {
+                remainingEl.style.color = '#16a34a'; // Green
+                document.getElementById('btnFinalOrder').disabled = false;
+                document.getElementById('btnFinalOrder').style.opacity = '1';
+                document.getElementById('btnFinalOrder').style.cursor = 'pointer';
+            } else {
+                remainingEl.style.color = '#ef4444'; // Red
+                document.getElementById('btnFinalOrder').disabled = true;
+                document.getElementById('btnFinalOrder').style.opacity = '0.5';
+                document.getElementById('btnFinalOrder').style.cursor = 'not-allowed';
+            }
         }
 
-        function setFilter(f, btn) {
-            activeFilter = f;
-            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-            if (btn) btn.classList.add('active');
+        let activeFilter = 'all';
+        function setFilter(filter, btn) {
+            activeFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(t => {
+                t.style.background = 'white';
+                t.style.color = 'var(--text-muted)';
+                t.style.borderColor = '#e2e8f0';
+            });
+            btn.style.background = 'var(--primary-blue)';
+            btn.style.color = 'white';
+            btn.style.borderColor = 'transparent';
             applyFilter();
         }
 
         function applyFilter() {
-            let displayed;
-            // Normalize filtering for 'Books' or 'Book' as item_type
-            if (activeFilter === 'books') {
-                displayed = allItems.filter(b => {
-                    const type = (b.item_type || 'Book').toLowerCase();
-                    return type === 'book' || type === 'books';
-                });
-            } else if (activeFilter === 'inventory') {
-                // Non-book items: General, Stationery, etc.
-                displayed = allItems.filter(b => {
-                    const type = (b.item_type || '').toLowerCase();
-                    return type !== 'book' && type !== 'books' && type !== '';
-                });
-            } else {
-                displayed = allItems;
-            }
+            const query = document.getElementById('bookSearch').value.toLowerCase();
+            let filtered = allItems.filter(item => {
+                const matchQuery = item.title.toLowerCase().includes(query) ||
+                    (item.author && item.author.toLowerCase().includes(query)) ||
+                    (item.isbn && item.isbn.includes(query)) ||
+                    (item.category_name && item.category_name.toLowerCase().includes(query));
 
-            const searchVal = document.getElementById('bookSearch')?.value.trim().toLowerCase() || '';
-            if (searchVal) {
-                displayed = displayed.filter(b =>
-                    (b.title && b.title.toLowerCase().includes(searchVal)) ||
-                    (b.author && b.author.toLowerCase().includes(searchVal)) ||
-                    (b.isbn && b.isbn.toLowerCase().includes(searchVal)) ||
-                    (b.item_type && b.item_type.toLowerCase().includes(searchVal))
-                );
-            }
+                if (activeFilter === 'books') return matchQuery && !item._isInventory;
+                if (activeFilter === 'inventory') return matchQuery && item._isInventory;
+                return matchQuery;
+            });
+
+            // If query is empty and we have "all", just show everything
+            const displayed = query ? filtered : (
+                activeFilter === 'books' ? allItems.filter(i => !i._isInventory) :
+                activeFilter === 'inventory' ? allItems.filter(i => i._isInventory) :
+                allItems
+            );
 
             renderBooks(displayed);
             document.getElementById('bookCount').innerText = `${displayed.length} Items`;
@@ -1372,6 +1484,47 @@
             }, 4000);
         }
 
+        function numberToWords(number) {
+            const words = {
+                0: 'Zero', 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine',
+                10: 'Ten', 11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen', 18: 'Eighteen', 19: 'Nineteen',
+                20: 'Twenty', 30: 'Thirty', 40: 'Forty', 50: 'Fifty', 60: 'Sixty', 70: 'Seventy', 80: 'Eighty', 90: 'Ninety'
+            };
+
+            if (number in words) return words[number];
+
+            let amountInWords = '';
+            if (number >= 100) {
+                amountInWords += numberToWords(Math.floor(number / 100)) + ' Hundred ';
+                number %= 100;
+            }
+
+            if (number > 0) {
+                if (amountInWords !== '') amountInWords += 'and ';
+                if (number < 20) {
+                    amountInWords += words[number];
+                } else {
+                    amountInWords += words[Math.floor(number / 10) * 10];
+                    if (number % 10 > 0) {
+                        amountInWords += '-' + words[number % 10];
+                    }
+                }
+            }
+
+            return amountInWords.trim();
+        }
+
+        function formatAmountInWords(amount) {
+            const integerPart = Math.floor(amount);
+            const decimalPart = Math.round((amount - integerPart) * 100);
+
+            let result = numberToWords(integerPart) + ' Taka';
+            if (decimalPart > 0) {
+                result += ' and ' + numberToWords(decimalPart) + ' Paisa';
+            }
+            return result + ' Only';
+        }
+
         function renderSkeletons() {
             const grid = document.getElementById('browseGrid');
             grid.innerHTML = '';
@@ -1391,7 +1544,6 @@
                 grid.appendChild(card);
             }
         }
-
         let displayedItems = [];
         let itemsToShow = 50;
         const INCREMENT = 50;
@@ -1417,13 +1569,15 @@
             chunk.forEach(book => {
                 const pill = document.createElement('div');
                 pill.className = 'book-pill fade-in';
-                
-                // Track item ID for badge updates
                 pill.setAttribute('data-card-id', book.id);
+                pill.onclick = () => addToCart(book);
 
-                if (book._isInventory || (book.item_type && book.item_type !== 'Book')) {
-                    // Inventory item card
-                    book.displayImage = '';
+                // Priority: If it has an image, always use book layout
+                const hasImage = book.cover_image && book.cover_image.trim() !== '';
+                const isBook = book.item_type && book.item_type.toLowerCase() === 'book';
+
+                if (!hasImage && !isBook) {
+                    // Generic Inventory item card (No image and not a Book)
                     const typeIcons = { 'Stationary': 'pen-ruler', 'Flowers': 'seedling', 'Accessories': 'plug', 'General': 'box' };
                     const icon = typeIcons[book.item_type] || 'box';
                     pill.onclick = () => addToCart(book);
@@ -1511,12 +1665,57 @@
 
         function clearCart() {
             cart = [];
+            lastDiscountType = 'amount';
             updateCartUI();
             showToast("Cart cleared!", "info");
             const discountInput = document.getElementById('cartDiscount');
-            if (discountInput) discountInput.value = '0';
+            const discountPercentInput = document.getElementById('cartDiscountPercent');
+            if (discountInput) discountInput.value = '';
+            if (discountPercentInput) discountPercentInput.value = '';
         }
 
+        function applyDiscount(type) {
+            const subtotal = calculateSubtotal();
+            const amountInput = document.getElementById('cartDiscount');
+            const percentInput = document.getElementById('cartDiscountPercent');
+
+            if (subtotal === 0) {
+                amountInput.value = '';
+                percentInput.value = '';
+                updateCartUI();
+                return;
+            }
+
+            if (type === 'percent') {
+                lastDiscountType = 'percent';
+                const percent = parseFloat(percentInput.value) || 0;
+                if (percent > 100) {
+                    percentInput.value = 100;
+                    amountInput.value = subtotal.toFixed(2);
+                } else if (percent < 0) {
+                    percentInput.value = 0;
+                    amountInput.value = '';
+                } else {
+                    const amount = (subtotal * percent) / 100;
+                    amountInput.value = amount > 0 ? amount.toFixed(2) : '';
+                }
+            } else {
+                lastDiscountType = 'amount';
+                const amount = parseFloat(amountInput.value) || 0;
+                if (amount > subtotal) {
+                    amountInput.value = subtotal.toFixed(2);
+                    percentInput.value = 100;
+                } else if (amount < 0) {
+                    amountInput.value = 0;
+                    percentInput.value = '';
+                } else {
+                    const percent = (amount / subtotal) * 100;
+                    percentInput.value = percent > 0 ? percent.toFixed(2) : '';
+                }
+            }
+
+            updateCartUI();
+        }
         function calculateSubtotal() {
             return cart.reduce((sum, item) => sum + parseFloat(item.sell_price), 0);
         }
@@ -1547,7 +1746,9 @@
                 totalEl.innerText = '৳0.00';
                 if (subtotalEl) subtotalEl.innerText = '৳0.00';
                 countEl.innerText = '0';
-                if (discountInput) discountInput.value = '0';
+                if (discountInput) discountInput.value = '';
+                const discountPercentInput = document.getElementById('cartDiscountPercent');
+                if (discountPercentInput) discountPercentInput.value = '';
                 return;
             }
 
@@ -1568,6 +1769,20 @@
             });
 
             const subtotal = calculateSubtotal();
+            const percentInput = document.getElementById('cartDiscountPercent');
+            
+            // Re-sync discount if it was percentage based
+            if (lastDiscountType === 'percent' && percentInput && percentInput.value !== '' && document.activeElement !== percentInput && document.activeElement !== discountInput) {
+                const percent = parseFloat(percentInput.value) || 0;
+                const amount = (subtotal * percent) / 100;
+                if (discountInput) discountInput.value = amount > 0 ? amount.toFixed(2) : '';
+            } else if (lastDiscountType === 'amount' && discountInput && discountInput.value !== '' && document.activeElement !== discountInput && document.activeElement !== percentInput) {
+                // Re-sync percentage if it was amount based
+                const amount = parseFloat(discountInput.value) || 0;
+                const percent = subtotal > 0 ? (amount / subtotal) * 100 : 0;
+                if (percentInput) percentInput.value = percent > 0 ? percent.toFixed(2) : '';
+            }
+
             let discount = getDiscount();
             if (discount > subtotal) {
                 discount = subtotal;
@@ -1618,7 +1833,6 @@
                 }
             }, 300);
         }
-
         function selectMemberByIndex(index) {
             selectMember(searchResults[index]);
         }
@@ -1755,7 +1969,6 @@
                 btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> CREATE MEMBER';
             }
         }
-
         function clearMember() {
             selectedMember = null;
             document.getElementById('selectedMember').style.display = 'none';
@@ -1783,8 +1996,29 @@
 
             if (type === 'sell') {
                 const totalEl = document.getElementById('cartTotal');
-                document.getElementById('modalTotal').innerText = totalEl.innerText;
+                const totalAmount = totalEl.innerText;
+                document.getElementById('modalTotal').innerText = totalAmount;
+                document.getElementById('paymentRemaining').innerText = totalAmount;
+                
+                // Clear inputs
+                document.querySelectorAll('.pay-amount-input').forEach(i => i.value = '');
+                
+                // Show/hide wallet row based on customer type
+                const walletRow = document.getElementById('walletPayRow');
+                if (customerType === 'member' && selectedMember) {
+                    walletRow.style.display = 'flex';
+                } else {
+                    walletRow.style.display = 'none';
+                }
+
+                // Auto-fill first method (Cash) with full amount for convenience
+                const inputs = document.querySelectorAll('.pay-amount-input');
+                if (inputs[0]) {
+                    inputs[0].value = parseFloat(totalAmount.replace('৳', '')).toFixed(2);
+                }
+                
                 document.getElementById('checkoutModal').style.display = 'flex';
+                calculateSplitPayment();
             } else {
                 // Issue / Borrow — only books allowed
                 const hasNonBook = cart.some(item => item._isInventory);
@@ -1815,15 +2049,31 @@
         }
 
         async function processOrder() {
-            const totalAmount = parseFloat(document.getElementById('cartTotal').innerText.replace('৳', ''));
+            const totalAmount = parseFloat(document.getElementById('modalTotal').innerText.replace('৳', ''));
+            const inputs = document.querySelectorAll('.pay-amount-input');
+            let paymentDetails = [];
+            let walletAmount = 0;
 
-            if (paymentMethod === 'Wallet') {
+            inputs.forEach(input => {
+                const amount = parseFloat(input.value) || 0;
+                if (amount > 0) {
+                    const method = input.getAttribute('data-method');
+                    paymentDetails.push(`${method}: ৳${amount.toFixed(2)}`);
+                    if (method === 'Wallet') {
+                        walletAmount = amount;
+                    }
+                }
+            });
+
+            const paymentSummary = paymentDetails.join(', ');
+
+            if (walletAmount > 0) {
                 if (!selectedMember) {
                     showToast('Please select a member to use wallet payment.', 'error');
                     return;
                 }
-                if (parseFloat(selectedMember.acc_balance) < totalAmount) {
-                    showToast(`Insufficient balance! Member has ৳${selectedMember.acc_balance} but ৳${totalAmount.toFixed(2)} is required.`, 'error');
+                if (parseFloat(selectedMember.acc_balance) < walletAmount) {
+                    showToast(`Insufficient balance! Member has ৳${selectedMember.acc_balance} but ৳${walletAmount.toFixed(2)} is required from wallet.`, 'error');
                     return;
                 }
             }
@@ -1839,7 +2089,9 @@
                 discount: getDiscount(),
                 total: calculateTotal(),
                 memberId: customerType === 'member' ? selectedMember.id : null,
-                paymentMethod: paymentMethod,
+                paymentMethod: paymentSummary, // Consolidated methods
+                walletAmount: walletAmount,    // Send separately for balance deduction
+                paymentMethodMain: paymentDetails.length > 1 ? 'Split Payment' : (paymentDetails[0] ? paymentDetails[0].split(':')[0] : 'Cash'),
                 guestName: customerType === 'guest' ? document.getElementById('guestName').value : null,
                 guestPhone: customerType === 'guest' ? document.getElementById('guestPhone').value : null,
                 guestEmail: customerType === 'guest' ? document.getElementById('guestEmail').value : null
@@ -1903,24 +2155,41 @@
             `).join('');
 
             const customerName = payload.memberId ? selectedMember.full_name : (payload.guestName || 'Cash Customer');
+            const customerPhone = payload.memberId ? selectedMember.phone : (payload.guestPhone || '--');
             const memberIdField = payload.memberId ? `<div class="receipt-row"><span>Member ID:</span> <span>${selectedMember.membership_id || ''}</span></div>` : '';
+            
+            // Format split balance breakdown or single method
+            let paymentSectionHtml = '';
+            if (payload.paymentMethod && payload.paymentMethod.includes(':')) {
+                paymentSectionHtml = payload.paymentMethod.split(', ').map(line => {
+                    const parts = line.split(': ');
+                    const method = parts[0] || 'Unknown';
+                    const amount = parts[1] || '';
+                    return `<div class="receipt-row"><span>Paid via ${method}:</span> <span>${amount}</span></div>`;
+                }).join('');
+            } else {
+                paymentSectionHtml = `<div class="receipt-row"><span>Payment Method:</span> <span>${payload.paymentMethod || 'Cash'}</span></div>`;
+            }
 
             container.innerHTML = `
                 <div class="invoice-receipt">
                     <div class="receipt-header">
                         <img src="../assets/logo.webp" alt="Logo">
                         <h2>ONTOMEEL</h2>
-                        <p style="font-size: 10px; margin: 4px 0;">Library & Bookstore<br>Dhaka, Bangladesh</p>
+                        <p style="font-weight:700;">Library & Bookstore</p>
+                        <p>Shop no 06, Changing Closet Building, Motel Labonee, Motel Road, Cox's Bazar</p>
+                        <p>Phone: 01330975787 | Email: info@ontomeel.com</p>
                     </div>
                     
-                    <div class="receipt-info">
+                    <div class="receipt-info" style="border-top:1px dashed #000; border-bottom:1px dashed #000;">
                         <div class="receipt-row"><span>Date:</span> <span>${new Date().toLocaleString()}</span></div>
                         <div class="receipt-row"><span>Inv #:</span> <span>${invoiceNo}</span></div>
-                        <div class="receipt-row"><span>Staff:</span> <span>${window.posUserName || 'Admin'}</span></div>
+                        <div class="receipt-row"><span>Sold by:</span> <span style="text-transform:capitalize;">${window.posUserName || 'Admin'}</span></div>
                     </div>
                     
                     <div class="receipt-info">
                         <div class="receipt-row"><span>Customer:</span> <span>${customerName}</span></div>
+                        <div class="receipt-row"><span>Phone:</span> <span>${customerPhone}</span></div>
                         ${memberIdField}
                     </div>
                     
@@ -1940,20 +2209,60 @@
                     <div class="receipt-totals">
                         <div class="receipt-row"><span>Subtotal:</span> <span>৳${(payload.subtotal || payload.total).toFixed(2)}</span></div>
                         <div class="receipt-row"><span>Discount:</span> <span>৳${(payload.discount || 0).toFixed(2)}</span></div>
-                        <hr style="border: none; border-top: 1px solid #000; margin: 8px 0;">
                         <div class="receipt-row total-bold"><span>Total:</span> <span>৳${payload.total.toFixed(2)}</span></div>
                     </div>
+
+                    <div class="in-words">
+                        <strong>Amount in Words:</strong><br>
+                        ${formatAmountInWords(payload.total)}
+                    </div>
+
+                    <div style="margin-top:15px; border-top:1px dotted #000; padding-top:10px;">
+                        <div style="font-weight: 800; text-transform: uppercase; font-size: 10px; margin-bottom: 5px;">Payment Details</div>
+                        ${paymentSectionHtml}
+                    </div>
                     
-                    <div style="margin-top: 20px; text-align: center; border-top: 1px dashed #ccc; padding-top: 10px;">
-                        <p style="margin: 0; font-size: 11px;">Payment Mode: ${payload.paymentMethod}</p>
-                        <p style="margin: 10px 0 0 0; font-weight: 700;">Thank You!</p>
-                        <p style="margin: 0; font-size: 10px;">Keep your receipt for any support</p>
+                    <div class="barcode-container">
+                        <svg id="receipt-barcode"></svg>
+                    </div>
+
+                    <div style="margin-top: 15px; text-align: center; opacity: 0.8;">
+                        <p style="margin: 0; font-size: 11px; font-weight: 800;">Thank You for Shopping!</p>
+                        <p style="margin: 0; font-size: 9px;">Software by VivaGo Digital</p>
                     </div>
                 </div>
             `;
+
+            // Draw Barcode after DOM update
+            setTimeout(() => {
+                JsBarcode("#receipt-barcode", invoiceNo, {
+                    format: "CODE128",
+                    width: 1.2,
+                    height: 35,
+                    displayValue: false,
+                    margin: 0
+                });
+
+                // Mirror for preview in modal
+                const preview = document.getElementById('receiptPreviewContent');
+                preview.innerHTML = container.innerHTML;
+                
+                // Need to re-fire barcode for the preview SVG as well
+                const previewBarcode = preview.querySelector('#receipt-barcode');
+                if (previewBarcode) {
+                    previewBarcode.id = "receipt-barcode-preview";
+                    JsBarcode("#receipt-barcode-preview", invoiceNo, {
+                        format: "CODE128",
+                        width: 1.2,
+                        height: 35,
+                        displayValue: false,
+                        margin: 0
+                    });
+                }
+            }, 100);
+
             document.getElementById('invoiceModal').style.display = 'flex';
         }
-
         function closeInvoiceModal() {
             document.getElementById('invoiceModal').style.display = 'none';
         }
@@ -2087,14 +2396,15 @@
             }
         }
 
-        window.onload = init;
-
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.member-card')) {
-                document.getElementById('memberSearchResults').style.display = 'none';
+                const results = document.getElementById('memberSearchResults');
+                if (results) results.style.display = 'none';
             }
         });
+
+        window.onload = init;
     </script>
 </body>
 

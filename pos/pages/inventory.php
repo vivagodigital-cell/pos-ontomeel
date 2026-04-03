@@ -992,11 +992,16 @@
                 const ico = icons[item.item_type] || 'box';
                 const bg = bgColors[item.item_type] || '#f1f5f9';
                 const col = iconColors[item.item_type] || '#64748b';
-                const isLow = parseInt(item.stock_qty) <= 5;
+                const isProduction = window.location.hostname.includes('ontomeel.com');
+                const imageBasePath = isProduction
+                    ? 'https://ontomeel.com/admin/assets/book-images/'
+                    : '../../../bookshop/admin/assets/book-images/';
+
                 let imgSrc = '';
                 if (item.cover_image) {
-                    imgSrc = item.cover_image.startsWith('http') ? item.cover_image : `../../api/uploads/books/${item.cover_image}`;
+                    imgSrc = item.cover_image.startsWith('http') ? item.cover_image : imageBasePath + item.cover_image;
                 }
+                const isLow = parseInt(item.stock_qty) <= 5;
                 return `
                 <div class="inv-card">
                     <div class="card-header">
