@@ -117,10 +117,12 @@ try {
         $customerPurchases = $pdo->prepare("
             SELECT 
                 customer_name,
+                customer_phone,
                 GROUP_CONCAT(CONCAT(book_title, ' (x', total_qty, ')') SEPARATOR '<br>') as books
             FROM (
                 SELECT 
                     COALESCE(m.full_name, o.guest_name, 'Unknown Customer') as customer_name,
+                    COALESCE(m.phone, o.guest_phone, 'N/A') as customer_phone,
                     b.title as book_title,
                     SUM(oi.quantity) as total_qty,
                     o.member_id, o.guest_email, o.guest_name

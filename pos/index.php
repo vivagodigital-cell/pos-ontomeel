@@ -384,8 +384,11 @@
                         cList.innerHTML = s.purchases.map(p => `
                             <div class="summary-item">
                                 <div style="display: flex; flex-direction: column;">
-                                    <span style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${p.customer_name}</span>
-                                    <span style="font-size: 0.75rem; color: #64748b;">${p.books}</span>
+                                    <div style="display: flex; justify-content: space-between; align-items: start; gap:10px;">
+                                        <span style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${p.customer_name}</span>
+                                        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 500;">(${p.customer_phone})</span>
+                                    </div>
+                                    <span style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${p.books}</span>
                                 </div>
                             </div>
                         `).join('');
