@@ -134,6 +134,7 @@ try {
                 GROUP BY o.member_id, o.guest_email, o.guest_name, b.id
             ) AS sub
             GROUP BY member_id, guest_email, guest_name
+            ORDER BY customer_name ASC
         ");
         $customerPurchases->execute([$from, $to]);
         $purchases = $customerPurchases->fetchAll(PDO::FETCH_ASSOC);
