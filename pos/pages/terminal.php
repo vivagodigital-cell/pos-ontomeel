@@ -1212,6 +1212,13 @@
                     <span style="font-weight: 700; font-size: 0.9rem; flex: 1;">Nagad</span>
                     <input type="number" step="any" class="checkout-input pay-amount-input" data-method="Nagad" style="width: 120px; height: 40px; text-align: right; padding-left: 20px;" placeholder="0.00" oninput="calculateSplitPayment()">
                 </div>
+                <div class="pay-method-row" style="display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #f1f5f9; padding: 8px 12px; border-radius: 14px;">
+                    <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                        <i class="fa-solid fa-credit-card"></i>
+                    </div>
+                    <span style="font-weight: 700; font-size: 0.9rem; flex: 1;">Card</span>
+                    <input type="number" step="any" class="checkout-input pay-amount-input" data-method="Card" style="width: 120px; height: 40px; text-align: right; padding-left: 20px;" placeholder="0.00" oninput="calculateSplitPayment()">
+                </div>
                 <div id="walletPayRow" class="pay-method-row" style="display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #f1f5f9; padding: 8px 12px; border-radius: 14px;">
                     <div style="width: 32px; height: 32px; background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b;">
                         <i class="fa-solid fa-user-shield"></i>
@@ -1219,6 +1226,14 @@
                     <span style="font-weight: 700; font-size: 0.9rem; flex: 1;">Member Fund</span>
                     <input type="number" step="any" class="checkout-input pay-amount-input" data-method="Wallet" style="width: 120px; height: 40px; text-align: right; padding-left: 20px;" placeholder="0.00" oninput="calculateSplitPayment()">
                 </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; border-top: 1px dashed #e2e8f0; padding-top: 1rem;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">
+                    <i class="fa-solid fa-calendar-day"></i> Transaction Date (Backdate)
+                </label>
+                <input type="datetime-local" id="orderDateOverride" class="checkout-input" style="font-size: 0.85rem;">
+                <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">Leave empty for current time.</p>
             </div>
 
             <button class="btn-action btn-sell" style="width: 100%; margin-top: 1.5rem;" onclick="processOrder()"
@@ -1450,15 +1465,16 @@
                     (item.isbn && item.isbn.includes(query)) ||
                     (item.category_name && item.category_name.toLowerCase().includes(query));
 
-                if (activeFilter === 'books') return matchQuery && !item._isInventory;
-                if (activeFilter === 'inventory') return matchQuery && item._isInventory;
+                const isItemInventory = item._isInventory == 1; 
+                if (activeFilter === 'books') return matchQuery && !isItemInventory;
+                if (activeFilter === 'inventory') return matchQuery && isItemInventory;
                 return matchQuery;
             });
 
             // If query is empty and we have "all", just show everything
             const displayed = query ? filtered : (
-                activeFilter === 'books' ? allItems.filter(i => !i._isInventory) :
-                activeFilter === 'inventory' ? allItems.filter(i => i._isInventory) :
+                activeFilter === 'books' ? allItems.filter(i => i._isInventory == 0) :
+                activeFilter === 'inventory' ? allItems.filter(i => i._isInventory == 1) :
                 allItems
             );
 
@@ -2021,7 +2037,7 @@
                 calculateSplitPayment();
             } else {
                 // Issue / Borrow — only books allowed
-                const hasNonBook = cart.some(item => item._isInventory);
+                const hasNonBook = cart.some(item => item._isInventory == 1);
                 if (hasNonBook) {
                     showToast('Only books can be issued/borrowed. Remove inventory items from the cart.', 'error');
                     return;
@@ -2094,7 +2110,8 @@
                 paymentMethodMain: paymentDetails.length > 1 ? 'Split Payment' : (paymentDetails[0] ? paymentDetails[0].split(':')[0] : 'Cash'),
                 guestName: customerType === 'guest' ? document.getElementById('guestName').value : null,
                 guestPhone: customerType === 'guest' ? document.getElementById('guestPhone').value : null,
-                guestEmail: customerType === 'guest' ? document.getElementById('guestEmail').value : null
+                guestEmail: customerType === 'guest' ? document.getElementById('guestEmail').value : null,
+                orderDate: document.getElementById('orderDateOverride').value // Backdate support
             };
 
             try {

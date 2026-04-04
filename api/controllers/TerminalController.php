@@ -10,11 +10,11 @@ $action = $_GET['action'] ?? '';
 try {
     if ($action === 'getBooks') {
         // Fetch books and ensure item_type is 'Book' (singular) for frontend logic
-        $stmt_b = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, 'Book' as item_type FROM books WHERE is_active = 1");
+        $stmt_b = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, 'Book' as item_type, 0 as _isInventory FROM books WHERE is_active = 1");
         $books = $stmt_b->fetchAll();
 
         // Fetch generic inventory items and map to product structure
-        $stmt_i = $pdo->query("SELECT id, item_name as title, '' as author, barcode as isbn, sell_price, '' as cover_image, quantity as stock_qty, item_type FROM inventory_items WHERE is_active = 1");
+        $stmt_i = $pdo->query("SELECT id, item_name as title, '' as author, barcode as isbn, sell_price, '' as cover_image, quantity as stock_qty, item_type, 1 as _isInventory FROM inventory_items WHERE is_active = 1");
         $items = $stmt_i->fetchAll();
 
         $all = array_merge($books, $items);
@@ -51,8 +51,11 @@ try {
         try {
             $invoice_no = 'OTM-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
 
+            // Handle conditional order date (for backdating)
+            $orderDateValue = !empty($data['orderDate']) ? $data['orderDate'] : date('Y-m-d H:i:s');
+
             // Insert into orders table
-            $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone, guest_email) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone, guest_email, order_date) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?, ?, ?)");
             $stmt->execute([
                 $invoice_no,
                 $data['memberId'] ?? null,
@@ -62,7 +65,8 @@ try {
                 $data['paymentMethod'] ?? 'Cash',
                 $data['guestName'] ?? null,
                 $data['guestPhone'] ?? null,
-                $data['guestEmail'] ?? null
+                $data['guestEmail'] ?? null,
+                $orderDateValue
             ]);
 
             $order_id = $pdo->lastInsertId();

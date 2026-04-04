@@ -64,10 +64,6 @@ try {
     }
     elseif ($action === 'getAdvancedStats') {
         // Sales split by Source (Website vs POS)
-        // Website orders have an invoice_no prefix like 'WEB-' or are identified by trx_id presence
-        // Assuming guest_name presence or specific invoice prefix might help, but let's use a common logic:
-        // If guest_email is present, likely Website. If it's a member_id without guest info, likely POS.
-        
         $websiteSales = $pdo->query("SELECT SUM(total_amount) FROM orders WHERE payment_status = 'Paid' AND guest_email IS NOT NULL AND guest_email != ''")->fetchColumn() ?: 0;
         $posSales = $pdo->query("SELECT SUM(total_amount) FROM orders WHERE payment_status = 'Paid' AND (guest_email IS NULL OR guest_email = '')")->fetchColumn() ?: 0;
         
@@ -101,6 +97,136 @@ try {
                 'low_stock' => $outOfStock,
                 'top_sellers' => $topSellers,
                 'recent_activity' => $recentActivity
+            ]
+        ]);
+    }
+    elseif ($action === 'getTodayReportData') {
+        $from = $_GET['from_date'] ?? date('Y-m-d');
+        $to = $_GET['to_date'] ?? date('Y-m-d');
+        
+        // 1. Books sold today (POS vs Website)
+        $posBooks = $pdo->prepare("SELECT SUM(oi.quantity) FROM orders o JOIN order_items oi ON o.id = oi.order_id WHERE DATE(o.order_date) BETWEEN ? AND ? AND (o.guest_email IS NULL OR o.guest_email = '') AND o.payment_status = 'Paid'");
+        $posBooks->execute([$from, $to]);
+        $posCount = $posBooks->fetchColumn() ?: 0;
+
+        $webBooks = $pdo->prepare("SELECT SUM(oi.quantity) FROM orders o JOIN order_items oi ON o.id = oi.order_id WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.guest_email IS NOT NULL AND o.guest_email != '' AND o.payment_status = 'Paid'");
+        $webBooks->execute([$from, $to]);
+        $webCount = $webBooks->fetchColumn() ?: 0;
+
+        // 2. Which customer bought which books (Aggregated by book for each customer)
+        $customerPurchases = $pdo->prepare("
+            SELECT 
+                customer_name,
+                GROUP_CONCAT(CONCAT(book_title, ' (x', total_qty, ')') SEPARATOR '<br>') as books
+            FROM (
+                SELECT 
+                    COALESCE(m.full_name, o.guest_name, 'Unknown Customer') as customer_name,
+                    b.title as book_title,
+                    SUM(oi.quantity) as total_qty,
+                    o.member_id, o.guest_email, o.guest_name
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN books b ON oi.book_id = b.id
+                LEFT JOIN members m ON o.member_id = m.id
+                WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.payment_status = 'Paid'
+                GROUP BY o.member_id, o.guest_email, o.guest_name, b.id
+            ) AS sub
+            GROUP BY member_id, guest_email, guest_name
+        ");
+        $customerPurchases->execute([$from, $to]);
+        $purchases = $customerPurchases->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. Which customer bought most books
+        $topCustomer = $pdo->prepare("
+            SELECT 
+                COALESCE(m.full_name, o.guest_name, 'Guest') as customer_name,
+                SUM(oi.quantity) as total_qty
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            LEFT JOIN members m ON o.member_id = m.id
+            WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.payment_status = 'Paid'
+            GROUP BY o.member_id, o.guest_email, o.guest_name
+            ORDER BY total_qty DESC
+            LIMIT 1
+        ");
+        $topCustomer->execute([$from, $to]);
+        $topCust = $topCustomer->fetch(PDO::FETCH_ASSOC);
+
+        // 4. Which books sold (qty)
+        $bookStats = $pdo->prepare("
+            SELECT b.title, SUM(oi.quantity) as qty
+            FROM order_items oi
+            JOIN books b ON oi.book_id = b.id
+            JOIN orders o ON oi.order_id = o.id
+            WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.payment_status = 'Paid'
+            GROUP BY b.id
+        ");
+        $bookStats->execute([$from, $to]);
+        $booksSold = $bookStats->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'pos_sold' => $posCount,
+                'web_sold' => $webCount,
+                'purchases' => $purchases,
+                'top_customer' => $topCust,
+                'books_sold' => $booksSold
+            ]
+        ]);
+    }
+    elseif ($action === 'getFullDatabaseSummary') {
+        // Collect statistics from the entire database for AI context
+        
+        // 1. Overall Totals
+        $totals = [
+            'total_sales_amount' => $pdo->query("SELECT SUM(total_amount) FROM orders WHERE payment_status = 'Paid'")->fetchColumn() ?: 0,
+            'total_orders_count' => $pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn(),
+            'total_books' => $pdo->query("SELECT COUNT(*) FROM books")->fetchColumn(),
+            'total_members' => $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn(),
+            'total_borrows' => $pdo->query("SELECT COUNT(*) FROM borrows")->fetchColumn(),
+            'total_active_borrows' => $pdo->query("SELECT COUNT(*) FROM borrows WHERE status NOT IN ('Returned', 'Cancelled')")->fetchColumn(),
+            'out_of_stock_books' => $pdo->query("SELECT COUNT(*) FROM books WHERE stock_qty <= 0")->fetchColumn()
+        ];
+
+        // 2. Monthly Sales (Last 6 Months)
+        $monthlySales = $pdo->query("
+            SELECT DATE_FORMAT(order_date, '%Y-%m') as month, SUM(total_amount) as total
+            FROM orders 
+            WHERE payment_status = 'Paid'
+            GROUP BY month 
+            ORDER BY month DESC 
+            LIMIT 6
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        // 3. Top 5 Books of All Time
+        $topBooks = $pdo->query("
+            SELECT b.title, COUNT(oi.id) as sell_count
+            FROM books b
+            JOIN order_items oi ON b.id = oi.book_id
+            GROUP BY b.id
+            ORDER BY sell_count DESC
+            LIMIT 5
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        // 4. Membership Distribution
+        $memberStats = $pdo->query("SELECT membership_plan, COUNT(*) as count FROM members GROUP BY membership_plan")->fetchAll(PDO::FETCH_ASSOC);
+
+        // 5. Recent High-Value Transactions
+        $recentBigTrx = $pdo->query("SELECT invoice_no, total_amount, order_date FROM orders WHERE payment_status = 'Paid' ORDER BY total_amount DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'totals' => $totals,
+                'monthly_performance' => $monthlySales,
+                'top_performing_books' => $topBooks,
+                'membership_stats' => $memberStats,
+                'notable_transactions' => $recentBigTrx,
+                'today' => [
+                    'date' => date('Y-m-d'),
+                    'sales' => $pdo->query("SELECT SUM(total_amount) FROM orders WHERE DATE(order_date) = CURDATE() AND payment_status = 'Paid'")->fetchColumn() ?: 0
+                ]
             ]
         ]);
     }

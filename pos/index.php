@@ -121,6 +121,42 @@
             margin-top: 10px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
+
+        .summary-card {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid var(--border-light);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 1rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-blue { background: #eff6ff; color: #2563eb; }
+        .badge-mint { background: #ecfdf5; color: #10b981; }
     </style>
 </head>
 
@@ -175,6 +211,42 @@
                     </div>
                     <span class="stat-title">Overdue Alerts</span>
                     <div class="stat-value">0</div>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h2 style="font-weight: 800; color: var(--text-header); margin: 0;"><i class="fa-solid fa-chart-line" style="color: var(--primary-blue); margin-right: 10px;"></i> Activity Summary</h2>
+                        <span id="summaryTime" class="badge-pill badge-blue">Today</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="date" id="summaryFromDate" class="quick-input" style="width: auto; margin:0; padding: 8px 12px; font-size: 0.8rem;">
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">to</span>
+                        <input type="date" id="summaryToDate" class="quick-input" style="width: auto; margin:0; padding: 8px 12px; font-size: 0.8rem;">
+                        <button onclick="updateDashboard()" class="badge-pill badge-blue" style="border:none; cursor:pointer; padding: 10px 15px;"><i class="fa-solid fa-rotate"></i></button>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h4 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 1rem;">Customer Purchases</h4>
+                        <div id="customerPurchasesList" class="summary-list">
+                            <!-- Items will be injected here -->
+                            <p style="color: var(--text-muted); font-size: 0.9rem;">Loading today's activity...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 1rem;">Item Sales Performance</h4>
+                        <div id="bookSalesList" class="summary-list">
+                            <!-- Items will be injected here -->
+                        </div>
+                        
+                        <div id="mostBooksSection" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #e2e8f0;">
+                            <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-header);">Top Customer of the Day:</div>
+                            <div id="topCustomerDisplay" style="font-weight: 800; color: var(--primary-blue); font-size: 1.1rem; margin-top: 5px;">-</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -275,19 +347,77 @@
     <script>
         async function updateDashboard() {
             try {
-                const response = await fetch('../api/controllers/DashboardController.php');
-                const data = await response.json();
+                // Get Date Values
+                let fromDate = document.getElementById('summaryFromDate').value;
+                let toDate = document.getElementById('summaryToDate').value;
 
-                if (data.error) {
-                    console.error('API Error:', data.error);
-                    return;
+                if (!fromDate) {
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('summaryFromDate').value = today;
+                    document.getElementById('summaryToDate').value = today;
+                    fromDate = today;
+                    toDate = today;
                 }
 
-                // Update UI elements
-                document.querySelector('.stat-card:nth-child(1) .stat-value').innerText = data.active_borrows;
-                document.querySelector('.stat-card:nth-child(2) .stat-value').innerText = '৳' + data.today_sales;
-                document.querySelector('.stat-card:nth-child(3) .stat-value').innerText = data.total_members;
-                document.querySelector('.stat-card:nth-child(4) .stat-value').innerText = data.overdue_books;
+                // Fetch Stats (Dashboard stats always for today/current)
+                const response = await fetch('../api/controllers/DashboardController.php');
+                const data = await response.json();
+                if (data.active_borrows !== undefined) {
+                    document.querySelector('.stat-card:nth-child(1) .stat-value').innerText = data.active_borrows;
+                    document.querySelector('.stat-card:nth-child(2) .stat-value').innerText = '৳' + data.today_sales;
+                    document.querySelector('.stat-card:nth-child(3) .stat-value').innerText = data.total_members;
+                    document.querySelector('.stat-card:nth-child(4) .stat-value').innerText = data.overdue_books;
+                }
+
+                // Fetch Daily Summary detailed info with date range
+                const sumRes = await fetch(`../api/controllers/ReportController.php?action=getTodayReportData&from_date=${fromDate}&to_date=${toDate}`);
+                const sumData = await sumRes.json();
+                
+                if (sumData.success) {
+                    const s = sumData.data;
+                    
+                    // 1. Customer Purchases
+                    const cList = document.getElementById('customerPurchasesList');
+                    if (s.purchases.length === 0) {
+                        cList.innerHTML = '<div style="font-size: 0.9rem; color: #64748b; padding: 10px;">No sales recorded yet today.</div>';
+                    } else {
+                        cList.innerHTML = s.purchases.map(p => `
+                            <div class="summary-item">
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${p.customer_name}</span>
+                                    <span style="font-size: 0.75rem; color: #64748b;">${p.books}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+
+                    // 2. Book Sales
+                    const bList = document.getElementById('bookSalesList');
+                    if (s.books_sold.length === 0) {
+                        bList.innerHTML = '<div style="font-size: 0.9rem; color: #64748b; padding: 10px;">-</div>';
+                    } else {
+                        bList.innerHTML = s.books_sold.map(b => `
+                            <div class="summary-item">
+                                <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">${b.title}</span>
+                                <span class="badge-pill badge-mint">x${b.qty} Sold</span>
+                            </div>
+                        `).join('');
+                    }
+
+                    // 3. Top Customer
+                    if (s.top_customer) {
+                        document.getElementById('topCustomerDisplay').innerHTML = `
+                            <span style="color: #0f172a;">${s.top_customer.customer_name}</span>
+                            <span style="font-size: 0.8rem; font-weight: 600; color: #10b981; margin-left:10px;">(${s.top_customer.total_qty} units)</span>
+                        `;
+                    } else {
+                        document.getElementById('topCustomerDisplay').innerText = "N/A";
+                    }
+
+                    const isToday = fromDate === new Date().toISOString().split('T')[0] && toDate === fromDate;
+                    document.getElementById('summaryTime').innerText = isToday ? "Today" : `Range: ${fromDate} to ${toDate}`;
+                    document.getElementById('summaryTime').className = isToday ? "badge-pill badge-blue" : "badge-pill badge-mint";
+                }
 
             } catch (error) {
                 console.error('Fetch error:', error);

@@ -47,30 +47,6 @@
             border-radius: 50%;
         }
 
-        .ai-content {
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #cbd5e1;
-            margin-top: 1.5rem;
-            max-height: 400px;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-
-        .ai-content::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .ai-content::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-
-        .ai-content::-webkit-scrollbar-thumb {
-            background: rgba(37, 99, 235, 0.3);
-            border-radius: 10px;
-        }
-
         .btn-ai {
             background: var(--primary-blue);
             color: white;
@@ -90,22 +66,88 @@
             box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
         }
 
-        .pulse {
-            animation: pulse-animation 2s infinite;
-        }
-
-        @keyframes pulse-animation {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
         .stat-small {
             font-size: 0.75rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: rgba(255,255,255,0.5);
+        }
+
+        /* Chat UI Styles */
+        .ai-chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .message.ai {
+            background: rgba(37, 99, 235, 0.1);
+            color: #e2e8f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .message.user {
+            background: var(--primary-blue);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .question-selector {
+            width: 100%;
+            padding: 12px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 8px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -169,18 +211,26 @@
             </div>
 
             <div class="right-col">
-                <div class="ai-insight-card">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-                        <div style="font-weight: 800; font-size: 1.1rem;"><i class="fa-solid fa-brain" style="color: var(--primary-blue);"></i> AI INSIGHTS</div>
-                        <div class="stat-small">Groq Engine</div>
+                <div class="ai-insight-card" style="padding: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem;">
+                        <div style="font-weight: 800; font-size: 1.1rem;"><i class="fa-solid fa-brain" style="color: var(--primary-blue);"></i> AI ASSISTANT</div>
+                        <div class="stat-small">Gemini Mode</div>
                     </div>
-                    <div id="aiResponse" class="ai-content">
-                        Click the button below to analyze your library data and get professional management suggestions.
-                    </div>
-                    <div style="margin-top: 2rem;">
-                        <button id="btnAiAnalyze" class="btn-ai" onclick="generateAIInsights()">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> ANALYZE DATA
-                        </button>
+                    
+                    <div class="ai-chat-container">
+                        <div id="chatMessages" class="chat-messages">
+                            <div class="message ai">
+                                Hello! I'm your AI Business Assistant. Select a report type below to generate insights.
+                            </div>
+                        </div>
+                        
+                        <div class="chat-input-area">
+                            <textarea id="aiUserInput" class="question-selector" placeholder="Type your question here (e.g. 'How many books sold today?')..." rows="2" style="resize: none;"></textarea>
+                            
+                            <button id="btnAiAnalyze" class="btn-ai" onclick="handleAiQuestion()" style="width: 100%; justify-content: center;">
+                                <i class="fa-solid fa-paper-plane"></i> ASK AI
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -194,6 +244,7 @@
 
     <script>
         let reportData = {};
+        let chatHistory = [];
 
         async function initDashboard() {
             try {
@@ -309,62 +360,109 @@
             });
         }
 
-        async function generateAIInsights() {
-            const btn = document.getElementById('btnAiAnalyze');
-            const responseDiv = document.getElementById('aiResponse');
+        function addMessage(text, role) {
+            const container = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            msgDiv.innerHTML = text.replace(/\n balance/g, '<br>'); // Basic formatting
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function handleAiQuestion() {
+            const userInput = document.getElementById('aiUserInput');
+            const questionText = userInput.value.trim();
             
+            if (!questionText) return;
+
+            addMessage(questionText, 'user');
+            chatHistory.push({ role: 'user', content: questionText });
+            userInput.value = ''; // Clear input
+            
+            const btn = document.getElementById('btnAiAnalyze');
             btn.disabled = true;
-            btn.classList.add('pulse');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing Data...';
-            responseDiv.innerHTML = "Consulting AI engine for business insights...";
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Thinking...';
 
             try {
-                // Fetch Advanced Stats for AI
-                const advRes = await fetch('../../api/controllers/ReportController.php?action=getAdvancedStats');
-                const advData = await advRes.json();
+                // Fetch basic context (Today's metrics and Full DB metrics)
+                const [todayRes, fullRes] = await Promise.all([
+                    fetch('../../api/controllers/ReportController.php?action=getTodayReportData'),
+                    fetch('../../api/controllers/ReportController.php?action=getFullDatabaseSummary')
+                ]);
                 
-                const stats = advData.success ? advData.adv : {};
+                const todayData = await todayRes.json();
+                const fullData = await fullRes.json();
+                
+                let context = "GENERAL LIBRARY & BUSINESS CONTEXT:\n";
+                
+                if (fullData.success) {
+                    const fd = fullData.data;
+                    context += `- All-time Totals: Sales ৳${fd.totals.total_sales_amount}, Orders ${fd.totals.total_orders_count}, Members ${fd.totals.total_members}, Books ${fd.totals.total_books}, Active Borrows ${fd.totals.total_active_borrows}\n`;
+                    context += `- Monthly Sales Trend: ${JSON.stringify(fd.monthly_performance)}\n`;
+                    context += `- Top Performing Books: ${JSON.stringify(fd.top_performing_books)}\n`;
+                    context += `- Membership Plans Distribution: ${JSON.stringify(fd.membership_stats)}\n`;
+                    context += `- High-Value Transactions: ${JSON.stringify(fd.notable_transactions)}\n`;
+                }
+
+                if (todayData.success) {
+                    const stats = todayData.data;
+                    context += `\nTODAY'S (${new Date().toLocaleDateString()}) REAL-TIME ACTIVITY:\n`;
+                    context += `- POS Sold Units: ${stats.pos_sold}\n`;
+                    context += `- Web Sold Units: ${stats.web_sold}\n`;
+                    context += `- Detailed Customer Purchases: ${JSON.stringify(stats.purchases)}\n`;
+                    context += `- Top Customer Today: ${stats.top_customer ? stats.top_customer.customer_name + ' (Bought ' + stats.top_customer.total_qty + ' units)' : 'None yet'}\n`;
+                    context += `- Sold Books Summary: ${JSON.stringify(stats.books_sold)}\n`;
+                }
 
                 const prompt = `
-                    Act as a professional Library Management Consultant. Analyze these metrics:
+                    You are an intelligent Assistant for Ontomeel Library. 
+                    Your mission: Answer the user's latest question naturally and helpfully.
                     
-                    1. Website vs POS Sales:
-                       - Website Sales: ৳${stats.website_sales || 0}
-                       - POS Direct Sales: ৳${stats.pos_sales || 0}
-                    
-                    2. Inventory Health:
-                       - Total Book Titles: ${stats.total_books || 0}
-                       - Out of Stock Items: ${stats.low_stock || 0}
-                    
-                    3. Popular Books: ${JSON.stringify(stats.top_sellers || [])}
-                    
-                    4. Recent 5 Activities: ${JSON.stringify(stats.recent_activity || [])}
+                    DATA CONTEXT (Use ONLY IF relevant to the question):
+                    ${context}
 
-                    Provide a report in English with:
-                    - A business health summary.
-                    - Performance comparison of Website vs POS.
-                    - 2 specific recommendations for improving sales or inventory.
-                    Limit the response to 400 words.
+                    CONVERSATION HISTORY:
+                    ${chatHistory.slice(-5).map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}
+
+                    LATEST USER QUESTION: ${questionText}
+
+                    Rules:
+                    1. Prioritize the user's actual question. If they ask for a report, give data. If they say "Hi" or ask something general, respond like a normal chat.
+                    2. Maintain a professional yet friendly tone like Gemini/ChatGPT.
+                    3. Format using HTML like <br> for new lines.
                 `;
 
-                const res = await fetch('../../api/controllers/AIController.php', {
+                const aiRes = await fetch('../../api/controllers/AIController.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt: prompt })
                 });
-                const data = await res.json();
-                if (data.success) {
-                    responseDiv.innerHTML = data.answer.replace(/\n/g, '<br>');
+                
+                const aiData = await aiRes.json();
+                if (aiData.success) {
+                    addMessage(aiData.answer.replace(/\n/g, '<br>'), 'ai');
+                    chatHistory.push({ role: 'assistant', content: aiData.answer });
                 } else {
-                    responseDiv.innerHTML = "Error: " + (data.error || "AI connection failed.");
+                    addMessage("Error: " + (aiData.error || "AI connection failed."), 'ai');
                 }
             } catch (e) {
-                responseDiv.innerHTML = "Cannot connect to AI server.";
+                console.error(e);
+                addMessage("Sorry, I encountered an error while processing your request.", "ai");
             } finally {
                 btn.disabled = false;
-                btn.classList.remove('pulse');
-                btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> ANALYZE DATA';
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ASK AI';
+                // Keep the last 10 messages in memory for context
+                if (chatHistory.length > 20) chatHistory = chatHistory.slice(-10);
             }
+        }
+
+        async function generateTodayReport() {
+            // No longer needed as handleAiQuestion is now generic
+        }
+
+        async function generateAIInsights() {
+            // Keep original function if needed, but we've moved to handleAiQuestion
+            // or we can just leave it as a reference.
         }
 
         window.onload = initDashboard;
