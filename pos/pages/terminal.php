@@ -797,22 +797,29 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 100%;
-                background: white;
+                width: 80mm !important;
                 height: auto !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                background: white;
             }
 
             @page {
-                size: auto;
+                size: 80mm auto;
                 margin: 0mm;
             }
 
             html, body {
+                width: 80mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                background: white;
                 height: auto !important;
+            }
+
+            * {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
 
 
