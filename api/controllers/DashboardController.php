@@ -9,8 +9,8 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) FROM borrows WHERE status NOT IN ('Returned', 'Cancelled')");
     $active_borrows = $stmt->fetchColumn();
 
-    // Get Today's Sales
-    $stmt = $pdo->query("SELECT SUM(total_amount) FROM orders WHERE DATE(order_date) = CURDATE()");
+    // Get Today's Sales (Only Paid)
+    $stmt = $pdo->query("SELECT SUM(total_amount) FROM orders WHERE DATE(order_date) = CURDATE() AND payment_status = 'Paid'");
     $today_sales = $stmt->fetchColumn() ?: 0;
 
     // Get Total Members

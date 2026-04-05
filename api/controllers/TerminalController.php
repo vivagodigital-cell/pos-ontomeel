@@ -55,7 +55,7 @@ try {
             $orderDateValue = !empty($data['orderDate']) ? $data['orderDate'] : date('Y-m-d H:i:s');
 
             // Insert into orders table
-            $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone, guest_email, order_date) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO orders (invoice_no, member_id, subtotal, discount, total_amount, payment_status, payment_method, order_status, guest_name, guest_phone, guest_email, order_date, staff_id, staff_name, order_type) VALUES (?, ?, ?, ?, ?, 'Paid', ?, 'Delivered', ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $invoice_no,
                 $data['memberId'] ?? null,
@@ -66,7 +66,10 @@ try {
                 $data['guestName'] ?? null,
                 $data['guestPhone'] ?? null,
                 $data['guestEmail'] ?? null,
-                $orderDateValue
+                $orderDateValue,
+                $data['staffId'] ?? null,
+                $data['staffName'] ?? 'Admin',
+                $data['orderType'] ?? 'Sale'
             ]);
 
             $order_id = $pdo->lastInsertId();
@@ -89,8 +92,8 @@ try {
                 $total_price = $price * $qty;
 
                 // Insert order item
-                $stmt = $pdo->prepare("INSERT INTO order_items (order_id, book_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$order_id, $item['id'], $qty, $price, $total_price]);
+                $stmt = $pdo->prepare("INSERT INTO order_items (order_id, book_id, quantity, unit_price, total_price, item_type) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$order_id, $item['id'], $qty, $price, $total_price, $item['item_type'] ?? 'Book']);
 
                 // Update stock
                 $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - ? WHERE id = ?");
@@ -311,8 +314,113 @@ try {
         }
     }
     elseif ($action === 'getOrders') {
-        $stmt = $pdo->query("SELECT o.*, m.full_name as member_name, m.phone as member_phone, m.email as member_email FROM orders o LEFT JOIN members m ON o.member_id = m.id ORDER BY o.order_date DESC LIMIT 50");
+        $search = $_GET['search'] ?? '';
+        $status = $_GET['status'] ?? '';
+        $method = $_GET['method'] ?? '';
+        $staff = $_GET['staff'] ?? '';
+        $date_start = $_GET['dateStart'] ?? '';
+        $date_end = $_GET['dateEnd'] ?? '';
+        $sort = $_GET['sort'] ?? 'date_desc';
+
+        $params = [];
+        $query = "SELECT o.*, m.full_name as member_name, m.phone as member_phone, m.email as member_email,
+                  (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count,
+                  (SELECT COALESCE(bk.title, inv.item_name) FROM order_items oi 
+                   LEFT JOIN books bk ON oi.book_id = bk.id AND (oi.item_type = 'Book' OR oi.item_type IS NULL)
+                   LEFT JOIN inventory_items inv ON oi.book_id = inv.id AND (oi.item_type != 'Book')
+                   WHERE oi.order_id = o.id LIMIT 1) as first_item
+                  FROM orders o LEFT JOIN members m ON o.member_id = m.id WHERE 1=1";
+
+        if (!empty($search)) {
+            $query .= " AND (o.invoice_no LIKE ? OR m.full_name LIKE ? OR o.guest_name LIKE ? OR m.phone LIKE ? OR o.guest_phone LIKE ?)";
+            $sh = "%$search%";
+            array_push($params, $sh, $sh, $sh, $sh, $sh);
+        }
+
+        if (!empty($status)) {
+            $query .= " AND o.payment_status = ?";
+            $params[] = $status;
+        }
+
+        if (!empty($method)) {
+            $query .= " AND o.payment_method LIKE ?";
+            $params[] = "%$method%";
+        }
+
+        if (!empty($staff)) {
+            $query .= " AND (o.staff_name LIKE ? OR o.staff_id = ?)";
+            $params[] = "%$staff%";
+            $params[] = $staff;
+        }
+
+        if (!empty($date_start)) {
+            $query .= " AND o.order_date >= ?";
+            $params[] = $date_start . ' 00:00:00';
+        }
+
+        if (!empty($date_end)) {
+            $query .= " AND o.order_date <= ?";
+            $params[] = $date_end . ' 23:59:59';
+        }
+
+        switch($sort) {
+            case 'date_asc': $query .= " ORDER BY o.order_date ASC"; break;
+            case 'amount_asc': $query .= " ORDER BY o.total_amount ASC"; break;
+            case 'amount_desc': $query .= " ORDER BY o.total_amount DESC"; break;
+            default: $query .= " ORDER BY o.order_date DESC"; break;
+        }
+
+        $query .= " LIMIT 100";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
         echo json_encode(['success' => true, 'orders' => $stmt->fetchAll()]);
+    }
+    elseif ($action === 'orderAction') {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $orderId = $data['id'] ?? '';
+        $type = $data['type'] ?? ''; // 'refund', 'cancel', 'delete'
+
+        if (empty($orderId) || empty($type)) throw new Exception("Invalid parameters.");
+
+        $pdo->beginTransaction();
+        try {
+            // Revert Stock for all destructive actions
+            $stmt = $pdo->prepare("SELECT book_id, quantity, item_type FROM order_items WHERE order_id = ?");
+            $stmt->execute([$orderId]);
+            $items = $stmt->fetchAll();
+
+            foreach ($items as $item) {
+                if ($item['item_type'] === 'Book' || empty($item['item_type'])) {
+                    $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty + ? WHERE id = ?");
+                    $stmt->execute([$item['quantity'], $item['book_id']]);
+                } else {
+                    $stmt = $pdo->prepare("UPDATE inventory_items SET quantity = quantity + ? WHERE id = ?");
+                    $stmt->execute([$item['quantity'], $item['book_id']]);
+                }
+            }
+
+            if ($type === 'refund' || $type === 'cancel') {
+                $status = ($type === 'refund') ? 'Refunded' : 'Cancelled';
+                // Update Order Status
+                $stmt = $pdo->prepare("UPDATE orders SET payment_status = ?, order_status = ? WHERE id = ?");
+                $stmt->execute([$status, $status, $orderId]);
+            } 
+            elseif ($type === 'delete') {
+                // Delete items first
+                $stmt = $pdo->prepare("DELETE FROM order_items WHERE order_id = ?");
+                $stmt->execute([$orderId]);
+                // Delete order
+                $stmt = $pdo->prepare("DELETE FROM orders WHERE id = ?");
+                $stmt->execute([$orderId]);
+            }
+
+            $pdo->commit();
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
     elseif ($action === 'getOrderDetails') {
         $orderId = $_GET['id'] ?? '';
@@ -327,8 +435,12 @@ try {
         if (!$order)
             throw new Exception("Order not found.");
 
-        // Get items
-        $stmt = $pdo->prepare("SELECT oi.*, b.title as book_title FROM order_items oi JOIN books b ON oi.book_id = b.id WHERE oi.order_id = ?");
+        // Get items joined with both books and inventory items for the correct title
+        $stmt = $pdo->prepare("SELECT oi.*, COALESCE(b.title, i.item_name) as book_title 
+                              FROM order_items oi 
+                              LEFT JOIN books b ON oi.book_id = b.id AND (oi.item_type = 'Book' OR oi.item_type IS NULL)
+                              LEFT JOIN inventory_items i ON oi.book_id = i.id AND (oi.item_type != 'Book')
+                              WHERE oi.order_id = ?");
         $stmt->execute([$orderId]);
         $items = $stmt->fetchAll();
 

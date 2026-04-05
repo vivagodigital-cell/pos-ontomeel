@@ -1360,6 +1360,28 @@
                 applyFilter();
                 updateParkedUI();
 
+                // Check for Quick Reorder from Orders History
+                const quickOrder = localStorage.getItem('pos_quick_reorder');
+                if (quickOrder) {
+                    const data = JSON.parse(quickOrder);
+                    cart = data.items || [];
+                    
+                    // Cleanup reorder flag
+                    localStorage.removeItem('pos_quick_reorder');
+                    
+                    if (data.memberId) {
+                        // Fetch the full member object to ensure dropdown and other parts update
+                        const mRes = await fetch(`../../api/controllers/TerminalController.php?action=searchMembers&q=${data.memberId}`);
+                        const members = await mRes.json();
+                        if (members && members.length > 0) {
+                            selectMember(members[0]);
+                        }
+                    }
+                    
+                    updateCartUI();
+                    showToast('Reorder loaded successfully!', 'info');
+                }
+
                 // Check for URL params (memberId)
                 const urlParams = new URLSearchParams(window.location.search);
                 const mid = urlParams.get('memberId');
