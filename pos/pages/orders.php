@@ -345,6 +345,20 @@
                 left: 0; 
                 top: 0; 
                 width: 100%; 
+                margin: 0 !important;
+                padding: 0 !important;
+                height: auto !important;
+            }
+
+            @page {
+                size: auto;
+                margin: 0mm;
+            }
+
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                height: auto !important;
             }
         }
         

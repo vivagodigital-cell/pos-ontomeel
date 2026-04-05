@@ -799,12 +799,22 @@
                 top: 0;
                 width: 100%;
                 background: white;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             @page {
                 size: auto;
-                margin: 0;
+                margin: 0mm;
             }
+
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                height: auto !important;
+            }
+
 
             .invoice-receipt {
                 width: 100%;
