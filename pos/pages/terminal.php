@@ -793,22 +793,23 @@
             }
 
             #invoicePrintContainer {
+                display: block !important;
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 576px;
+                width: 100%;
                 background: white;
             }
 
             @page {
-                size: 576px 1500px;
+                size: auto;
                 margin: 0;
             }
 
             .invoice-receipt {
-                width: 576px;
+                width: 100%;
                 margin: 0;
-                padding: 30px;
+                padding: 15px;
             }
 
             #invoiceModal,
@@ -818,18 +819,17 @@
                 display: none !important;
             }
         }
-        /* Receipt Styles (optimized for 576px / 80mm thermal printing) */
+        /* Receipt Styles (optimized for flexible / 80mm thermal printing) */
         .invoice-receipt {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            width: 576px;
-            padding: 20px;
+            width: 100%;
+            max-width: 80mm; /* Standard 80mm printer width */
+            padding: 10px;
             margin: auto;
             color: #000;
             background: #fff;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.4;
-            min-height: 300px;
-            max-height: 1500px;
         }
 
         .receipt-header {
@@ -1336,7 +1336,7 @@
 
             <div style="padding: 20px; border-top: 1px solid #f1f5f9; display: flex; gap: 10px;">
                 <button onclick="window.print()" class="btn-action btn-sell" style="flex: 1; height: 50px; font-weight: 800;">
-                    <i class="fa-solid fa-print"></i> PRINT RECEIPT (80mm)
+                    <i class="fa-solid fa-print"></i> PRINT RECEIPT
                 </button>
                 <button onclick="closeInvoiceModal()" class="btn-action" style="background: #f1f5f9; color: var(--text-body); padding: 0 20px;">
                     DONE

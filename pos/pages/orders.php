@@ -339,10 +339,118 @@
         @media print {
             body * { visibility: hidden; }
             #receiptToPrint, #receiptToPrint * { visibility: visible; }
-            #receiptToPrint { position: absolute; left: 0; top: 0; width: 100%; }
+            #receiptToPrint { 
+                display: block !important;
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+            }
         }
         
         .receipt-hidden { display: none; }
+
+        /* Receipt Styles (optimized for flexible / 80mm thermal printing) */
+        .invoice-receipt {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            width: 100%;
+            max-width: 80mm; /* Standard 80mm printer width */
+            padding: 10px;
+            margin: auto;
+            color: #000;
+            background: #fff;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1.5px dashed #000;
+            padding-bottom: 20px;
+        }
+
+        .receipt-header img {
+            max-width: 80px;
+            margin-bottom: 12px;
+            filter: grayscale(1);
+        }
+
+        .receipt-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .receipt-header p {
+            margin: 4px 0;
+            font-size: 13px;
+            color: #000;
+            font-weight: 500;
+        }
+
+        .receipt-info {
+            padding: 12px 0;
+            border-bottom: 1px dashed #eee;
+            margin-bottom: 12px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .receipt-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .receipt-items th {
+            text-align: left;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .receipt-items td {
+            padding: 10px 0;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .receipt-totals {
+            border-top: 2.5px solid #000;
+            margin-top: 20px;
+            padding-top: 15px;
+        }
+
+        .total-bold {
+            font-weight: 800;
+            font-size: 18px;
+            border-top: 1px solid #000;
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+
+        .barcode-container {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed #000;
+        }
+
+        .in-words {
+            font-style: italic;
+            font-size: 13px;
+            margin-top: 15px;
+            border-top: 1px dotted #ccc;
+            padding-top: 15px;
+        }
     </style>
 </head>
 
@@ -617,6 +725,47 @@
             }
         }
 
+        function numberToWords(number) {
+            const words = {
+                0: 'Zero', 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine',
+                10: 'Ten', 11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen', 18: 'Eighteen', 19: 'Nineteen',
+                20: 'Twenty', 30: 'Thirty', 40: 'Forty', 50: 'Fifty', 60: 'Sixty', 70: 'Seventy', 80: 'Eighty', 90: 'Ninety'
+            };
+
+            if (number in words) return words[number];
+
+            let amountInWords = '';
+            if (number >= 100) {
+                amountInWords += numberToWords(Math.floor(number / 100)) + ' Hundred ';
+                number %= 100;
+            }
+
+            if (number > 0) {
+                if (amountInWords !== '') amountInWords += 'and ';
+                if (number < 20) {
+                    amountInWords += words[number];
+                } else {
+                    amountInWords += words[Math.floor(number / 10) * 10];
+                    if (number % 10 > 0) {
+                        amountInWords += '-' + words[number % 10];
+                    }
+                }
+            }
+
+            return amountInWords.trim();
+        }
+
+        function formatAmountInWords(amount) {
+            const integerPart = Math.floor(amount);
+            const decimalPart = Math.round((amount - integerPart) * 100);
+
+            let result = numberToWords(integerPart) + ' Taka';
+            if (decimalPart > 0) {
+                result += ' and ' + numberToWords(decimalPart) + ' Paisa';
+            }
+            return result + ' Only';
+        }
+
         function closeDrawer() {
             document.body.classList.remove('drawer-active');
         }
@@ -700,24 +849,92 @@
         function prepareReceipt(data) {
             const order = data.order;
             const items = data.items;
-            // Simplified version of your existing receipt logic for printing
-            document.getElementById('receiptToPrint').innerHTML = `
-                <div style="font-family: 'Inter', sans-serif; width: 300px; padding: 10px; background: white; color: black; font-size: 12px;">
-                    <div style="text-align:center; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px;">
-                        <h2 style="margin:0;">ONTOMEEL</h2>
-                        <p style="margin:2px 0;">Library & Bookstore</p>
+            const container = document.getElementById('receiptToPrint');
+
+            const customerName = order.member_name || order.guest_name || 'Cash Customer';
+            const customerPhone = order.member_phone || order.guest_phone || '--';
+            const memberIdField = order.member_id ? `<div class="receipt-row"><span>Member ID:</span> <span>${order.membership_id || ''}</span></div>` : '';
+
+            const itemsHtml = items.map(i => `
+                <tr>
+                    <td>${i.book_title}</td>
+                    <td>${i.quantity}</td>
+                    <td style="text-align: right;">৳${parseFloat(i.total_price).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="invoice-receipt">
+                    <div class="receipt-header">
+                        <img src="../assets/logo.webp" alt="Logo">
+                        <h2>ONTOMEEL</h2>
+                        <p style="font-weight:700;">Library & Bookstore</p>
+                        <p>Shop no 06, Changing Closet Building, Motel Labonee, Motel Road, Cox's Bazar</p>
+                        <p>Phone: 01330975787 | Email: info@ontomeel.com</p>
                     </div>
-                    <p><b>Inv:</b> ${order.invoice_no}</p>
-                    <p><b>Date:</b> ${new Date(order.order_date).toLocaleString()}</p>
-                    <hr style="border: 0.5px dashed #000;">
-                    <table style="width:100%; font-size: 11px;">
-                        ${items.map(i => `<tr><td>${i.book_title} x ${i.quantity}</td><td style="text-align:right;">${parseFloat(i.total_price).toFixed(2)}</td></tr>`).join('')}
+                    
+                    <div class="receipt-info" style="border-top:1px dashed #000; border-bottom:1px dashed #000;">
+                        <div class="receipt-row"><span>Date:</span> <span>${new Date(order.order_date).toLocaleString()}</span></div>
+                        <div class="receipt-row"><span>Inv #:</span> <span>${order.invoice_no}</span></div>
+                        <div class="receipt-row"><span>Sold by:</span> <span style="text-transform:capitalize;">${order.staff_name || 'Admin'}</span></div>
+                    </div>
+                    
+                    <div class="receipt-info">
+                        <div class="receipt-row"><span>Customer:</span> <span>${customerName}</span></div>
+                        <div class="receipt-row"><span>Phone:</span> <span>${customerPhone}</span></div>
+                        ${memberIdField}
+                    </div>
+                    
+                    <table class="receipt-items">
+                        <thead>
+                            <tr>
+                                <th style="width: 50%;">Item</th>
+                                <th style="width: 20%;">Qty</th>
+                                <th style="width: 30%; text-align: right;">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
                     </table>
-                    <hr style="border: 0.5px dashed #000;">
-                    <div style="display:flex; justify-content: space-between;"><b>Total:</b> <b>৳${parseFloat(order.total_amount).toFixed(2)}</b></div>
-                    <div style="text-align:center; margin-top: 15px;">Thank You!</div>
+                    
+                    <div class="receipt-totals" style="border-top: 2px solid #000;">
+                        <div class="receipt-row"><span>Subtotal:</span> <span>৳${parseFloat(order.subtotal || order.total_amount).toFixed(2)}</span></div>
+                        <div class="receipt-row"><span>Discount:</span> <span>৳${parseFloat(order.discount || 0).toFixed(2)}</span></div>
+                        <div class="receipt-row total-bold"><span>Total:</span> <span>৳${parseFloat(order.total_amount).toFixed(2)}</span></div>
+                    </div>
+
+                    <div class="in-words">
+                        <strong>Amount in Words:</strong><br>
+                        ${formatAmountInWords(parseFloat(order.total_amount))}
+                    </div>
+
+                    <div style="margin-top:15px; border-top:1px dotted #000; padding-top:10px;">
+                        <div style="font-weight: 800; text-transform: uppercase; font-size: 10px; margin-bottom: 5px;">Payment Details</div>
+                        <div class="receipt-row"><span>Method:</span> <span>${order.payment_method}</span></div>
+                    </div>
+                    
+                    <div class="barcode-container">
+                        <svg id="receipt-barcode-history"></svg>
+                    </div>
+
+                    <div style="margin-top: 15px; text-align: center; opacity: 0.8;">
+                        <p style="margin: 0; font-size: 11px; font-weight: 800;">Thank You for Shopping!</p>
+                        <p style="margin: 0; font-size: 9px;">Software by VivaGo Digital</p>
+                    </div>
                 </div>
             `;
+
+            // Draw Barcode after content is injected
+            setTimeout(() => {
+                JsBarcode("#receipt-barcode-history", order.invoice_no, {
+                    format: "CODE128",
+                    width: 1.2,
+                    height: 35,
+                    displayValue: false,
+                    margin: 0
+                });
+            }, 100);
         }
 
         window.onload = fetchOrders;
