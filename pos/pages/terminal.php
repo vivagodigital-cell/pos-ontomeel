@@ -837,8 +837,12 @@
             }
         }
         /* Receipt Styles (optimized for flexible / 80mm thermal printing) */
-        .invoice-receipt {
+        .invoice-receipt, .invoice-receipt * {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-weight: 800 !important;
+        }
+
+        .invoice-receipt {
             width: 100%;
             max-width: 80mm; /* Standard 80mm printer width */
             padding: 10px;

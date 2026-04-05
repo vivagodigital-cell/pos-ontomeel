@@ -372,6 +372,11 @@
         .receipt-hidden { display: none; }
 
         /* Receipt Styles (optimized for flexible / 80mm thermal printing) */
+        .invoice-receipt, .invoice-receipt * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-weight: 800 !important;
+        }
+
         .invoice-receipt {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             width: 100%;
