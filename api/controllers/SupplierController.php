@@ -138,16 +138,14 @@ try {
         }
     }
     elseif ($action === 'setupPurchaseTable') {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `purchase_records` (
+        // Master Purchase Summary table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `purchases` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,
             `supplier_id` INT DEFAULT NULL,
             `supplier_name` VARCHAR(200) DEFAULT NULL,
-            `item_name` VARCHAR(255) NOT NULL,
-            `item_type` VARCHAR(50) DEFAULT 'General',
-            `quantity` INT DEFAULT 1,
-            `unit_cost` DECIMAL(10,2) DEFAULT 0.00,
-            `total_cost` DECIMAL(10,2) DEFAULT 0.00,
-            `paid_amount` DECIMAL(10,2) DEFAULT 0.00,
+            `category` VARCHAR(100) DEFAULT 'General',
+            `total_amount` DECIMAL(12,2) DEFAULT 0.00,
+            `paid_amount` DECIMAL(12,2) DEFAULT 0.00,
             `payment_status` ENUM('Unpaid','Partial','Paid') DEFAULT 'Unpaid',
             `payment_method` VARCHAR(50) DEFAULT 'Cash',
             `note` TEXT DEFAULT NULL,
@@ -155,7 +153,32 @@ try {
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        // Create separate inventory_items table for non-book items
+        // Purchase Items detail table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `purchase_items` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `purchase_id` INT NOT NULL,
+            `item_name` VARCHAR(255) NOT NULL,
+            `isbn` VARCHAR(100) DEFAULT NULL,
+            `unit_cost` DECIMAL(12,2) DEFAULT 0.00,
+            `quantity` INT DEFAULT 1,
+            `total_item_cost` DECIMAL(12,2) DEFAULT 0.00,
+            FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Dynamic categories table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `item_categories` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `name` VARCHAR(100) NOT NULL UNIQUE,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Insert default categories if none exist
+        $count = $pdo->query("SELECT COUNT(*) FROM item_categories")->fetchColumn();
+        if ($count == 0) {
+            $pdo->exec("INSERT INTO item_categories (name) VALUES ('Books'), ('Stationery'), ('Furniture'), ('General')");
+        }
+
+        // Generic inventory items table (non-books)
         $pdo->exec("CREATE TABLE IF NOT EXISTS `inventory_items` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,
             `item_name` VARCHAR(255) NOT NULL,
@@ -171,7 +194,34 @@ try {
             `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        echo json_encode(['success' => true, 'message' => 'Tables ready']);
+        echo json_encode(['success' => true, 'message' => 'Schema updated successfully!']);
+    }
+    elseif ($action === 'listCategories') {
+        $stmt = $pdo->query("SELECT * FROM item_categories ORDER BY name ASC");
+        echo json_encode(['success' => true, 'categories' => $stmt->fetchAll()]);
+    }
+    elseif ($action === 'saveCategory') {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $id = $data['id'] ?? null;
+        $name = trim($data['name'] ?? '');
+        if (empty($name)) throw new Exception("Category name is required.");
+
+        if ($id) {
+            $stmt = $pdo->prepare("UPDATE item_categories SET name = ? WHERE id = ?");
+            $stmt->execute([$name, $id]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO item_categories (name) VALUES (?)");
+            $stmt->execute([$name]);
+        }
+        echo json_encode(['success' => true]);
+    }
+    elseif ($action === 'deleteCategory') {
+        $id = $_GET['id'] ?? null;
+        if (!$id) throw new Exception("ID missing.");
+        
+        $stmt = $pdo->prepare("DELETE FROM item_categories WHERE id = ?");
+        $stmt->execute([$id]);
+        echo json_encode(['success' => true]);
     }
     elseif ($action === 'savePurchaseRecord') {
         $data = json_decode(file_get_contents('php://input'), true);

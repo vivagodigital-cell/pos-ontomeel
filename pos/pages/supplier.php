@@ -256,10 +256,16 @@
             <div class="data-card">
                 <div class="card-header">
                     <div style="font-weight: 800; font-size: 1.1rem;">Item Purchase Records</div>
-                    <button class="nav-link active" onclick="openModal('purchaseRecordModal')"
-                        style="padding: 10px 20px; font-size: 0.85rem;">
-                        <i class="fa-solid fa-plus"></i> ADD PURCHASE
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="nav-link" onclick="openCategoryModal()"
+                            style="padding: 10px 20px; font-size: 0.85rem; background: #f1f5f9; color: var(--text-muted); border: none;">
+                            <i class="fa-solid fa-tags"></i> CATEGORIES
+                        </button>
+                        <button class="nav-link active" onclick="openModal('purchaseRecordModal')"
+                            style="padding: 10px 20px; font-size: 0.85rem;">
+                            <i class="fa-solid fa-plus"></i> ADD PURCHASE
+                        </button>
+                    </div>
                 </div>
                 <div class="table-wrapper">
                     <table>
@@ -431,10 +437,7 @@
                     <div class="input-group">
                         <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Purchase Category</label>
                         <select id="purCategory" class="checkout-input">
-                            <option value="Books">Books</option>
-                            <option value="Stationery">Stationery</option>
-                            <option value="Furniture">Furniture</option>
-                            <option value="General">General</option>
+                            <option value="">Loading...</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -571,6 +574,37 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal-content" style="width: 400px;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items:center;">
+                <h2 style="margin:0; font-size:1.1rem; font-weight:800;">Manage Categories</h2>
+                <button onclick="closeModal('categoryModal')" style="background:none; border:none; font-size:1.5rem; color:#94a3b8; cursor:pointer;">&times;</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="input-group" style="margin-bottom: 1.5rem;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">CATEGORY NAME</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="catName" class="checkout-input" placeholder="e.g. Stationary">
+                        <button id="btnSaveCat" onclick="saveCategory()" class="nav-link active" style="white-space:nowrap; padding: 0 15px; font-size: 0.75rem;">CREATE</button>
+                    </div>
+                </div>
+
+                <div class="table-wrapper" style="max-height: 300px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="padding: 8px;">Name</th>
+                                <th style="padding: 8px; text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoryListBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let activeTab = 'suppliers';
         function showTab(tab) {
@@ -594,8 +628,95 @@
         function syncActiveTab() {
             if (activeTab === 'suppliers') fetchSuppliers();
             if (activeTab === 'suppliedBooks') fetchSuppliedBooks();
-            if (activeTab === 'purchaseRecords') fetchPurchaseRecords();
+            if (activeTab === 'purchaseRecords') {
+                fetchPurchaseRecords();
+                loadCategories();
+            }
             if (activeTab === 'externalBorrows') fetchExternalBorrows();
+        }
+
+        let categories = [];
+        async function loadCategories() {
+            try {
+                // Ensure table exists (internal check in controller)
+                await fetch('../../api/controllers/SupplierController.php?action=setupPurchaseTable');
+                
+                const res = await fetch('../../api/controllers/SupplierController.php?action=listCategories');
+                const data = await res.json();
+                if (data.success) {
+                    categories = data.categories;
+                    const select = document.getElementById('purCategory');
+                    if (select) {
+                        select.innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                    }
+                    renderCategoryList();
+                }
+            } catch (e) {
+                console.error("Failed to load categories", e);
+            }
+        }
+
+        function openCategoryModal() {
+            openModal('categoryModal');
+            renderCategoryList();
+        }
+
+        function renderCategoryList() {
+            const list = document.getElementById('categoryListBody');
+            if (!list) return;
+            
+            if (categories.length === 0) {
+                list.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:20px;">No categories found.</td></tr>';
+                return;
+            }
+
+            list.innerHTML = categories.map(c => `
+                <tr>
+                    <td style="font-weight:700;">${c.name}</td>
+                    <td style="text-align:right;">
+                        <button onclick="editCategory(${c.id}, '${c.name.replace(/'/g, "\\'")}')" style="background:none; border:none; color:var(--primary-blue); cursor:pointer; margin-right:10px;"><i class="fa-solid fa-edit"></i></button>
+                        <button onclick="deleteCategory(${c.id})" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        let editingCategoryId = null;
+        function editCategory(id, name) {
+            editingCategoryId = id;
+            document.getElementById('catName').value = name;
+            document.getElementById('btnSaveCat').innerText = "UPDATE CATEGORY";
+        }
+
+        async function saveCategory() {
+            const name = document.getElementById('catName').value.trim();
+            if (!name) return showToast("Category name required", "error");
+
+            const payload = { id: editingCategoryId, name: name };
+            const res = await fetch('../../api/controllers/SupplierController.php?action=saveCategory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(editingCategoryId ? "Category updated!" : "Category created!");
+                document.getElementById('catName').value = '';
+                editingCategoryId = null;
+                document.getElementById('btnSaveCat').innerText = "CREATE CATEGORY";
+                loadCategories();
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm("Are you sure? This will not delete existing records but the category won't be available for new records.")) return;
+            
+            const res = await fetch(`../../api/controllers/SupplierController.php?action=deleteCategory&id=${id}`);
+            const data = await res.json();
+            if (data.success) {
+                showToast("Category deleted!");
+                loadCategories();
+            }
         }
 
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
