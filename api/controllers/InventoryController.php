@@ -40,14 +40,14 @@ if ($action === 'migrate') {
 try {
     if ($action === 'getItems') {
         // Fetch books, joining with categories for names
-        $stmt_b = $pdo->query("SELECT b.*, c.name as category_name, 'books' as source_table 
+        $stmt_b = $pdo->query("SELECT b.*, c.name as category_name, c.name as item_type, 'books' as source_table 
                                FROM books b 
                                LEFT JOIN categories c ON b.category_id = c.id
                                WHERE b.is_active = 1");
         $books = $stmt_b->fetchAll(PDO::FETCH_ASSOC);
 
         // Fetch inventory items mapped to same structure, joining with categories
-        $stmt_i = $pdo->query("SELECT i.id, i.item_name as title, c.name as category_name, i.item_type as category_id, i.quantity as stock_qty, i.sell_price, i.unit_cost as purchase_price, i.supplier_name, i.barcode as isbn, i.is_active, '' as cover_image, '' as author, 'inventory_items' as source_table 
+        $stmt_i = $pdo->query("SELECT i.id, i.item_name as title, c.name as category_name, c.name as item_type, i.item_type as category_id, i.quantity as stock_qty, i.sell_price, i.unit_cost as purchase_price, i.supplier_name, i.barcode as isbn, i.is_active, '' as cover_image, '' as author, 'inventory_items' as source_table 
                                FROM inventory_items i 
                                LEFT JOIN categories c ON i.item_type = c.id
                                WHERE i.is_active = 1");

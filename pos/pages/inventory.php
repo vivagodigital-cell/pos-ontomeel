@@ -696,9 +696,11 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="searchInv" placeholder="Search items by name or SKU…" oninput="filterItems()">
             </div>
-            <div class="filter-pills" id="filterPills">
-                <button class="fpill active" onclick="setTypeFilter('all', this)">All</button>
-                <!-- Dynamic pills -->
+            <div class="filter-pills-wrap" style="flex: 1; overflow: hidden; position: relative;">
+                <div class="filter-pills" id="filterPills" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scroll-behavior: smooth;">
+                    <button class="fpill active" onclick="setTypeFilter('all', this)">All</button>
+                    <!-- Dynamic pills -->
+                </div>
             </div>
         </div>
 
@@ -997,12 +999,12 @@
                         <div class="type-icon-wrap" style="background:${bg}; overflow:hidden; border:1px solid rgba(0,0,0,0.05);">
                             ${imgSrc ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid fa-${ico}" style="color:${col};"></i>`}
                         </div>
-                        <span class="type-pill type-${item.item_type}">${item.item_type}</span>
+                        <span class="type-pill" style="background:${bg}; color:${col};">${item.item_type}</span>
                     </div>
                     <div class="card-body">
                         <div class="card-title text-ellipsis" title="${item.title}">${item.title}</div>
                         ${item.author ? `<div style="font-size:0.75rem; color:#64748b; font-weight:600; margin-bottom:4px;">by ${item.author}</div>` : ''}
-                        <div class="card-sku">${item.isbn ? (item.item_type === 'Books' ? 'ISBN: ' : 'SKU: ') + item.isbn : '<span style="opacity:0.4;">' + (item.item_type === 'Books' ? 'No ISBN' : 'No SKU') + '</span>'}</div>
+                        <div class="card-sku">${item.isbn ? ((item.source_table === 'books') ? 'ISBN: ' : 'SKU: ') + item.isbn : '<span style="opacity:0.4;">' + ((item.source_table === 'books') ? 'No ISBN' : 'No SKU') + '</span>'}</div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span class="stock-chip ${isLow ? 'stock-low' : 'stock-ok'}">
                                 <i class="fa-solid fa-${isLow ? 'triangle-exclamation' : 'circle-check'}" style="margin-right:3px;"></i>
@@ -1069,9 +1071,18 @@
 
         function filterItems() {
             const q = document.getElementById('searchInv').value.toLowerCase().trim();
+            const filter = activeTypeFilter.toLowerCase();
             let list = allItems;
-            if (activeTypeFilter !== 'all') list = list.filter(i => i.item_type === activeTypeFilter);
-            if (q) list = list.filter(i => i.title.toLowerCase().includes(q) || (i.title_en && i.title_en.toLowerCase().includes(q)) || (i.isbn && i.isbn.toLowerCase().includes(q)));
+            if (filter !== 'all') {
+                list = list.filter(i => (i.item_type || '').toLowerCase() === filter);
+            }
+            if (q) {
+                list = list.filter(i => 
+                    (i.title || '').toLowerCase().includes(q) || 
+                    (i.author || '').toLowerCase().includes(q) || 
+                    (i.isbn || '').toLowerCase().includes(q)
+                );
+            }
             renderItems(list);
         }
 
