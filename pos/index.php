@@ -122,12 +122,25 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
+        .stats-grid {
+            margin-bottom: 3rem;
+        }
+
+        .section-header {
+            margin-bottom: 1.5rem;
+            padding-left: 5px;
+        }
+
+        .action-grid {
+            margin-bottom: 3.5rem;
+        }
+
         .summary-card {
             background: white;
             border-radius: 24px;
             border: 1px solid var(--border-light);
-            padding: 2rem;
-            margin-bottom: 2rem;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
             box-shadow: var(--shadow-sm);
         }
 
@@ -214,6 +227,38 @@
                 </div>
             </div>
 
+            <div class="section-header">
+                <h2 style="font-weight: 700; color: var(--text-header);">Quick Services</h2>
+            </div>
+
+            <div class="action-grid">
+                <div class="action-card" onclick="openQuickAction('issue')" style="cursor: pointer;">
+                    <i class="fa-solid fa-plus" style="color: var(--primary-blue);"></i>
+                    <h3>Issue Book</h3>
+                    <p>Lend a book to a registered member</p>
+                </div>
+                <div class="action-card" onclick="openQuickAction('return')" style="cursor: pointer;">
+                    <i class="fa-solid fa-rotate-left" style="color: var(--accent-mint);"></i>
+                    <h3>Pick Return</h3>
+                    <p>Check-in books and calculate fines</p>
+                </div>
+                <div class="action-card" onclick="window.location.href='pages/terminal.php'" style="cursor: pointer;">
+                    <i class="fa-solid fa-cart-shopping" style="color: #f59e0b;"></i>
+                    <h3>Direct Sale</h3>
+                    <p>Generate invoice for book purchase</p>
+                </div>
+                <div class="action-card" onclick="window.location.href='pages/member.php'" style="cursor: pointer;">
+                    <i class="fa-solid fa-user-plus" style="color: #ec4899;"></i>
+                    <h3>New Member</h3>
+                    <p>Create a membership profile</p>
+                </div>
+                <div class="action-card admin-only" onclick="window.location.href='pages/profile.php#admin-management-section'" style="cursor: pointer; display: none;">
+                    <i class="fa-solid fa-users-gear" style="color: #6366f1;"></i>
+                    <h3>Team Management</h3>
+                    <p>Add and manage POS operators</p>
+                </div>
+            </div>
+
             <div class="summary-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -247,38 +292,6 @@
                             <div id="topCustomerDisplay" style="font-weight: 800; color: var(--primary-blue); font-size: 1.1rem; margin-top: 5px;">-</div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="section-header">
-                <h2 style="font-weight: 700; color: var(--text-header);">Quick Services</h2>
-            </div>
-
-            <div class="action-grid">
-                <div class="action-card" onclick="openQuickAction('issue')" style="cursor: pointer;">
-                    <i class="fa-solid fa-plus" style="color: var(--primary-blue);"></i>
-                    <h3>Issue Book</h3>
-                    <p>Lend a book to a registered member</p>
-                </div>
-                <div class="action-card" onclick="openQuickAction('return')" style="cursor: pointer;">
-                    <i class="fa-solid fa-rotate-left" style="color: var(--accent-mint);"></i>
-                    <h3>Pick Return</h3>
-                    <p>Check-in books and calculate fines</p>
-                </div>
-                <div class="action-card" onclick="window.location.href='pages/terminal.php'" style="cursor: pointer;">
-                    <i class="fa-solid fa-cart-shopping" style="color: #f59e0b;"></i>
-                    <h3>Direct Sale</h3>
-                    <p>Generate invoice for book purchase</p>
-                </div>
-                <div class="action-card" onclick="window.location.href='pages/member.php'" style="cursor: pointer;">
-                    <i class="fa-solid fa-user-plus" style="color: #ec4899;"></i>
-                    <h3>New Member</h3>
-                    <p>Create a membership profile</p>
-                </div>
-                <div class="action-card admin-only" onclick="window.location.href='pages/profile.php#admin-management-section'" style="cursor: pointer; display: none;">
-                    <i class="fa-solid fa-users-gear" style="color: #6366f1;"></i>
-                    <h3>Team Management</h3>
-                    <p>Add and manage POS operators</p>
                 </div>
             </div>
         </section>
