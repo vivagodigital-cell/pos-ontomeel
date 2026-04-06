@@ -74,15 +74,18 @@ try {
 
             $order_id = $pdo->lastInsertId();
 
-            // Group items to handle duplicates gracefully
+            // Group items to handle duplicates gracefully and respect quantities from frontend
             $groupedItems = [];
             foreach ($data['items'] as $item) {
-                $bId = $item['id'];
-                if (!isset($groupedItems[$bId])) {
-                    $groupedItems[$bId] = $item;
-                    $groupedItems[$bId]['purchase_qty'] = 0;
+                // Use composite key to avoid ID collisions between books and inventory
+                $isInv = isset($item['_isInventory']) && $item['_isInventory'] == 1;
+                $key = ($isInv ? 'inv_' : 'book_') . $item['id'];
+                
+                if (!isset($groupedItems[$key])) {
+                    $groupedItems[$key] = $item;
+                    $groupedItems[$key]['purchase_qty'] = 0;
                 }
-                $groupedItems[$bId]['purchase_qty']++;
+                $groupedItems[$key]['purchase_qty'] += (int)($item['qty'] ?? 1);
             }
 
             // Insert items and decrease stock
@@ -90,13 +93,19 @@ try {
                 $price = $item['sell_price'] ?? $item['price'] ?? 0;
                 $qty = $item['purchase_qty'];
                 $total_price = $price * $qty;
+                $item_type = $item['item_type'] ?? 'Book';
+                $isInv = isset($item['_isInventory']) && $item['_isInventory'] == 1;
 
                 // Insert order item
                 $stmt = $pdo->prepare("INSERT INTO order_items (order_id, book_id, quantity, unit_price, total_price, item_type) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$order_id, $item['id'], $qty, $price, $total_price, $item['item_type'] ?? 'Book']);
+                $stmt->execute([$order_id, $item['id'], $qty, $price, $total_price, $item_type]);
 
-                // Update stock
-                $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - ? WHERE id = ?");
+                // Update stock based on type
+                if ($isInv) {
+                    $stmt = $pdo->prepare("UPDATE inventory_items SET quantity = quantity - ? WHERE id = ?");
+                } else {
+                    $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - ? WHERE id = ?");
+                }
                 $stmt->execute([$qty, $item['id']]);
             }
 
@@ -170,28 +179,33 @@ try {
         try {
             $booksList = [];
             foreach ($data['items'] as $item) {
-                // Verify stock again
-                $stmt = $pdo->prepare("SELECT stock_qty FROM books WHERE id = ? FOR UPDATE");
-                $stmt->execute([$item['id']]);
-                $stock = $stmt->fetchColumn();
+                $qty = (int)($item['qty'] ?? 1);
+                
+                for ($i = 0; $i < $qty; $i++) {
+                    // Verify stock again
+                    $stmt = $pdo->prepare("SELECT stock_qty FROM books WHERE id = ? FOR UPDATE");
+                    $stmt->execute([$item['id']]);
+                    $stock = $stmt->fetchColumn();
 
-                if ($stock <= 0) {
-                    throw new Exception("Book '{$item['title']}' is out of stock.");
+                    if ($stock <= 0) {
+                        throw new Exception("Book '{$item['title']}' is out of stock.");
+                    }
+
+                    // Insert into borrows table
+                    $stmt = $pdo->prepare("INSERT INTO borrows (member_id, book_id, borrow_date, due_date, status) VALUES (?, ?, CURRENT_TIMESTAMP, ?, 'Active')");
+                    $stmt->execute([
+                        $data['memberId'],
+                        $item['id'],
+                        $data['dueDate']
+                    ]);
+
+                    // Update stock
+                    $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - 1 WHERE id = ?");
+                    $stmt->execute([$item['id']]);
                 }
 
-                // Insert into borrows table
-                $stmt = $pdo->prepare("INSERT INTO borrows (member_id, book_id, borrow_date, due_date, status) VALUES (?, ?, CURRENT_TIMESTAMP, ?, 'Active')");
-                $stmt->execute([
-                    $data['memberId'],
-                    $item['id'],
-                    $data['dueDate']
-                ]);
-
-                // Update stock
-                $stmt = $pdo->prepare("UPDATE books SET stock_qty = stock_qty - 1 WHERE id = ?");
-                $stmt->execute([$item['id']]);
-
-                $booksList[] = $item['title'];
+                $bookTitleWithQty = $qty > 1 ? "{$item['title']} (x{$qty})" : $item['title'];
+                $booksList[] = $bookTitleWithQty;
             }
 
             // Send Email Notification for Borrowing

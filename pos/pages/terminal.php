@@ -1705,10 +1705,23 @@
 
         function addToCart(book) {
             if (book.stock_qty <= 0) {
-                alert('This book is currently out of stock.');
+                alert('This item is currently out of stock.');
                 return;
             }
-            cart.push({ ...book, cartId: Date.now() + Math.random() });
+            
+            // Check if item already in cart
+            const existingItem = cart.find(item => item.id === book.id && item._isInventory === book._isInventory);
+            
+            if (existingItem) {
+                if (existingItem.qty >= book.stock_qty) {
+                    showToast("Cannot add more than available stock.", "error");
+                    return;
+                }
+                existingItem.qty++;
+            } else {
+                cart.push({ ...book, qty: 1 });
+            }
+            
             updateCartUI();
 
             // Show feedback
@@ -1717,8 +1730,28 @@
             setTimeout(() => status.style.display = 'none', 1500);
         }
 
-        function removeFromCart(cartId) {
-            cart = cart.filter(item => item.cartId !== cartId);
+        function changeQty(id, isInventory, delta) {
+            const item = cart.find(i => i.id === id && i._isInventory === isInventory);
+            if (!item) return;
+
+            const newQty = item.qty + delta;
+            
+            if (newQty <= 0) {
+                removeFromCart(id, isInventory);
+                return;
+            }
+
+            if (newQty > item.stock_qty) {
+                showToast("Cannot exceed available stock.", "error");
+                return;
+            }
+
+            item.qty = newQty;
+            updateCartUI();
+        }
+
+        function removeFromCart(id, isInventory) {
+            cart = cart.filter(item => !(item.id === id && item._isInventory === isInventory));
             updateCartUI();
         }
 
@@ -1776,7 +1809,7 @@
             updateCartUI();
         }
         function calculateSubtotal() {
-            return cart.reduce((sum, item) => sum + parseFloat(item.sell_price), 0);
+            return cart.reduce((sum, item) => sum + (parseFloat(item.sell_price) * item.qty), 0);
         }
 
         function getDiscount() {
@@ -1804,7 +1837,7 @@
                 list.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 5rem; padding: 2rem;"><div style="position: relative; display: inline-block;"><i class="fa-solid fa-basket-shopping" style="font-size: 3.5rem; opacity: 0.05; display: block; margin-bottom: 1.5rem;"></i><i class="fa-solid fa-plus" style="position: absolute; bottom: 15px; right: -5px; font-size: 1.2rem; opacity: 0.2; color: var(--primary-blue);"></i></div><div style="font-weight: 700; font-size: 0.9rem; opacity: 0.4;">Your cart is empty</div><div style="font-size: 0.75rem; opacity: 0.4; margin-top: 4px;">Search and add books to start</div></div>`;
                 totalEl.innerText = '৳0.00';
                 if (subtotalEl) subtotalEl.innerText = '৳0.00';
-                countEl.innerText = '0';
+                countEl.innerText = cart.reduce((sum, item) => sum + item.qty, 0);
                 if (discountInput) discountInput.value = '';
                 const discountPercentInput = document.getElementById('cartDiscountPercent');
                 if (discountPercentInput) discountPercentInput.value = '';
@@ -1822,7 +1855,14 @@
                         <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-header); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;">${item.title}</div>
                         <div style="font-size: 0.85rem; color: var(--primary-blue); font-weight: 700; margin-top: 4px;">৳${parseFloat(item.sell_price).toFixed(2)}</div>
                     </div>
-                    <button onclick="removeFromCart(${item.cartId})" style="background: rgba(239, 68, 68, 0.05); border: none; color: #ef4444; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"><i class="fa-solid fa-times"></i></button>
+                    
+                    <div class="qty-control" style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px 6px; border-radius: 12px; border: 1px solid #f1f5f9; margin-right: 5px;">
+                        <button onclick="changeQty(${item.id}, ${item._isInventory}, -1)" style="border: none; background: white; color: #64748b; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><i class="fa-solid fa-minus" style="font-size: 0.7rem;"></i></button>
+                        <span style="font-weight: 800; font-size: 0.85rem; min-width: 18px; text-align: center; color: var(--text-header);">${item.qty}</span>
+                        <button onclick="changeQty(${item.id}, ${item._isInventory}, 1)" style="border: none; background: white; color: var(--primary-blue); width: 24px; height: 24px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><i class="fa-solid fa-plus" style="font-size: 0.7rem;"></i></button>
+                    </div>
+
+                    <button onclick="removeFromCart(${item.id}, ${item._isInventory})" style="background: rgba(239, 68, 68, 0.05); border: none; color: #ef4444; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"><i class="fa-solid fa-times"></i></button>
                 `;
                 list.appendChild(row);
             });
@@ -1852,7 +1892,7 @@
 
             if (subtotalEl) subtotalEl.innerText = '৳' + subtotal.toFixed(2);
             totalEl.innerText = '৳' + total.toFixed(2);
-            countEl.innerText = cart.length;
+            countEl.innerText = cart.reduce((sum, item) => sum + item.qty, 0);
         }
 
         let selectedMember = null;
@@ -2199,10 +2239,12 @@
 
             const grouped = {};
             payload.items.forEach(item => {
-                if (grouped[item.id]) {
-                    grouped[item.id].qty += 1;
+                const isInv = item._isInventory == 1;
+                const key = (isInv ? 'inv_' : 'book_') + item.id;
+                if (grouped[key]) {
+                    grouped[key].qty += (item.qty || 1);
                 } else {
-                    grouped[item.id] = { ...item, qty: 1 };
+                    grouped[key] = { ...item, qty: (item.qty || 1) };
                 }
             });
 
@@ -2425,7 +2467,8 @@
                 dueDate: document.getElementById('dueDate').value,
                 items: cart.map(item => ({
                     id: item.id,
-                    title: item.title
+                    title: item.title,
+                    qty: item.qty
                 }))
             };
 
