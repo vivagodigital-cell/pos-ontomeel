@@ -135,7 +135,24 @@
             border-radius: 24px;
             border: 1px solid var(--border);
             box-shadow: var(--shadow-md);
-            overflow: hidden;
+            overflow-y: auto;
+            max-height: calc(100vh - 380px); /* Responsive height for better scroll view */
+            position: relative;
+        }
+
+        .order-table-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .order-table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 0 24px 24px 0;
+        }
+        .order-table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .order-table-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         table {
@@ -153,7 +170,14 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 20;
         }
+        
+        /* Ensure first/last th maintains card radius logic if needed */
+        th:first-child { border-top-left-radius: 24px; }
+        th:last-child { border-top-right-radius: 24px; }
 
         td {
             padding: 1.25rem;
