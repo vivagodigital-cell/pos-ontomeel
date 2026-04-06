@@ -800,11 +800,26 @@
             fetchOrders();
         }
 
+        function setDefaultDates() {
+            const today = new Date();
+            const lastWeek = new Date();
+            lastWeek.setDate(today.getDate() - 7);
+            
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+            
+            document.getElementById('dateEnd').value = formatDate(today);
+            document.getElementById('dateStart').value = formatDate(lastWeek);
+        }
+
         function resetFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = '';
-            document.getElementById('dateStart').value = '';
-            document.getElementById('dateEnd').value = '';
+            setDefaultDates();
             fetchOrders();
         }
 
@@ -963,7 +978,10 @@
             }, 100);
         }
 
-        window.onload = fetchOrders;
+        window.onload = () => {
+            setDefaultDates();
+            fetchOrders();
+        };
     </script>
 </body>
 </html>
