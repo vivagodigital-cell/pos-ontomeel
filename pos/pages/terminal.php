@@ -1716,7 +1716,7 @@
             }
             
             // Check if item already in cart
-            const existingItem = cart.find(item => item.id === book.id && item._isInventory === book._isInventory);
+            const existingItem = cart.find(item => item.id == book.id && item._isInventory == book._isInventory);
             
             if (existingItem) {
                 if (existingItem.qty >= book.stock_qty) {
@@ -1737,7 +1737,7 @@
         }
 
         function changeQty(id, isInventory, delta) {
-            const item = cart.find(i => i.id === id && i._isInventory === isInventory);
+            const item = cart.find(i => i.id == id && i._isInventory == isInventory);
             if (!item) return;
 
             const newQty = item.qty + delta;
@@ -1757,7 +1757,7 @@
         }
 
         function removeFromCart(id, isInventory) {
-            cart = cart.filter(item => !(item.id === id && item._isInventory === isInventory));
+            cart = cart.filter(item => !(item.id == id && item._isInventory == isInventory));
             updateCartUI();
         }
 
