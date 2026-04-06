@@ -182,7 +182,7 @@ try {
         $pdo->exec("CREATE TABLE IF NOT EXISTS `inventory_items` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,
             `item_name` VARCHAR(255) NOT NULL,
-            `item_type` VARCHAR(50) DEFAULT 'General',
+            `item_type` INT DEFAULT NULL,
             `quantity` INT DEFAULT 0,
             `unit_cost` DECIMAL(10,2) DEFAULT 0.00,
             `sell_price` DECIMAL(10,2) DEFAULT 0.00,
@@ -197,7 +197,7 @@ try {
         echo json_encode(['success' => true, 'message' => 'Schema updated successfully!']);
     }
     elseif ($action === 'listCategories') {
-        $stmt = $pdo->query("SELECT * FROM item_categories ORDER BY name ASC");
+        $stmt = $pdo->query("SELECT * FROM categories ORDER BY name ASC");
         echo json_encode(['success' => true, 'categories' => $stmt->fetchAll()]);
     }
     elseif ($action === 'saveCategory') {
@@ -207,10 +207,10 @@ try {
         if (empty($name)) throw new Exception("Category name is required.");
 
         if ($id) {
-            $stmt = $pdo->prepare("UPDATE item_categories SET name = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE categories SET name = ? WHERE id = ?");
             $stmt->execute([$name, $id]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO item_categories (name) VALUES (?)");
+            $stmt = $pdo->prepare("INSERT INTO categories (name) VALUES (?)");
             $stmt->execute([$name]);
         }
         echo json_encode(['success' => true]);
@@ -219,7 +219,7 @@ try {
         $id = $_GET['id'] ?? null;
         if (!$id) throw new Exception("ID missing.");
         
-        $stmt = $pdo->prepare("DELETE FROM item_categories WHERE id = ?");
+        $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ?");
         $stmt->execute([$id]);
         echo json_encode(['success' => true]);
     }
@@ -282,6 +282,16 @@ try {
                 $stmt->execute([$purchaseId, $p_name, $p_isbn, $p_cost, $p_qty, $p_total]);
 
                 // B. Sync with inventory management (Preventing Duplicates)
+                // First, find or create the category ID for consistent migration
+                $getCat = $pdo->prepare("SELECT id FROM item_categories WHERE name = ?");
+                $getCat->execute([$category]);
+                $category_id = $getCat->fetchColumn();
+                if (!$category_id) {
+                    $insCat = $pdo->prepare("INSERT INTO item_categories (name) VALUES (?)");
+                    $insCat->execute([$category]);
+                    $category_id = $pdo->lastInsertId();
+                }
+
                 if (strtolower($category) === 'book' || strtolower($category) === 'books') {
                     $existing = null;
                     if (!empty($p_isbn)) {
@@ -299,12 +309,12 @@ try {
                     if ($existing) {
                         // Update existing inventory
                         $newQty = $existing['stock_qty'] + $p_qty;
-                        $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ? WHERE id = ?");
-                        $upd->execute([$newQty, $p_cost, $supplierName, $category, $existing['id']]);
+                        $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ?, category_id = ? WHERE id = ?");
+                        $upd->execute([$newQty, $p_cost, $supplierName, $category, $category_id, $existing['id']]);
                     } else {
                         // Insert new item into books table
-                        $ins = $pdo->prepare("INSERT INTO books (title, isbn, item_type, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                        $ins->execute([$p_name, $p_isbn, $category, $p_qty, $p_cost, $p_cost, $supplierName]);
+                        $ins = $pdo->prepare("INSERT INTO books (title, isbn, item_type, category_id, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $ins->execute([$p_name, $p_isbn, $category, $category_id, $p_qty, $p_cost, $p_cost, $supplierName]);
                     }
                 } else {
                     $check = $pdo->prepare("SELECT id, quantity FROM inventory_items WHERE item_name = ?");
@@ -314,10 +324,10 @@ try {
                     if ($existing) {
                         $newQty = $existing['quantity'] + $p_qty;
                         $upd = $pdo->prepare("UPDATE inventory_items SET quantity = ?, unit_cost = ?, supplier_id = ?, supplier_name = ?, item_type = ? WHERE id = ?");
-                        $upd->execute([$newQty, $p_cost, $supplierId, $supplierName, $category, $existing['id']]);
+                        $upd->execute([$newQty, $p_cost, $supplierId, $supplierName, $category_id, $existing['id']]);
                     } else {
                         $ins = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_id, supplier_name, barcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $ins->execute([$p_name, $category, $p_qty, $p_cost, $p_cost, $supplierId, $supplierName, $p_isbn]);
+                        $ins->execute([$p_name, $category_id, $p_qty, $p_cost, $p_cost, $supplierId, $supplierName, $p_isbn]);
                     }
                 }
             }

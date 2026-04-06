@@ -696,16 +696,9 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="searchInv" placeholder="Search items by name or SKU…" oninput="filterItems()">
             </div>
-            <div class="filter-pills">
+            <div class="filter-pills" id="filterPills">
                 <button class="fpill active" onclick="setTypeFilter('all', this)">All</button>
-                <button class="fpill" onclick="setTypeFilter('Stationary', this)"><i class="fa-solid fa-pen-ruler"
-                        style="margin-right:4px;"></i>Stationary</button>
-                <button class="fpill" onclick="setTypeFilter('Flowers', this)"><i class="fa-solid fa-seedling"
-                        style="margin-right:4px;"></i>Flowers</button>
-                <button class="fpill" onclick="setTypeFilter('Accessories', this)"><i class="fa-solid fa-plug"
-                        style="margin-right:4px;"></i>Accessories</button>
-                <button class="fpill" onclick="setTypeFilter('General', this)"><i class="fa-solid fa-box"
-                        style="margin-right:4px;"></i>General</button>
+                <!-- Dynamic pills -->
             </div>
         </div>
 
@@ -753,11 +746,7 @@
                         <div class="bk-group">
                             <label class="bk-label">Item Category</label>
                             <select name="item_type" id="itemType" class="bk-field">
-                                <option value="Books">📚 Books</option>
-                                <option value="Stationary">📐 Stationary</option>
-                                <option value="Flowers">🌸 Flowers</option>
-                                <option value="Accessories">🔌 Accessories</option>
-                                <option value="General">📦 General / Other</option>
+                                <!-- Dynamic Options -->
                             </select>
                         </div>
                         <div class="bk-group book-only">
@@ -1232,7 +1221,39 @@
         }
         document.getElementById('itemType').addEventListener('change', toggleBookFields);
 
+        async function loadInventoryCategories() {
+            try {
+                const res = await fetch('../../api/controllers/SupplierController.php?action=listCategories');
+                const data = await res.json();
+                if (data.success) {
+                    const categories = data.categories;
+                    
+                    // Populate select
+                    const select = document.getElementById('itemType');
+                    select.innerHTML = categories.map(c => `<option value="${c.name}" data-id="${c.id}">${c.name}</option>`).join('');
+
+                    // Populate filters
+                    const pillContainer = document.getElementById('filterPills');
+                    const allBtn = pillContainer.querySelector('.active');
+                    pillContainer.innerHTML = '';
+                    pillContainer.appendChild(allBtn);
+                    
+                    categories.forEach(c => {
+                        const btn = document.createElement('button');
+                        btn.className = 'fpill';
+                        const ico = icons[c.name] || 'box';
+                        btn.innerHTML = `<i class="fa-solid fa-${ico}" style="margin-right:4px;"></i>${c.name}`;
+                        btn.onclick = () => setTypeFilter(c.name, btn);
+                        pillContainer.appendChild(btn);
+                    });
+                }
+            } catch (e) {
+                console.error("Categories loading error", e);
+            }
+        }
+
         window.onload = function () {
+            loadInventoryCategories();
             fetchInventory();
             setInterval(() => fetchInventory(true), 15000);
             toggleBookFields();

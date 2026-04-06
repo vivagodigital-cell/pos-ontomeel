@@ -9,12 +9,18 @@ $action = $_GET['action'] ?? '';
 
 try {
     if ($action === 'getBooks') {
-        // Fetch books and ensure item_type is 'Book' (singular) for frontend logic
-        $stmt_b = $pdo->query("SELECT id, title, author, isbn, sell_price, cover_image, stock_qty, 'Book' as item_type, 0 as _isInventory FROM books WHERE is_active = 1");
+        // Fetch books and join with categories for names
+        $stmt_b = $pdo->query("SELECT b.id, b.title, b.author, b.isbn, b.sell_price, b.cover_image, b.stock_qty, c.name as category_name, 'Book' as item_type, 0 as _isInventory 
+                               FROM books b 
+                               LEFT JOIN categories c ON b.category_id = c.id
+                               WHERE b.is_active = 1");
         $books = $stmt_b->fetchAll();
 
-        // Fetch generic inventory items and map to product structure
-        $stmt_i = $pdo->query("SELECT id, item_name as title, '' as author, barcode as isbn, sell_price, '' as cover_image, quantity as stock_qty, item_type, 1 as _isInventory FROM inventory_items WHERE is_active = 1");
+        // Fetch generic inventory items, mapping to product structure and joining categories
+        $stmt_i = $pdo->query("SELECT i.id, i.item_name as title, '' as author, i.barcode as isbn, i.sell_price, '' as cover_image, i.quantity as stock_qty, c.name as category_name, 'Inventory' as item_type, 1 as _isInventory 
+                               FROM inventory_items i 
+                               LEFT JOIN categories c ON i.item_type = c.id
+                               WHERE i.is_active = 1");
         $items = $stmt_i->fetchAll();
 
         $all = array_merge($books, $items);

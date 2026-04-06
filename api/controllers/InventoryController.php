@@ -39,12 +39,18 @@ if ($action === 'migrate') {
 
 try {
     if ($action === 'getItems') {
-        // Fetch books
-        $stmt_b = $pdo->query("SELECT *, 'books' as source_table FROM books WHERE is_active = 1");
+        // Fetch books, joining with categories for names
+        $stmt_b = $pdo->query("SELECT b.*, c.name as category_name, 'books' as source_table 
+                               FROM books b 
+                               LEFT JOIN categories c ON b.category_id = c.id
+                               WHERE b.is_active = 1");
         $books = $stmt_b->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch inventory items mapped to same structure
-        $stmt_i = $pdo->query("SELECT id, item_name as title, item_type, quantity as stock_qty, sell_price, unit_cost as purchase_price, supplier_name, barcode as isbn, is_active, '' as cover_image, '' as author, 'inventory_items' as source_table FROM inventory_items WHERE is_active = 1");
+        // Fetch inventory items mapped to same structure, joining with categories
+        $stmt_i = $pdo->query("SELECT i.id, i.item_name as title, c.name as category_name, i.item_type as category_id, i.quantity as stock_qty, i.sell_price, i.unit_cost as purchase_price, i.supplier_name, i.barcode as isbn, i.is_active, '' as cover_image, '' as author, 'inventory_items' as source_table 
+                               FROM inventory_items i 
+                               LEFT JOIN categories c ON i.item_type = c.id
+                               WHERE i.is_active = 1");
         $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
 
         $allItems = array_merge($books, $items);
@@ -89,7 +95,7 @@ try {
         $cost          = (float)($data['purchase_price'] ?? 0.00);
 
         if ($action === 'addItem') {
-            if (strtolower($type) === 'books' || strtolower($type) === 'book') {
+            if (strtolower($type) === 'books' || strtolower($type) === 'book' || (is_numeric($type) && $type == $category_id)) {
                 $stmt = $pdo->prepare("INSERT INTO books (
                     title, title_en, subtitle, description, item_type, category_id, genre, language,
                     author, author_en, co_author, publisher, publish_year, edition, isbn,
@@ -104,14 +110,28 @@ try {
                     $price, $cost, $supplier_name
                 ]);
             } else {
+                // For inventory items, ensure we have an ID for item_type
+                $resolvedType = $category_id;
+                if (!$resolvedType && !is_numeric($type)) {
+                    $getCat = $pdo->prepare("SELECT id FROM item_categories WHERE name = ?");
+                    $getCat->execute([$type]);
+                    $resolvedType = $getCat->fetchColumn();
+                }
+
                 $stmt = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_name, barcode) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$title, $type, $stock, $cost, $price, $supplier_name, $isbn]);
+                $stmt->execute([$title, $resolvedType, $stock, $cost, $price, $supplier_name, $isbn]);
             }
             echo json_encode(["success" => true, "message" => "Item added!", "id" => $pdo->lastInsertId()]);
         } else {
             if ($source_table === 'inventory_items') {
+                $resolvedType = $category_id;
+                if (!$resolvedType && !is_numeric($type)) {
+                    $getCat = $pdo->prepare("SELECT id FROM item_categories WHERE name = ?");
+                    $getCat->execute([$type]);
+                    $resolvedType = $getCat->fetchColumn();
+                }
                 $stmt = $pdo->prepare("UPDATE inventory_items SET item_name=?, item_type=?, quantity=?, unit_cost=?, sell_price=?, supplier_name=?, barcode=? WHERE id=?");
-                $stmt->execute([$title, $type, $stock, $cost, $price, $supplier_name, $isbn, $id]);
+                $stmt->execute([$title, $resolvedType, $stock, $cost, $price, $supplier_name, $isbn, $id]);
             } else {
                 $stmt = $pdo->prepare("UPDATE books SET
                     title=?, title_en=?, subtitle=?, description=?, item_type=?, category_id=?, genre=?, language=?,

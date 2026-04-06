@@ -977,6 +977,18 @@
                     transform: scale(1.05);
                     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
                 }
+
+                .category-badge-pill {
+                    background: rgba(37, 99, 235, 0.08);
+                    color: var(--primary-blue);
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    padding: 2px 8px;
+                    border-radius: 6px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.3px;
+                    white-space: nowrap;
+                }
             </style>
         </header>
 
@@ -988,15 +1000,10 @@
                     <div id="bookCount" style="font-size: 0.8rem; color: var(--text-muted);">Loading...</div>
                 </div>
                 <!-- Filter tabs -->
-                <div style="display: flex; gap: 8px; padding: 0 1.5rem 1rem; flex-shrink: 0;">
+                <div id="categoryTabs" style="display: flex; gap: 8px; padding: 0 1.5rem 1rem; flex-shrink: 0; overflow-x: auto; scroll-behavior: smooth;">
                     <button class="filter-tab active" onclick="setFilter('all', this)"
-                        style="padding: 6px 16px; border-radius: 20px; border: 2px solid transparent; background: var(--primary-blue); color: white; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s;">All</button>
-                    <button class="filter-tab" onclick="setFilter('books', this)"
-                        style="padding: 6px 16px; border-radius: 20px; border: 2px solid #e2e8f0; background: white; color: var(--text-muted); font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s;"><i
-                            class="fa-solid fa-book" style="margin-right:4px;"></i>Books</button>
-                    <button class="filter-tab" onclick="setFilter('inventory', this)"
-                        style="padding: 6px 16px; border-radius: 20px; border: 2px solid #e2e8f0; background: white; color: var(--text-muted); font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s;"><i
-                            class="fa-solid fa-box-open" style="margin-right:4px;"></i>Inventory</button>
+                        style="padding: 6px 16px; border-radius: 20px; border: 2px solid transparent; background: var(--primary-blue); color: white; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; white-space: nowrap;">All</button>
+                    <!-- Categories will be loaded here -->
                 </div>
                 <div class="browse-grid" id="browseGrid">
                     <!-- Dynamic Content -->
@@ -1375,6 +1382,7 @@
 
         async function init() {
             renderSkeletons();
+            loadTerminalCategories();
             try {
                 const response = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
                 allItems = await response.json();
@@ -1508,21 +1516,12 @@
                     (item.isbn && item.isbn.includes(query)) ||
                     (item.category_name && item.category_name.toLowerCase().includes(query));
 
-                const isItemInventory = item._isInventory == 1; 
-                if (activeFilter === 'books') return matchQuery && !isItemInventory;
-                if (activeFilter === 'inventory') return matchQuery && isItemInventory;
-                return matchQuery;
+                if (activeFilter === 'all') return matchQuery;
+                return matchQuery && item.category_name === activeFilter;
             });
 
-            // If query is empty and we have "all", just show everything
-            const displayed = query ? filtered : (
-                activeFilter === 'books' ? allItems.filter(i => i._isInventory == 0) :
-                activeFilter === 'inventory' ? allItems.filter(i => i._isInventory == 1) :
-                allItems
-            );
-
-            renderBooks(displayed);
-            document.getElementById('bookCount').innerText = `${displayed.length} Items`;
+            renderBooks(filtered);
+            document.getElementById('bookCount').innerText = `${filtered.length} Items`;
         }
 
         function showToast(message, type = 'info') {
@@ -1633,12 +1632,14 @@
 
                 // Priority: If it has an image, always use book layout
                 const hasImage = book.cover_image && book.cover_image.trim() !== '';
-                const isBook = book.item_type && book.item_type.toLowerCase() === 'book';
+                const isBook = (book.item_type && book.item_type.toLowerCase() === 'book') || (book._isInventory == 0);
+
+                const categoryLabel = book.category_name ? `<div class="category-badge-pill">${book.category_name}</div>` : '';
 
                 if (!hasImage && !isBook) {
                     // Generic Inventory item card (No image and not a Book)
                     const typeIcons = { 'Stationary': 'pen-ruler', 'Flowers': 'seedling', 'Accessories': 'plug', 'General': 'box' };
-                    const icon = typeIcons[book.item_type] || 'box';
+                    const icon = typeIcons[book.category_name] || 'box';
                     pill.onclick = () => addToCart(book);
                     pill.innerHTML = `
                         <div class="stock-badge" data-item-id="${book.id}" style="color: ${book.stock_qty > 5 ? 'var(--accent-mint)' : '#ef4444'}">
@@ -1649,8 +1650,10 @@
                         </div>
                         <div class="book-info-compact">
                             <div class="book-name" title="${book.title}">${book.title}</div>
-                            <div class="book-meta" style="color: #16a34a; font-weight: 700;">${book.item_type}</div>
-                            ${book.isbn ? `<div class="book-isbn">SKU: ${book.isbn}</div>` : ''}
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                                ${categoryLabel}
+                                ${book.isbn ? `<div class="book-isbn" style="margin:0;">SKU: ${book.isbn}</div>` : ''}
+                            </div>
                             <div class="book-price-tag">৳${parseFloat(book.sell_price).toFixed(2)}</div>
                         </div>
                     `;
@@ -1674,7 +1677,10 @@
                         </div>
                         <div class="book-info-compact">
                             <div class="book-name" title="${book.title}">${book.title}</div>
-                            <div class="book-meta">${book.author || ''}</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                                ${categoryLabel}
+                                <div class="book-meta" style="margin:0;">${book.author || ''}</div>
+                            </div>
                             ${book.isbn ? `<div class="book-isbn">ISBN: ${book.isbn}</div>` : ''}
                             <div class="book-price-tag">৳${parseFloat(book.sell_price).toFixed(2)}</div>
                         </div>
@@ -2506,6 +2512,36 @@
                 if (results) results.style.display = 'none';
             }
         });
+
+        async function loadTerminalCategories() {
+            try {
+                const res = await fetch('../../api/controllers/SupplierController.php?action=listCategories');
+                const data = await res.json();
+                if (data.success) {
+                    const container = document.getElementById('categoryTabs');
+                    const allBtn = container.querySelector('.filter-tab');
+                    container.innerHTML = '';
+                    container.appendChild(allBtn);
+                    
+                    data.categories.forEach(cat => {
+                        const btn = document.createElement('button');
+                        btn.className = 'filter-tab';
+                        let icon = '';
+                        if(cat.name === 'Books') icon = '<i class="fa-solid fa-book" style="margin-right:4px;"></i>';
+                        else if(cat.name === 'Stationery') icon = '<i class="fa-solid fa-pen-ruler" style="margin-right:4px;"></i>';
+                        else if(cat.name === 'Inventory') icon = '<i class="fa-solid fa-box-open" style="margin-right:4px;"></i>';
+                        else icon = '<i class="fa-solid fa-tag" style="margin-right:4px;"></i>';
+
+                        btn.innerHTML = icon + cat.name;
+                        btn.style = "padding: 6px 16px; border-radius: 20px; border: 2px solid #e2e8f0; background: white; color: var(--text-muted); font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; white-space: nowrap;";
+                        btn.onclick = () => setFilter(cat.name, btn);
+                        container.appendChild(btn);
+                    });
+                }
+            } catch (e) {
+                console.error("Categories loading error", e);
+            }
+        }
 
         window.onload = init;
     </script>
