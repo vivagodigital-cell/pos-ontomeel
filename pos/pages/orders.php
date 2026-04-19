@@ -1,4 +1,6 @@
-<?php require_once '../../api/shared/auth_check.php'; checkAuth(true); renderUserUI(true); ?>
+<?php require_once '../../api/shared/auth_check.php';
+checkAuth(true);
+renderUserUI(true); ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,9 +10,10 @@
     <title>Order Management | Ontomeel POS</title>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
-    
+
     <style>
         :root {
             --primary: var(--primary-blue);
@@ -136,21 +139,25 @@
             border: 1px solid var(--border);
             box-shadow: var(--shadow-md);
             overflow-y: auto;
-            max-height: calc(100vh - 380px); /* Responsive height for better scroll view */
+            max-height: calc(100vh - 380px);
+            /* Responsive height for better scroll view */
             position: relative;
         }
 
         .order-table-container::-webkit-scrollbar {
             width: 6px;
         }
+
         .order-table-container::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 0 24px 24px 0;
         }
+
         .order-table-container::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 10px;
         }
+
         .order-table-container::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
@@ -174,10 +181,15 @@
             top: 0;
             z-index: 20;
         }
-        
+
         /* Ensure first/last th maintains card radius logic if needed */
-        th:first-child { border-top-left-radius: 24px; }
-        th:last-child { border-top-right-radius: 24px; }
+        th:first-child {
+            border-top-left-radius: 24px;
+        }
+
+        th:last-child {
+            border-top-right-radius: 24px;
+        }
 
         td {
             padding: 1.25rem;
@@ -217,9 +229,20 @@
             margin-top: 4px;
         }
 
-        .type-member { background: #dcfce7; color: #16a34a; }
-        .type-guest { background: #fef9c3; color: #a16207; }
-        .type-walkin { background: #f1f5f9; color: #64748b; }
+        .type-member {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .type-guest {
+            background: #fef9c3;
+            color: #a16207;
+        }
+
+        .type-walkin {
+            background: #f1f5f9;
+            color: #64748b;
+        }
 
         .status-badge {
             padding: 6px 12px;
@@ -232,10 +255,25 @@
             gap: 6px;
         }
 
-        .status-paid { background: #dcfce7; color: #16a34a; }
-        .status-pending { background: #fef9c3; color: #a16207; }
-        .status-refunded { background: #ffedd5; color: #ea580c; }
-        .status-cancelled { background: #fee2e2; color: #dc2626; }
+        .status-paid {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-pending {
+            background: #fef9c3;
+            color: #a16207;
+        }
+
+        .status-refunded {
+            background: #ffedd5;
+            color: #ea580c;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #dc2626;
+        }
 
         .order-type-badge {
             font-size: 0.7rem;
@@ -268,15 +306,21 @@
             width: 500px;
             background: white;
             z-index: 1001;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        .drawer-active .drawer-overlay { display: block; opacity: 1; }
-        .drawer-active .drawer-content { right: 0; }
+        .drawer-active .drawer-overlay {
+            display: block;
+            opacity: 1;
+        }
+
+        .drawer-active .drawer-content {
+            right: 0;
+        }
 
         .drawer-header {
             padding: 1.5rem;
@@ -314,8 +358,16 @@
             border-bottom: 1px dashed var(--border);
         }
 
-        .item-meta h4 { margin: 0; font-size: 0.95rem; }
-        .item-meta p { margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted); }
+        .item-meta h4 {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .item-meta p {
+            margin: 4px 0 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
 
         .summary-card {
             background: #f8fafc;
@@ -354,21 +406,44 @@
             transition: 0.2s;
         }
 
-        .btn-print { background: var(--text-main); color: white; }
-        .btn-refund { background: #fff; color: var(--danger); border: 1px solid var(--danger); }
-        .btn-cancel { background: #fee2e2; color: var(--danger); }
-        .btn-duplicate { background: var(--primary-light); color: var(--primary); }
+        .btn-print {
+            background: var(--text-main);
+            color: white;
+        }
+
+        .btn-refund {
+            background: #fff;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .btn-cancel {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .btn-duplicate {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
 
         /* Receipt Styles (keeping old ones for printing) */
         @media print {
-            body * { visibility: hidden; }
-            #receiptToPrint, #receiptToPrint * { visibility: visible; }
-            #receiptToPrint { 
+            body * {
+                visibility: hidden;
+            }
+
+            #receiptToPrint,
+            #receiptToPrint * {
+                visibility: visible;
+            }
+
+            #receiptToPrint {
                 display: block !important;
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 80mm !important; 
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 height: auto !important;
@@ -379,7 +454,8 @@
                 margin: 0mm;
             }
 
-            html, body {
+            html,
+            body {
                 width: 80mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
@@ -392,11 +468,14 @@
                 break-inside: avoid !important;
             }
         }
-        
-        .receipt-hidden { display: none; }
+
+        .receipt-hidden {
+            display: none;
+        }
 
         /* Receipt Styles (optimized for flexible / 80mm thermal printing) */
-        .invoice-receipt, .invoice-receipt * {
+        .invoice-receipt,
+        .invoice-receipt * {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             font-weight: 800 !important;
         }
@@ -404,7 +483,8 @@
         .invoice-receipt {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             width: 100%;
-            max-width: 80mm; /* Standard 80mm printer width */
+            max-width: 80mm;
+            /* Standard 80mm printer width */
             padding: 10px;
             margin: auto;
             color: #000;
@@ -520,10 +600,25 @@
         }
 
         @keyframes fadeInOut {
-            0% { opacity: 0; transform: translate(-50%, 20px); }
-            15% { opacity: 1; transform: translate(-50%, 0); }
-            85% { opacity: 1; transform: translate(-50%, 0); }
-            100% { opacity: 0; transform: translate(-50%, -20px); }
+            0% {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+
+            15% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+
+            85% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
         }
     </style>
 </head>
@@ -538,10 +633,14 @@
                 <p>Manage, filter, and track all sales transactions</p>
             </div>
             <div class="header-tools">
-                <div class="user-profile" style="background: white; padding: 10px 20px; border-radius: 15px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px; height: 50px;">
+                <div class="user-profile"
+                    style="background: white; padding: 10px 20px; border-radius: 15px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px; height: 50px;">
                     <div style="text-align: right;">
-                        <div style="font-size: 0.9rem; font-weight: 800; line-height: 1;" class="user-name-display">Admin</div>
-                        <div style="font-size: 0.7rem; color: var(--success); font-weight: 800; text-transform: uppercase; margin-top: 4px;">Logged In</div>
+                        <div style="font-size: 0.9rem; font-weight: 800; line-height: 1;" class="user-name-display">
+                            Admin</div>
+                        <div
+                            style="font-size: 0.7rem; color: var(--success); font-weight: 800; text-transform: uppercase; margin-top: 4px;">
+                            Logged In</div>
                     </div>
                 </div>
             </div>
@@ -607,19 +706,22 @@
                 <h3 id="drawerInvoiceNo" style="margin: 0; font-weight: 900; color: var(--primary);">#INV-0000</h3>
                 <span id="drawerDate" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;"></span>
             </div>
-            <button onclick="closeDrawer()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            <button onclick="closeDrawer()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
         </div>
         <div class="drawer-body" id="drawerBody">
             <div id="drawerStatusBadge"></div>
-            
+
             <div style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div class="summary-card" style="margin-top: 0;">
                     <label style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">Customer</label>
                     <div id="drawerCustomerName" style="font-weight: 700; margin-top: 4px;"></div>
-                    <div id="drawerCustomerContact" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;"></div>
+                    <div id="drawerCustomerContact"
+                        style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;"></div>
                 </div>
                 <div class="summary-card" style="margin-top: 0;">
-                    <label style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">Staff / Terminal</label>
+                    <label style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">Staff /
+                        Terminal</label>
                     <div id="drawerStaffName" style="font-weight: 700; margin-top: 4px;">Admin</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Terminal Main</div>
                 </div>
@@ -632,20 +734,26 @@
 
             <div class="summary-card">
                 <div class="summary-row"><span>Subtotal</span> <span id="summarySubtotal"></span></div>
-                <div class="summary-row"><span>Discount</span> <span id="summaryDiscount" style="color: var(--success);"></span></div>
+                <div class="summary-row"><span>Discount</span> <span id="summaryDiscount"
+                        style="color: var(--success);"></span></div>
                 <div class="summary-row total-row"><span>Total</span> <span id="summaryTotal"></span></div>
             </div>
 
             <div id="paymentLogs" style="margin-top: 1.5rem;">
-                <h4 style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase;">Payment Log</h4>
-                <div id="drawerPaymentMethod" style="font-size: 0.9rem; font-weight: 600; padding: 10px; background: #f0fdf4; border-radius: 8px;"></div>
+                <h4
+                    style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase;">
+                    Payment Log</h4>
+                <div id="drawerPaymentMethod"
+                    style="font-size: 0.9rem; font-weight: 600; padding: 10px; background: #f0fdf4; border-radius: 8px;">
+                </div>
             </div>
         </div>
         <div class="drawer-footer">
             <button class="action-btn btn-print" onclick="printInvoice()">
                 <i class="fa-solid fa-print"></i> Print
             </button>
-            <button class="action-btn" style="background: #eff6ff; color: var(--primary);" onclick="copyOrderLink(activeOrder.order.invoice_no)">
+            <button class="action-btn" style="background: #eff6ff; color: var(--primary);"
+                onclick="copyOrderLink(activeOrder.order.invoice_no)">
                 <i class="fa-solid fa-link"></i> Copy Link
             </button>
             <button class="action-btn btn-duplicate" id="duplicateBtn" onclick="duplicateOrder()">
@@ -657,7 +765,8 @@
             <button class="action-btn btn-cancel" id="cancelBtn" onclick="orderAction('cancel')">
                 <i class="fa-solid fa-ban"></i> Cancel
             </button>
-            <button class="action-btn btn-refund" id="deleteBtn" onclick="orderAction('delete')" style="border-color: #ef4444; color: #ef4444;">
+            <button class="action-btn btn-refund" id="deleteBtn" onclick="orderAction('delete')"
+                style="border-color: #ef4444; color: #ef4444;">
                 <i class="fa-solid fa-trash-can"></i> Delete
             </button>
         </div>
@@ -680,7 +789,7 @@
             const dateEnd = document.getElementById('dateEnd').value;
 
             const url = `../../api/controllers/TerminalController.php?action=getOrders&search=${search}&status=${status}&dateStart=${dateStart}&dateEnd=${dateEnd}`;
-            
+
             try {
                 const res = await fetch(url);
                 const data = await res.json();
@@ -706,7 +815,7 @@
                 const rawStatus = o.payment_status || 'Paid';
                 const statusStr = rawStatus.toLowerCase();
                 const statusClass = `status-${statusStr}`;
-                
+
                 const statusIcons = {
                     'paid': '<i class="fa-solid fa-circle-check"></i>',
                     'pending': '<i class="fa-solid fa-clock"></i>',
@@ -714,12 +823,12 @@
                     'cancelled': '<i class="fa-solid fa-ban"></i>'
                 };
                 const icon = statusIcons[statusStr] || '';
-                
+
                 return `
                     <tr onclick="openOrderDrawer(${o.id})">
                         <td>
                             <div style="font-weight: 700;">${new Date(o.order_date).toLocaleDateString()}</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">${new Date(o.order_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">${new Date(o.order_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                         </td>
                         <td>
                             <div class="invoice-id">${o.invoice_no}</div>
@@ -752,7 +861,7 @@
             try {
                 const res = await fetch(`../../api/controllers/TerminalController.php?action=getOrderDetails&id=${orderId}`);
                 const data = await res.json();
-                
+
                 if (data.success) {
                     activeOrder = data;
                     const order = data.order;
@@ -763,11 +872,11 @@
                     document.getElementById('drawerCustomerName').innerText = order.member_name || order.guest_name || 'Walk-in Customer';
                     document.getElementById('drawerCustomerContact').innerText = order.member_phone || order.guest_phone || 'No Contact Info';
                     document.getElementById('drawerStaffName').innerText = order.staff_name || 'Admin';
-                    
+
                     document.getElementById('summarySubtotal').innerText = '৳' + parseFloat(order.subtotal || order.total_amount).toFixed(2);
                     document.getElementById('summaryDiscount').innerText = '-৳' + parseFloat(order.discount || 0).toFixed(2);
                     document.getElementById('summaryTotal').innerText = '৳' + parseFloat(order.total_amount).toFixed(2);
-                    
+
                     const statusIcons = {
                         'paid': '<i class="fa-solid fa-circle-check"></i>',
                         'pending': '<i class="fa-solid fa-clock"></i>',
@@ -776,7 +885,7 @@
                     };
                     const icon = statusIcons[order.payment_status.toLowerCase()] || '';
                     document.getElementById('drawerStatusBadge').innerHTML = `<span class="status-badge status-${order.payment_status.toLowerCase()}" style="font-size: 1rem; padding: 10px 20px; border-radius: 12px; width: 100%; justify-content: center; gap: 10px;">${icon} ${order.payment_status}</span>`;
-                    
+
                     document.getElementById('drawerPaymentMethod').innerText = order.payment_method;
 
                     // Items
@@ -801,7 +910,7 @@
                     document.getElementById('deleteBtn').style.display = 'flex'; // Always allow delete for duplicates/errors
 
                     document.body.classList.add('drawer-active');
-                    
+
                     // Prepare receipt for printing (reuse your old formatting here)
                     prepareReceipt(data);
                 }
@@ -863,14 +972,14 @@
             const today = new Date();
             const lastWeek = new Date();
             lastWeek.setDate(today.getDate() - 7);
-            
+
             const formatDate = (date) => {
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const day = String(date.getDate()).padStart(2, '0');
                 return `${year}-${month}-${day}`;
             };
-            
+
             document.getElementById('dateEnd').value = formatDate(today);
             document.getElementById('dateStart').value = formatDate(lastWeek);
         }
@@ -926,8 +1035,8 @@
         function copyOrderLink(invoiceNo) {
             const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.indexOf('/pos/'));
             const link = baseUrl + '/' + invoiceNo;
-            const text = `Thanks for your order. Your Order Number is '${invoiceNo}' to see all details follow the link '${link}'`;
-            
+            const text = `Thanks for your order. Your Order Number is "${invoiceNo}" to see all details follow the link "${link}"`;
+
             navigator.clipboard.writeText(text).then(() => {
                 showToast("Order link copied to clipboard!");
             }).catch(err => {
@@ -949,11 +1058,11 @@
 
         function duplicateOrder() {
             if (!activeOrder || !activeOrder.items) return;
-            
+
             // Format items for terminal cart
             // Terminal expects: { id, title, sell_price, item_type, _isInventory ... }
             // Our items have: { id, book_id, book_title, unit_price, quantity, item_type ... }
-            
+
             const cartToLoad = [];
             activeOrder.items.forEach(item => {
                 const terminalItem = {
@@ -963,10 +1072,10 @@
                     item_type: item.item_type || 'Book',
                     _isInventory: item.item_type === 'Book' ? 0 : 1
                 };
-                
+
                 // Add multiple times based on quantity
-                for(let i=0; i<parseInt(item.quantity); i++) {
-                    cartToLoad.push({...terminalItem});
+                for (let i = 0; i < parseInt(item.quantity); i++) {
+                    cartToLoad.push({ ...terminalItem });
                 }
             });
 
@@ -975,7 +1084,7 @@
                 memberId: activeOrder.order.member_id,
                 memberName: activeOrder.order.member_name
             }));
-            
+
             window.location.href = 'terminal.php';
         }
 
@@ -1076,4 +1185,5 @@
         };
     </script>
 </body>
+
 </html>
