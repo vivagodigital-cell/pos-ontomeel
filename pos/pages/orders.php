@@ -501,6 +501,30 @@
             border-top: 1px dotted #ccc;
             padding-top: 15px;
         }
+
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            display: none;
+            animation: fadeInOut 2.5s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, 20px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
     </style>
 </head>
 
@@ -621,6 +645,9 @@
             <button class="action-btn btn-print" onclick="printInvoice()">
                 <i class="fa-solid fa-print"></i> Print
             </button>
+            <button class="action-btn" style="background: #eff6ff; color: var(--primary);" onclick="copyOrderLink(activeOrder.order.invoice_no)">
+                <i class="fa-solid fa-link"></i> Copy Link
+            </button>
             <button class="action-btn btn-duplicate" id="duplicateBtn" onclick="duplicateOrder()">
                 <i class="fa-solid fa-copy"></i> Reorder
             </button>
@@ -638,6 +665,9 @@
 
     <!-- Hidden Printable Receipt -->
     <div id="receiptToPrint" class="receipt-hidden"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast"></div>
 
     <script>
         let currentOrders = [];
@@ -691,7 +721,12 @@
                             <div style="font-weight: 700;">${new Date(o.order_date).toLocaleDateString()}</div>
                             <div style="font-size: 0.7rem; color: var(--text-muted);">${new Date(o.order_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                         </td>
-                        <td class="invoice-id">${o.invoice_no}</td>
+                        <td>
+                            <div class="invoice-id">${o.invoice_no}</div>
+                            <button onclick="event.stopPropagation(); copyOrderLink('${o.invoice_no}')" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:0.75rem; padding:0; margin-top:4px; display:flex; align-items:center; gap:4px;">
+                                <i class="fa-solid fa-copy"></i> Copy Link
+                            </button>
+                        </td>
                         <td>
                             <div class="customer-info">
                                 <span class="customer-name">${o.member_name || o.guest_name || 'Walk-in Customer'}</span>
@@ -877,6 +912,39 @@
 
         function printInvoice() {
             window.print();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2500);
+        }
+
+        function copyOrderLink(invoiceNo) {
+            const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.indexOf('/pos/'));
+            const link = baseUrl + '/' + invoiceNo;
+            const text = `Thanks for your order. Your Order Number is '${invoiceNo}' to see all details follow the link '${link}'`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Order link copied to clipboard!");
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                // Fallback for older browsers or non-secure contexts
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast("Order link copied to clipboard!");
+                } catch (err) {
+                    alert("Failed to copy link. Please copy it manually.");
+                }
+                document.body.removeChild(textArea);
+            });
         }
 
         function duplicateOrder() {

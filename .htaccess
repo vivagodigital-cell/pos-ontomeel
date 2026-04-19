@@ -9,6 +9,12 @@ AddDefaultCharset UTF-8
 # Prevent directory listing
 Options -Indexes
 
+# Rewrite Engine
+RewriteEngine On
+
+# Route OTM-YYYYMMDD-XXXX to view_order.php
+RewriteRule ^(OTM-[0-9]{8}-[A-Z0-9]{4})$ pos/pages/view_order.php?invoice=$1 [L,NC,QSA]
+
 # Cache control for assets
 <FilesMatch "\.(css|js|webp|png|jpg|jpeg|svg|ico)$">
     Header set Cache-Control "max-age=604800, public"
