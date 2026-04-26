@@ -8,6 +8,7 @@
     <title>General Inventory | Ontomeel POS System</title>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     
@@ -619,6 +620,44 @@
         .bk-switch input:checked + .bk-slider { background: #1e293b; }
         .bk-switch input:checked + .bk-slider:before { transform: translateX(20px); }
         .book-only.hidden { display: none !important; }
+        @media print {
+            body * { visibility: hidden; }
+            #barcodePrintSection, #barcodePrintSection * { visibility: visible; }
+            #barcodePrintSection {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 35mm !important;
+                height: 25mm !important;
+                padding: 1mm !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: white !important;
+                color: black !important;
+            }
+        }
+        #barcodePrintSection { display: none; }
+        .barcode-label {
+            width: 35mm;
+            height: 25mm;
+            padding: 1mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+            background: white;
+            color: black;
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+        }
+        .barcode-brand { font-size: 8px; font-weight: 900; text-transform: uppercase; margin-bottom: 1px; }
+        .barcode-name { font-size: 7px; font-weight: 700; line-height: 1; max-height: 16px; overflow: hidden; margin-bottom: 1px; }
+        .barcode-svg { width: 100% !important; height: auto !important; max-height: 10mm; }
+        .barcode-price { font-size: 9px; font-weight: 900; margin-top: 1px; }
+
         @media (max-width: 640px) {
             .bk-grid-2, .bk-grid-3, .bk-grid-4 { grid-template-columns: 1fr; }
             .bk-span-2 { grid-column: span 1; }
@@ -912,6 +951,15 @@
 
     <div id="invToast"></div>
 
+    <div id="barcodePrintSection">
+        <div class="barcode-label">
+            <div class="barcode-brand">Ontomeel</div>
+            <div class="barcode-name" id="printName">Item Name</div>
+            <svg id="barcodeCanvas" class="barcode-svg"></svg>
+            <div class="barcode-price" id="printPrice">৳0</div>
+        </div>
+    </div>
+
     <script>
         let allItems = [];
         let activeTypeFilter = 'all';
@@ -1016,6 +1064,9 @@
                         <div class="price-tag">৳${parseFloat(item.sell_price).toFixed(0)}</div>
                         <div style="display:flex; gap:5px;">
                             <button class="card-btn stock-btn" onclick="openRestock(${item.id}, '${item.source_table}')" title="Restock"><i class="fa-solid fa-plus"></i></button>
+                            <button class="card-btn" style="background:#f1f5f9; color:#475569;" onclick='printBarcode(${JSON.stringify(item).replace(/'/g, "&apos;")})' title="Print Barcode">
+                                <i class="fa-solid fa-barcode"></i>
+                            </button>
                         </div>
                     </div>
                     <div class="card-actions">
@@ -1220,6 +1271,20 @@
                 if (data.success) { toast(`+${qty} Stock Added`, 'success'); closeRestock(); fetchInventory(); }
                 else toast('Error: ' + data.error, 'error');
             } catch { toast('Network Error', 'error'); }
+        }
+
+                function printBarcode(item) {
+            const barcode = item.isbn || item.barcode;
+            if (!barcode) {
+                toast('No Barcode/ISBN available for this item', 'error');
+                return;
+            }
+            document.getElementById('printName').innerText = item.title;
+            document.getElementById('printPrice').innerText = '৳' + parseFloat(item.sell_price).toFixed(0);
+            JsBarcode("#barcodeCanvas", barcode, {
+                format: "CODE128", width: 2, height: 40, displayValue: true, fontSize: 14, margin: 0
+            });
+            window.print();
         }
 
         function toggleBookFields() {

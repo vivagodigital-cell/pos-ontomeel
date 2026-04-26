@@ -66,6 +66,11 @@ try {
         $qty = intval($data['qty'] ?? 0);
         $cost = floatval($data['cost'] ?? 0);
         $sale = floatval($data['sale'] ?? 0);
+        $isbn = trim($data['isbn'] ?? '');
+
+        if (empty($isbn)) {
+            $isbn = date('ymd') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        }
 
         if (!$supplierId || empty($title) || $qty <= 0)
             throw new Exception("Required data missing.");
@@ -92,8 +97,8 @@ try {
             }
             else {
                 // Insert new book into books table (item_type will default to 'Book' or can be set)
-                $stmt = $pdo->prepare("INSERT INTO books (title, author, stock_qty, purchase_price, sell_price, supplier_name, item_type) VALUES (?, ?, ?, ?, ?, ?, 'Book')");
-                $stmt->execute([$title, $author, $qty, $cost, $sale, $supplier['name']]);
+                $stmt = $pdo->prepare("INSERT INTO books (title, author, isbn, stock_qty, purchase_price, sell_price, supplier_name, item_type) VALUES (?, ?, ?, ?, ?, ?, ?, 'Book')");
+                $stmt->execute([$title, $author, $isbn, $qty, $cost, $sale, $supplier['name']]);
             }
 
             // 3. Update Supplier Due
@@ -172,10 +177,14 @@ try {
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        // Insert default categories if none exist
-        $count = $pdo->query("SELECT COUNT(*) FROM item_categories")->fetchColumn();
+        // Insert default categories if none exist in main categories table
+        $count = $pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn();
         if ($count == 0) {
-            $pdo->exec("INSERT INTO item_categories (name) VALUES ('Books'), ('Stationery'), ('Furniture'), ('General')");
+            $pdo->exec("INSERT INTO categories (name, slug) VALUES 
+                ('Books', 'books'), 
+                ('Stationery', 'stationery'), 
+                ('Furniture', 'furniture'), 
+                ('General', 'general')");
         }
 
         // Generic inventory items table (non-books)
@@ -206,12 +215,15 @@ try {
         $name = trim($data['name'] ?? '');
         if (empty($name)) throw new Exception("Category name is required.");
 
+        // Generate slug from name
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name)));
+
         if ($id) {
-            $stmt = $pdo->prepare("UPDATE categories SET name = ? WHERE id = ?");
-            $stmt->execute([$name, $id]);
+            $stmt = $pdo->prepare("UPDATE categories SET name = ?, slug = ? WHERE id = ?");
+            $stmt->execute([$name, $slug, $id]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO categories (name) VALUES (?)");
-            $stmt->execute([$name]);
+            $stmt = $pdo->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
+            $stmt->execute([$name, $slug]);
         }
         echo json_encode(['success' => true]);
     }
@@ -271,6 +283,11 @@ try {
             foreach ($items as $item) {
                 $p_name = trim($item['name'] ?? '');
                 $p_isbn = trim($item['isbn'] ?? '');
+                
+                // Auto-generate SKU/Barcode if empty
+                if (empty($p_isbn)) {
+                    $p_isbn = date('ymd') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                }
                 $p_cost = floatval($item['unit_cost'] ?? 0);
                 $p_qty = intval($item['quantity'] ?? 1);
                 $p_total = $p_cost * $p_qty;
@@ -283,12 +300,14 @@ try {
 
                 // B. Sync with inventory management (Preventing Duplicates)
                 // First, find or create the category ID for consistent migration
-                $getCat = $pdo->prepare("SELECT id FROM item_categories WHERE name = ?");
+                // Use the main 'categories' table to avoid foreign key conflicts with 'books' table
+                $getCat = $pdo->prepare("SELECT id FROM categories WHERE name = ?");
                 $getCat->execute([$category]);
                 $category_id = $getCat->fetchColumn();
                 if (!$category_id) {
-                    $insCat = $pdo->prepare("INSERT INTO item_categories (name) VALUES (?)");
-                    $insCat->execute([$category]);
+                    $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $category)));
+                    $insCat = $pdo->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
+                    $insCat->execute([$category, $slug]);
                     $category_id = $pdo->lastInsertId();
                 }
 

@@ -79,6 +79,9 @@ try {
         $publish_year  = trim($data['publish_year'] ?? '');
         $edition       = trim($data['edition'] ?? '');
         $isbn          = trim($data['isbn'] ?? '');
+        if (empty($isbn)) {
+            $isbn = date('ymd') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        }
         $supplier_name = trim($data['supplier_name'] ?? '');
 
         $format        = $data['format'] ?? '';
@@ -113,7 +116,7 @@ try {
                 // For inventory items, ensure we have an ID for item_type
                 $resolvedType = $category_id;
                 if (!$resolvedType && !is_numeric($type)) {
-                    $getCat = $pdo->prepare("SELECT id FROM item_categories WHERE name = ?");
+                    $getCat = $pdo->prepare("SELECT id FROM categories WHERE name = ?");
                     $getCat->execute([$type]);
                     $resolvedType = $getCat->fetchColumn();
                 }
@@ -126,7 +129,7 @@ try {
             if ($source_table === 'inventory_items') {
                 $resolvedType = $category_id;
                 if (!$resolvedType && !is_numeric($type)) {
-                    $getCat = $pdo->prepare("SELECT id FROM item_categories WHERE name = ?");
+                    $getCat = $pdo->prepare("SELECT id FROM categories WHERE name = ?");
                     $getCat->execute([$type]);
                     $resolvedType = $getCat->fetchColumn();
                 }

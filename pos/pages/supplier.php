@@ -395,6 +395,10 @@
                     <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">AUTHOR</label>
                     <input type="text" id="collAuthor" class="checkout-input">
                 </div>
+                <div class="input-group" style="grid-column: span 2;">
+                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">ISBN / BARCODE</label>
+                    <input type="text" id="collIsbn" class="checkout-input" placeholder="Leave empty to auto-generate">
+                </div>
                 <div class="input-group">
                     <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">QUANTITY *</label>
                     <input type="number" id="collQty" class="checkout-input">
@@ -458,7 +462,7 @@
                             <thead>
                                 <tr style="text-align: left; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">
                                     <th style="padding: 10px; width: 35%;">Item Name / Title</th>
-                                    <th style="padding: 10px; width: 25%;">ISBN (For Books)</th>
+                                    <th style="padding: 10px; width: 25%;">ISBN/SKU/Barcode</th>
                                     <th style="padding: 10px; width: 15%;">Unit Cost</th>
                                     <th style="padding: 10px; width: 15%;">Qty</th>
                                     <th style="padding: 10px; width: 10%;"></th>
@@ -790,6 +794,7 @@
                 supplierId: activeSupplierId,
                 title: document.getElementById('collTitle').value,
                 author: document.getElementById('collAuthor').value,
+                isbn: document.getElementById('collIsbn').value,
                 qty: document.getElementById('collQty').value,
                 cost: document.getElementById('collCost').value,
                 sale: document.getElementById('collSale').value
@@ -935,7 +940,7 @@
             const row = `
                 <tr id="${rowId}">
                     <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-name" placeholder="Item/Book Name" style="padding: 8px 12px; font-size: 0.85rem;"></td>
-                    <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-isbn" placeholder="ISBN (Optional)" style="padding: 8px 12px; font-size: 0.85rem;"></td>
+                    <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-isbn" placeholder="123456" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-cost" onkeyup="calculatePurchaseTotal()" placeholder="0.00" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-qty" onkeyup="calculatePurchaseTotal()" value="1" min="1" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px; text-align: center;"><button type="button" onclick="removePurchaseItemRow('${rowId}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button></td>
