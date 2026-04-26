@@ -620,25 +620,49 @@
         .bk-switch input:checked + .bk-slider { background: #1e293b; }
         .bk-switch input:checked + .bk-slider:before { transform: translateX(20px); }
         .book-only.hidden { display: none !important; }
+        
+        
+        
         @media print {
-            body * { visibility: hidden; }
-            #barcodePrintSection, #barcodePrintSection * { visibility: visible; }
+            body > *:not(#barcodePrintSection) { 
+                display: none !important; 
+            }
+            
             #barcodePrintSection {
-                position: absolute !important;
+                display: flex !important;
+                visibility: visible !important;
+                position: fixed !important;
                 left: 0 !important;
                 top: 0 !important;
                 width: 35mm !important;
                 height: 25mm !important;
-                padding: 1mm !important;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 background: white !important;
-                color: black !important;
+                justify-content: center !important;
+                align-items: center !important;
+            }
+            
+            #barcodePrintSection * { 
+                visibility: visible !important; 
+            }
+
+            @page {
+                size: 35mm 25mm;
+                margin: 0;
+            }
+            
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 35mm !important;
+                height: 25mm !important;
+                overflow: hidden !important;
             }
         }
+        
         #barcodePrintSection { display: none; }
+
         .barcode-label {
             width: 35mm;
             height: 25mm;
