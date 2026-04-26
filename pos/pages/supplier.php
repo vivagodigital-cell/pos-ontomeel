@@ -207,7 +207,7 @@
             <div class="data-card">
                 <div class="card-header">
                     <div style="font-weight: 800; font-size: 1.1rem;">Registered Suppliers</div>
-                    <button class="nav-link active" onclick="openModal('supplierModal')"
+                    <button class="nav-link active" onclick="openSupplierModal()"
                         style="padding: 10px 20px; font-size: 0.85rem;">
                         <i class="fa-solid fa-plus"></i> ADD SUPPLIER
                     </button>
@@ -261,7 +261,7 @@
                             style="padding: 10px 20px; font-size: 0.85rem; background: #f1f5f9; color: var(--text-muted); border: none;">
                             <i class="fa-solid fa-tags"></i> CATEGORIES
                         </button>
-                        <button class="nav-link active" onclick="openModal('purchaseRecordModal')"
+                        <button class="nav-link active" onclick="openPurchaseModal()"
                             style="padding: 10px 20px; font-size: 0.85rem;">
                             <i class="fa-solid fa-plus"></i> ADD PURCHASE
                         </button>
@@ -319,11 +319,12 @@
         <div class="modal-content">
             <div
                 style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
-                <h2 style="margin:0; font-size:1.2rem;">Add New Supplier</h2>
+                <h2 id="supModalTitle" style="margin:0; font-size:1.2rem;">Add New Supplier</h2>
                 <button onclick="closeModal('supplierModal')"
                     style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
             </div>
             <div style="padding: 2rem;">
+                <input type="hidden" id="supId">
                 <div class="input-group">
                     <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">SUPPLIER NAME</label>
                     <input type="text" id="supName" class="checkout-input">
@@ -425,12 +426,13 @@
         <div class="modal-content" style="width: 850px; max-width: 95%;">
             <div
                 style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin:0; font-size:1.35rem; font-weight: 800; color: var(--text-header);"><i class="fa-solid fa-cart-shopping"></i> Purchase Record</h2>
+                <h2 id="purModalTitle" style="margin:0; font-size:1.35rem; font-weight: 800; color: var(--text-header);"><i class="fa-solid fa-cart-shopping"></i> Purchase Record</h2>
                 <button onclick="closeModal('purchaseRecordModal')"
                     style="border:none; background: #f1f5f9; cursor:pointer; font-size:1.2rem; padding: 8px 12px; border-radius: 12px; color: #94a3b8;">&times;</button>
             </div>
             
             <div style="padding: 2rem;">
+                <input type="hidden" id="purId">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
                     <div class="input-group">
                         <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Supplier Name *</label>
@@ -504,7 +506,7 @@
 
                 <div style="margin-top: 2rem; display: flex; gap: 15px;">
                     <button type="button" onclick="closeModal('purchaseRecordModal')" class="nav-link" style="flex: 1; justify-content: center; background: #f1f5f9; color: var(--text-muted); border: none;">Discard</button>
-                    <button type="button" onclick="savePurchaseRecord()" class="nav-link active" style="flex: 2; justify-content: center; padding: 12px; font-weight: 800;">
+                    <button type="button" onclick="savePurchaseRecord()" id="btnSavePurchase" class="nav-link active" style="flex: 2; justify-content: center; padding: 12px; font-weight: 800;">
                         <i class="fa-solid fa-save"></i> Save Purchase Record
                     </button>
                 </div>
@@ -727,6 +729,16 @@
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
         let activeSupplierId = null;
+        function openSupplierModal() {
+            document.getElementById('supId').value = '';
+            document.getElementById('supName').value = '';
+            document.getElementById('supContact').value = '';
+            document.getElementById('supEmail').value = '';
+            document.getElementById('supAddress').value = '';
+            document.getElementById('supModalTitle').innerText = "Add New Supplier";
+            openModal('supplierModal');
+        }
+
         async function fetchSuppliers() {
             const res = await fetch('../../api/controllers/SupplierController.php?action=listSuppliers');
             const data = await res.json();
@@ -740,6 +752,14 @@
                         </td>
                         <td style="color:#ef4444; font-weight:700;">৳${s.total_due}</td>
                         <td style="text-align:right; white-space:nowrap;">
+                            <button onclick='editSupplier(${JSON.stringify(s).replace(/'/g, "&apos;")})' 
+                                style="background:none; border:none; color:var(--primary-blue); cursor:pointer; font-size:1.1rem; margin-right:12px;" title="Edit Supplier">
+                                <i class="fa-solid fa-edit"></i>
+                            </button>
+                            <button onclick="deleteSupplier(${s.id})" 
+                                style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.1rem; margin-right:20px;" title="Delete Supplier">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
                             <button onclick="openCollectModal('${s.id}', '${s.name.replace(/'/g, "\\'")}')" 
                                 style="padding: 8px 14px; font-size: 0.7rem; border:none; border-radius:10px; background:var(--primary-blue); color:white; font-weight:800; cursor:pointer; margin-right:5px; transition:0.3s;">
                                 <i class="fa-solid fa-box-archive"></i> COLLECT
@@ -751,6 +771,26 @@
                         </td>
                     </tr>
                 `).join('');
+            }
+        }
+
+        function editSupplier(s) {
+            document.getElementById('supId').value = s.id;
+            document.getElementById('supName').value = s.name;
+            document.getElementById('supContact').value = s.contact || '';
+            document.getElementById('supEmail').value = s.email || '';
+            document.getElementById('supAddress').value = s.address || '';
+            document.getElementById('supModalTitle').innerText = "Edit Supplier: " + s.name;
+            openModal('supplierModal');
+        }
+
+        async function deleteSupplier(id) {
+            if (!confirm("Are you sure you want to delete this supplier? This action cannot be undone.")) return;
+            const res = await fetch(`../../api/controllers/SupplierController.php?action=deleteSupplier&id=${id}`);
+            const data = await res.json();
+            if (data.success) {
+                showToast("Supplier deleted successfully");
+                fetchSuppliers();
             }
         }
 
@@ -826,11 +866,15 @@
             const res = await fetch('../../api/controllers/SupplierController.php?action=getSupplierBooks');
             const data = await res.json();
             if (data.success) {
+                if (data.data.length === 0) {
+                    document.getElementById('procurementTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">No procurement history found.</td></tr>';
+                    return;
+                }
                 document.getElementById('procurementTableBody').innerHTML = data.data.map(d => `
                     <tr>
                         <td style="font-weight:700;">${d.supplier_name}</td>
                         <td>${d.book_count}</td>
-                        <td style="color:var(--primary-blue); font-weight:700;">৳${parseFloat(d.inventory_value).toLocaleString()}</td>
+                        <td style="color:var(--primary-blue); font-weight:700;">৳${(parseFloat(d.inventory_value) || 0).toLocaleString()}</td>
                         <td style="text-align:right;">
                             <button class="nav-link active" onclick="viewSupplierBooks('${d.supplier_name.replace(/'/g, "\\'")}')" style="padding: 6px 12px; font-size: 0.75rem; display:inline-flex;">
                                 <i class="fa-solid fa-eye"></i> VIEW BOOKS
@@ -856,10 +900,10 @@
                     document.getElementById('supplierDetailTableBody').innerHTML = data.books.map(b => `
                         <tr>
                             <td style="font-weight:700;">${b.title}</td>
-                            <td>${b.author}</td>
-                            <td>৳${b.purchase_price}</td>
-                            <td>${b.stock_qty}</td>
-                            <td style="font-weight:700; color:var(--primary-blue);">৳${parseFloat(b.total_value).toLocaleString()}</td>
+                            <td>${b.author || '<span style="color:#cbd5e1">Unknown</span>'}</td>
+                            <td>৳${parseFloat(b.purchase_price || 0).toLocaleString()}</td>
+                            <td>${b.stock_qty || 0}</td>
+                            <td style="font-weight:700; color:var(--primary-blue);">৳${(parseFloat(b.total_value) || 0).toLocaleString()}</td>
                         </tr>
                     `).join('');
                 } else {
@@ -903,9 +947,12 @@
                                 <td style="color:#10b981;">৳${parseFloat(r.paid_amount).toLocaleString()}</td>
                                 <td><span class="status-badge ${statusClass}">${r.payment_status}</span></td>
                                 <td>${r.supplier_name || 'N/A'}</td>
-                                <td style="text-align:right;">
-                                    <button class="btn-fund" style="background:#f1f5f9; color:var(--text-header); padding:4px 8px; font-size:0.7rem; border:none;" onclick="alert('Item details coming soon in next update!')">
-                                        <i class="fa-solid fa-list-ul"></i> ITEMS
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <button class="btn-fund" style="background:#f1f5f9; color:var(--text-header); padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; cursor:pointer;" onclick="editPurchase(${r.id})">
+                                        <i class="fa-solid fa-edit"></i>
+                                    </button>
+                                    <button class="btn-fund" style="background:#fff1f2; color:#ef4444; padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; cursor:pointer; margin-left:5px;" onclick="deletePurchase(${r.id})">
+                                        <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -988,6 +1035,7 @@
             }
 
             const payload = {
+                id: document.getElementById('purId').value || null,
                 supplier_id: document.getElementById('purSupplier').value,
                 category: document.getElementById('purCategory').value,
                 purchase_date: document.getElementById('purDate').value,
@@ -1003,16 +1051,79 @@
             });
             const data = await res.json();
             if (data.success) {
-                showToast("Purchase record saved successfully!");
+                showToast(payload.id ? "Purchase record updated!" : "Purchase record saved!");
                 closeModal('purchaseRecordModal');
                 fetchPurchaseRecords();
+                fetchSuppliedBooks();
+                fetchSuppliers(); // Refresh balance
             } else {
                 alert(data.error || "Failed to save record.");
             }
         }
 
+        function openPurchaseModal() {
+            document.getElementById('purId').value = '';
+            document.getElementById('purSupplier').value = '';
+            document.getElementById('purCategory').value = 'General';
+            document.getElementById('purDate').valueAsDate = new Date();
+            document.getElementById('purPayMethod').value = 'Cash';
+            document.getElementById('purPaid').value = '0';
+            document.getElementById('purNote').value = '';
+            document.getElementById('purchaseItemsBody').innerHTML = '';
+            document.getElementById('purModalTitle').innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Purchase Record';
+            document.getElementById('btnSavePurchase').innerHTML = '<i class="fa-solid fa-save"></i> Save Purchase Record';
+            addPurchaseItemRow();
+            calculatePurchaseTotal();
+            openModal('purchaseRecordModal');
+        }
+
+        async function editPurchase(id) {
+            const res = await fetch(`../../api/controllers/SupplierController.php?action=getPurchaseDetails&id=${id}`);
+            const data = await res.json();
+            if (data.success) {
+                const p = data.purchase;
+                const items = data.items;
+
+                document.getElementById('purId').value = p.id;
+                document.getElementById('purSupplier').value = p.supplier_id || '';
+                document.getElementById('purCategory').value = p.category;
+                document.getElementById('purDate').value = p.purchase_date;
+                document.getElementById('purPayMethod').value = p.payment_method;
+                document.getElementById('purPaid').value = p.paid_amount;
+                document.getElementById('purNote').value = p.note || '';
+
+                document.getElementById('purchaseItemsBody').innerHTML = '';
+                items.forEach(item => {
+                    addPurchaseItemRow();
+                    const lastRow = document.querySelector('#purchaseItemsBody tr:last-child');
+                    lastRow.querySelector('.pur-item-name').value = item.item_name;
+                    lastRow.querySelector('.pur-item-isbn').value = item.isbn || '';
+                    lastRow.querySelector('.pur-item-cost').value = item.unit_cost;
+                    lastRow.querySelector('.pur-item-qty').value = item.quantity;
+                });
+
+                document.getElementById('purModalTitle').innerHTML = '<i class="fa-solid fa-edit"></i> Edit Purchase Record';
+                document.getElementById('btnSavePurchase').innerHTML = '<i class="fa-solid fa-save"></i> Update Purchase Record';
+                
+                calculatePurchaseTotal();
+                openModal('purchaseRecordModal');
+            }
+        }
+
+        async function deletePurchase(id) {
+            if (!confirm("Are you sure? This will reverse the stock quantity added by this purchase and adjust the supplier balance.")) return;
+            const res = await fetch(`../../api/controllers/SupplierController.php?action=deletePurchase&id=${id}`);
+            const data = await res.json();
+            if (data.success) {
+                showToast("Purchase record deleted!");
+                fetchPurchaseRecords();
+                fetchSuppliers(); // Balance might have changed
+            }
+        }
+
         async function saveSupplier() {
             const payload = {
+                id: document.getElementById('supId').value || null,
                 name: document.getElementById('supName').value,
                 contact: document.getElementById('supContact').value,
                 email: document.getElementById('supEmail').value,
@@ -1022,8 +1133,16 @@
                 method: 'POST', body: JSON.stringify(payload)
             });
             if ((await res.json()).success) {
-                showToast("Supplier saved successfully!");
+                showToast(payload.id ? "Supplier updated!" : "Supplier saved!");
                 closeModal('supplierModal');
+                // Reset form
+                document.getElementById('supId').value = '';
+                document.getElementById('supName').value = '';
+                document.getElementById('supContact').value = '';
+                document.getElementById('supEmail').value = '';
+                document.getElementById('supAddress').value = '';
+                document.getElementById('supModalTitle').innerText = "Add New Supplier";
+                
                 // Refresh all tabs
                 fetchSuppliers();
                 fetchSuppliedBooks();

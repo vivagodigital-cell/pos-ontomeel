@@ -13,6 +13,7 @@ try {
     }
     elseif ($action === 'saveSupplier') {
         $data = json_decode(file_get_contents('php://input'), true);
+        $id = $data['id'] ?? null;
         $name = $data['name'] ?? '';
         $contact = $data['contact'] ?? '';
         $email = $data['email'] ?? '';
@@ -21,8 +22,20 @@ try {
         if (empty($name))
             throw new Exception("Supplier name is required.");
 
-        $stmt = $pdo->prepare("INSERT INTO suppliers (name, contact, email, address) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$name, $contact, $email, $address]);
+        if ($id) {
+            $stmt = $pdo->prepare("UPDATE suppliers SET name = ?, contact = ?, email = ?, address = ? WHERE id = ?");
+            $stmt->execute([$name, $contact, $email, $address, $id]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO suppliers (name, contact, email, address) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$name, $contact, $email, $address]);
+        }
+        echo json_encode(['success' => true]);
+    }
+    elseif ($action === 'deleteSupplier') {
+        $id = $_GET['id'] ?? null;
+        if (!$id) throw new Exception("ID required.");
+        $stmt = $pdo->prepare("DELETE FROM suppliers WHERE id = ?");
+        $stmt->execute([$id]);
         echo json_encode(['success' => true]);
     }
     elseif ($action === 'listExternalBorrows') {
@@ -45,8 +58,22 @@ try {
         echo json_encode(['success' => true]);
     }
     elseif ($action === 'getSupplierBooks') {
-        // Books grouped by supplier name from the books table
-        $stmt = $pdo->query("SELECT supplier_name, COUNT(*) as book_count, SUM(purchase_price * stock_qty) as inventory_value FROM books WHERE supplier_name IS NOT NULL AND supplier_name != '' GROUP BY supplier_name");
+        // Combine books and general inventory items for a complete procurement history
+        $sql = "SELECT supplier_name, SUM(item_count) as book_count, SUM(inventory_value) as inventory_value
+                FROM (
+                    SELECT supplier_name, COUNT(*) as item_count, SUM(COALESCE(purchase_price, 0) * COALESCE(stock_qty, 0)) as inventory_value 
+                    FROM books 
+                    WHERE supplier_name IS NOT NULL AND supplier_name != '' 
+                    GROUP BY supplier_name
+                    UNION ALL
+                    SELECT supplier_name, COUNT(*) as item_count, SUM(COALESCE(unit_cost, 0) * COALESCE(quantity, 0)) as inventory_value 
+                    FROM inventory_items 
+                    WHERE supplier_name IS NOT NULL AND supplier_name != '' 
+                    GROUP BY supplier_name
+                ) as combined
+                GROUP BY supplier_name 
+                ORDER BY supplier_name ASC";
+        $stmt = $pdo->query($sql);
         echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]);
     }
     elseif ($action === 'getBooksBySupplier') {
@@ -54,8 +81,19 @@ try {
         if (empty($name))
             throw new Exception("Supplier name is required.");
 
-        $stmt = $pdo->prepare("SELECT title, author, purchase_price, stock_qty, (purchase_price * stock_qty) as total_value FROM books WHERE supplier_name = ? ORDER BY title ASC");
-        $stmt->execute([$name]);
+        $sql = "SELECT title, author, purchase_price, stock_qty, total_value FROM (
+                    SELECT title, author, COALESCE(purchase_price, 0) as purchase_price, COALESCE(stock_qty, 0) as stock_qty, (COALESCE(purchase_price, 0) * COALESCE(stock_qty, 0)) as total_value 
+                    FROM books 
+                    WHERE supplier_name = ?
+                    UNION ALL
+                    SELECT item_name as title, '' as author, COALESCE(unit_cost, 0) as purchase_price, COALESCE(quantity, 0) as stock_qty, (COALESCE(unit_cost, 0) * COALESCE(quantity, 0)) as total_value 
+                    FROM inventory_items 
+                    WHERE supplier_name = ?
+                ) as combined 
+                ORDER BY title ASC";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$name, $name]);
         echo json_encode(['success' => true, 'books' => $stmt->fetchAll()]);
     }
     elseif ($action === 'receiveInventory') {
@@ -238,6 +276,7 @@ try {
     elseif ($action === 'savePurchaseRecord') {
         $data = json_decode(file_get_contents('php://input'), true);
 
+        $id = $data['id'] ?? null;
         $supplierIdRaw = $data['supplier_id'] ?? null;
         $supplierId = ($supplierIdRaw && $supplierIdRaw !== '') ? intval($supplierIdRaw) : null;
         $category = $data['category'] ?? 'General';
@@ -252,6 +291,34 @@ try {
 
         $pdo->beginTransaction();
         try {
+            // 0. If Editing, reverse old stock and due
+            if ($id) {
+                $stmt = $pdo->prepare("SELECT * FROM purchases WHERE id = ?");
+                $stmt->execute([$id]);
+                $oldP = $stmt->fetch();
+                if ($oldP) {
+                    // Reverse Supplier Due
+                    if ($oldP['supplier_id']) {
+                        $oldDue = floatval($oldP['total_amount']) - floatval($oldP['paid_amount']);
+                        if ($oldDue > 0) {
+                            $pdo->prepare("UPDATE suppliers SET total_due = GREATEST(0, total_due - ?) WHERE id = ?")->execute([$oldDue, $oldP['supplier_id']]);
+                        }
+                    }
+                    // Reverse Stock
+                    $stmt = $pdo->prepare("SELECT * FROM purchase_items WHERE purchase_id = ?");
+                    $stmt->execute([$id]);
+                    $oldItems = $stmt->fetchAll();
+                    foreach ($oldItems as $oi) {
+                        $pdo->prepare("UPDATE books SET stock_qty = GREATEST(0, stock_qty - ?) WHERE (isbn = ? AND isbn != '') OR (title = ? AND (isbn IS NULL OR isbn = ''))")
+                            ->execute([$oi['quantity'], $oi['isbn'], $oi['item_name']]);
+                        $pdo->prepare("UPDATE inventory_items SET quantity = GREATEST(0, quantity - ?) WHERE item_name = ?")
+                            ->execute([$oi['quantity'], $oi['item_name']]);
+                    }
+                    // Clear old items
+                    $pdo->prepare("DELETE FROM purchase_items WHERE purchase_id = ?")->execute([$id]);
+                }
+            }
+
             // 1. Calculate Grand Total
             $grandTotal = 0;
             foreach ($items as $item) {
@@ -272,12 +339,18 @@ try {
                 $supplierName = $row ? $row['name'] : null;
             }
 
-            // 4. Insert Master Purchase Record
-            $stmt = $pdo->prepare("INSERT INTO purchases 
-                (supplier_id, supplier_name, category, total_amount, paid_amount, payment_method, payment_status, purchase_date, note)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$supplierId, $supplierName, $category, $grandTotal, $paidAmount, $payMethod, $payStatus, $purchaseDate, $note]);
-            $purchaseId = $pdo->lastInsertId();
+            // 4. Insert or Update Master Purchase Record
+            if ($id) {
+                $stmt = $pdo->prepare("UPDATE purchases SET supplier_id = ?, supplier_name = ?, category = ?, total_amount = ?, paid_amount = ?, payment_method = ?, payment_status = ?, purchase_date = ?, note = ? WHERE id = ?");
+                $stmt->execute([$supplierId, $supplierName, $category, $grandTotal, $paidAmount, $payMethod, $payStatus, $purchaseDate, $note, $id]);
+                $purchaseId = $id;
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO purchases 
+                    (supplier_id, supplier_name, category, total_amount, paid_amount, payment_method, payment_status, purchase_date, note)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$supplierId, $supplierName, $category, $grandTotal, $paidAmount, $payMethod, $payStatus, $purchaseDate, $note]);
+                $purchaseId = $pdo->lastInsertId();
+            }
 
             // 5. Insert Items into purchase_items and update books table
             foreach ($items as $item) {
@@ -311,7 +384,8 @@ try {
                     $category_id = $pdo->lastInsertId();
                 }
 
-                if (strtolower($category) === 'book' || strtolower($category) === 'books') {
+                $catLower = strtolower($category);
+                if ($catLower === 'book' || $catLower === 'books' || str_contains($catLower, 'book')) {
                     $existing = null;
                     if (!empty($p_isbn)) {
                         $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE isbn = ?");
@@ -374,6 +448,70 @@ try {
             $stmt = $pdo->query("SELECT * FROM purchases ORDER BY purchase_date DESC, id DESC");
         }
         echo json_encode(['success' => true, 'records' => $stmt->fetchAll()]);
+    }
+    elseif ($action === 'getPurchaseDetails') {
+        $id = $_GET['id'] ?? null;
+        if (!$id) throw new Exception("ID required.");
+
+        $stmt = $pdo->prepare("SELECT * FROM purchases WHERE id = ?");
+        $stmt->execute([$id]);
+        $purchase = $stmt->fetch();
+
+        $stmt = $pdo->prepare("SELECT * FROM purchase_items WHERE purchase_id = ?");
+        $stmt->execute([$id]);
+        $items = $stmt->fetchAll();
+
+        echo json_encode(['success' => true, 'purchase' => $purchase, 'items' => $items]);
+    }
+    elseif ($action === 'deletePurchase') {
+        $id = $_GET['id'] ?? null;
+        if (!$id) throw new Exception("ID required.");
+
+        $pdo->beginTransaction();
+        try {
+            // 1. Get the purchase record
+            $stmt = $pdo->prepare("SELECT * FROM purchases WHERE id = ?");
+            $stmt->execute([$id]);
+            $purchase = $stmt->fetch();
+            if (!$purchase) throw new Exception("Purchase record not found.");
+
+            // 2. Get the items to reverse stock
+            $stmt = $pdo->prepare("SELECT * FROM purchase_items WHERE purchase_id = ?");
+            $stmt->execute([$id]);
+            $items = $stmt->fetchAll();
+
+            foreach ($items as $item) {
+                $name = $item['item_name'];
+                $isbn = $item['isbn'];
+                $qty = $item['quantity'];
+
+                // Attempt to reverse stock in books
+                $stmt = $pdo->prepare("UPDATE books SET stock_qty = GREATEST(0, stock_qty - ?) WHERE (isbn = ? AND isbn != '') OR (title = ? AND (isbn IS NULL OR isbn = ''))");
+                $stmt->execute([$qty, $isbn, $name]);
+
+                // Attempt to reverse stock in inventory_items
+                $stmt = $pdo->prepare("UPDATE inventory_items SET quantity = GREATEST(0, quantity - ?) WHERE item_name = ?");
+                $stmt->execute([$qty, $name]);
+            }
+
+            // 3. Reverse Supplier Due
+            if ($purchase['supplier_id']) {
+                $dueAdded = floatval($purchase['total_amount']) - floatval($purchase['paid_amount']);
+                if ($dueAdded > 0) {
+                    $pdo->prepare("UPDATE suppliers SET total_due = GREATEST(0, total_due - ?) WHERE id = ?")
+                        ->execute([$dueAdded, $purchase['supplier_id']]);
+                }
+            }
+
+            // 4. Delete the record (FK will cascade to purchase_items)
+            $pdo->prepare("DELETE FROM purchases WHERE id = ?")->execute([$id]);
+
+            $pdo->commit();
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 }
 catch (Exception $e) {
