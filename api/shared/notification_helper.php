@@ -164,14 +164,15 @@ function send_sms_instantly($number, $message) {
     if (empty($number)) return ['success' => false, 'message' => 'No number provided'];
 
     $url = "http://bulksmsbd.net/api/smsapi";
-    $api_key = getenv('BULKSMS_API_KEY');
-    $senderid = getenv('BULKSMS_SENDER_ID');
+    $api_key = getenv('BULKSMS_API_KEY') ?: ($_ENV['BULKSMS_API_KEY'] ?? '');
+    $senderid = getenv('BULKSMS_SENDER_ID') ?: ($_ENV['BULKSMS_SENDER_ID'] ?? '');
  
     $data = [
         "api_key" => $api_key,
         "senderid" => $senderid,
         "number" => $number,
-        "message" => $message
+        "message" => $message,
+        "type" => "text"
     ];
 
     try {
