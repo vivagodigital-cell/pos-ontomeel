@@ -137,7 +137,7 @@ try {
                 }
 
                 // Send Email Notification for Members
-                $mStmt = $pdo->prepare("SELECT full_name, email FROM members WHERE id = ?");
+                $mStmt = $pdo->prepare("SELECT full_name, email, phone FROM members WHERE id = ?");
                 $mStmt->execute([$data['memberId']]);
                 $member = $mStmt->fetch();
 
@@ -157,7 +157,17 @@ try {
                     $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
                     $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
                     $link = $baseUrl . '/' . $invoice_no;
-                    $sms_message = "Thanks for your order. Your Order Number is \"$invoice_no\" to see all details follow the link \"$link\"";
+                    
+                    // Build item summary for SMS
+                    $items_summary = [];
+                    foreach ($groupedItems as $item) {
+                        $items_summary[] = $item['title'] . " (৳" . number_format($item['sell_price'] * $item['purchase_qty'], 2) . ")";
+                    }
+                    $items_text = implode(", ", $items_summary);
+                    $total_amount = number_format($data['total'], 2);
+
+                    $sms_message = "Thank you for your order. Your Order number is $invoice_no. Your Order contains: $items_text. Total Amount: ৳$total_amount. Love From Ontomeel.";
+                    
                     $sms_result = send_sms_instantly($member['phone'], $sms_message);
                     if (!$sms_result['success']) {
                         error_log("Failed to send SMS to member " . $member['phone'] . ": " . json_encode($sms_result));
@@ -182,7 +192,17 @@ try {
                     $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
                     $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
                     $link = $baseUrl . '/' . $invoice_no;
-                    $sms_message = "Thanks for your order. Your Order Number is \"$invoice_no\" to see all details follow the link \"$link\"";
+
+                    // Build item summary for SMS
+                    $items_summary = [];
+                    foreach ($groupedItems as $item) {
+                        $items_summary[] = $item['title'] . " (৳" . number_format($item['sell_price'] * $item['purchase_qty'], 2) . ")";
+                    }
+                    $items_text = implode(", ", $items_summary);
+                    $total_amount = number_format($data['total'], 2);
+
+                    $sms_message = "Thank you for your order. Your Order number is $invoice_no. Your Order contains: $items_text. Total Amount: ৳$total_amount. Love From Ontomeel.";
+
                     $sms_result = send_sms_instantly($data['guestPhone'], $sms_message);
                     if (!$sms_result['success']) {
                         error_log("Failed to send SMS to guest " . $data['guestPhone'] . ": " . json_encode($sms_result));
@@ -496,7 +516,7 @@ try {
         $orderId = $_GET['id'] ?? '';
         if (empty($orderId)) throw new Exception("Order ID is required.");
 
-        $stmt = $pdo->prepare("SELECT o.invoice_no, m.phone as member_phone, o.guest_phone FROM orders o LEFT JOIN members m ON o.member_id = m.id WHERE o.id = ?");
+        $stmt = $pdo->prepare("SELECT o.invoice_no, o.total_amount, m.phone as member_phone, o.guest_phone FROM orders o LEFT JOIN members m ON o.member_id = m.id WHERE o.id = ?");
         $stmt->execute([$orderId]);
         $order = $stmt->fetch();
 
@@ -505,12 +525,24 @@ try {
         $phone = $order['member_phone'] ?: $order['guest_phone'];
         if (empty($phone)) throw new Exception("No phone number found for this order.");
 
+        // Get items for the SMS template
+        $stmt = $pdo->prepare("SELECT oi.quantity, oi.total_price, COALESCE(b.title, i.item_name) as title 
+                              FROM order_items oi 
+                              LEFT JOIN books b ON oi.book_id = b.id AND (oi.item_type = 'Book' OR oi.item_type IS NULL)
+                              LEFT JOIN inventory_items i ON oi.book_id = i.id AND (oi.item_type != 'Book')
+                              WHERE oi.order_id = ?");
+        $stmt->execute([$orderId]);
+        $items = $stmt->fetchAll();
+
+        $items_summary = [];
+        foreach ($items as $item) {
+            $items_summary[] = $item['title'] . " (৳" . number_format($item['total_price'], 2) . ")";
+        }
+        $items_text = implode(", ", $items_summary);
+        $total_amount = number_format($order['total_amount'], 2);
         $invoice_no = $order['invoice_no'];
-        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
-        $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
-        $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
-        $link = $baseUrl . '/' . $invoice_no;
-        $sms_message = "Thanks for your order. Your Order Number is \"$invoice_no\" to see all details follow the link \"$link\"";
+
+        $sms_message = "Thank you for your order. Your Order number is $invoice_no. Your Order contains: $items_text. Total Amount: ৳$total_amount. Love From Ontomeel.";
 
         $sms_result = send_sms_instantly($phone, $sms_message);
         echo json_encode($sms_result);
