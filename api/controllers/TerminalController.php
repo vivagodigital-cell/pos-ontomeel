@@ -158,7 +158,7 @@ try {
                     $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
                     $link = $baseUrl . '/' . $invoice_no;
                     
-                    $sms_message = "Thanks for your order. Click this link to see your invoice: $link , -From Ontomeel";
+                    $sms_message = "Thanks for your order. From Ontomeel. Click this link to see your invoice: $link";
                     
                     $sms_result = send_sms_instantly($member['phone'], $sms_message);
                     if (!$sms_result['success']) {
@@ -515,7 +515,7 @@ try {
         $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
         $link = $baseUrl . '/' . $invoice_no;
 
-        $sms_message = "Thanks for your order. Click this link to see your invoice: $link";
+        $sms_message = "Thanks for your order. From Ontomeel. Click this link to see your invoice: $link";
 
         $sms_result = send_sms_instantly($phone, $sms_message);
         echo json_encode($sms_result);

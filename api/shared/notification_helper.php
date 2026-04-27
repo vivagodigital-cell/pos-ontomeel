@@ -179,7 +179,7 @@ function send_sms_instantly($number, $message) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $response = curl_exec($ch);
@@ -189,10 +189,11 @@ function send_sms_instantly($number, $message) {
         if ($res && isset($res['response_code']) && $res['response_code'] == 202) {
             return ['success' => true, 'response' => $res];
         } else {
+            error_log("SMS API Error Response: " . $response . " | Data: " . json_encode($data));
             return ['success' => false, 'response' => $response];
         }
     } catch (Exception $e) {
-        error_log("SMS Send Error: " . $e->getMessage());
+        error_log("SMS Send Error Exception: " . $e->getMessage());
         return ['success' => false, 'message' => $e->getMessage()];
     }
 }
