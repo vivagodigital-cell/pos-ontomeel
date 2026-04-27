@@ -13,6 +13,21 @@ $senderid = getenv('BULKSMS_SENDER_ID') ?: ($_ENV['BULKSMS_SENDER_ID'] ?? ($_SER
 
 $env_path = realpath(__DIR__ . '/.env');
 echo "Env File Path: " . ($env_path ?: "NOT FOUND at " . __DIR__ . '/.env') . "\n";
+
+if ($env_path) {
+    echo "--- Keys found in .env ---\n";
+    $lines = file($env_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line) || strpos($line, '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($name, $value) = explode('=', $line, 2);
+            echo "- " . trim($name) . " (Length: " . strlen(trim($value)) . ")\n";
+        }
+    }
+    echo "--------------------------\n";
+}
+
 echo "API Key: " . ($api_key ? "Found (Ends with " . substr($api_key, -4) . ")" : "NOT FOUND") . "\n";
 echo "Sender ID: " . ($senderid ? "Found ($senderid)" : "NOT FOUND") . "\n";
 
