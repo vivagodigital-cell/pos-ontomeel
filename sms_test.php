@@ -8,9 +8,11 @@ header('Content-Type: text/plain');
 echo "--- Ontomeel BulkSMS BD Test ---\n";
 
 // Check environment variables
-$api_key = getenv('BULKSMS_API_KEY') ?: ($_ENV['BULKSMS_API_KEY'] ?? '');
-$senderid = getenv('BULKSMS_SENDER_ID') ?: ($_ENV['BULKSMS_SENDER_ID'] ?? '');
+$api_key = getenv('BULKSMS_API_KEY') ?: ($_ENV['BULKSMS_API_KEY'] ?? ($_SERVER['BULKSMS_API_KEY'] ?? ''));
+$senderid = getenv('BULKSMS_SENDER_ID') ?: ($_ENV['BULKSMS_SENDER_ID'] ?? ($_SERVER['BULKSMS_SENDER_ID'] ?? ''));
 
+$env_path = realpath(__DIR__ . '/.env');
+echo "Env File Path: " . ($env_path ?: "NOT FOUND at " . __DIR__ . '/.env') . "\n";
 echo "API Key: " . ($api_key ? "Found (Ends with " . substr($api_key, -4) . ")" : "NOT FOUND") . "\n";
 echo "Sender ID: " . ($senderid ? "Found ($senderid)" : "NOT FOUND") . "\n";
 
