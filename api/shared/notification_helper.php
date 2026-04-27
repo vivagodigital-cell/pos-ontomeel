@@ -156,3 +156,42 @@ function queueNotification($pdo, $to, $type, $payload) {
         error_log("POS Email Queue Error: " . $e->getMessage());
     }
 }
+
+/**
+ * Send SMS instantly using BulkSMS BD
+ */
+function send_sms_instantly($number, $message) {
+    if (empty($number)) return ['success' => false, 'message' => 'No number provided'];
+
+    $url = "http://bulksmsbd.net/api/smsapi";
+    $api_key = getenv('BULKSMS_API_KEY');
+    $senderid = getenv('BULKSMS_SENDER_ID');
+ 
+    $data = [
+        "api_key" => $api_key,
+        "senderid" => $senderid,
+        "number" => $number,
+        "message" => $message
+    ];
+
+    try {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        
+        $res = json_decode($response, true);
+        if ($res && isset($res['response_code']) && $res['response_code'] == 202) {
+            return ['success' => true, 'response' => $res];
+        } else {
+            return ['success' => false, 'response' => $response];
+        }
+    } catch (Exception $e) {
+        error_log("SMS Send Error: " . $e->getMessage());
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}

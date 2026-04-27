@@ -150,6 +150,19 @@ try {
                     ];
                     queueNotification($pdo, $member['email'], 'order_placed', $notif_payload);
                 }
+
+                // Send SMS Notification for Members
+                if ($member && !empty($member['phone'])) {
+                    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+                    $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
+                    $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
+                    $link = $baseUrl . '/' . $invoice_no;
+                    $sms_message = "Thanks for your order. Your Order Number is \"$invoice_no\" to see all details follow the link \"$link\"";
+                    $sms_result = send_sms_instantly($member['phone'], $sms_message);
+                    if (!$sms_result['success']) {
+                        error_log("Failed to send SMS to member " . $member['phone'] . ": " . json_encode($sms_result));
+                    }
+                }
             }
             else {
                 // Guest Email Notification
@@ -161,6 +174,19 @@ try {
                         'address' => 'In-person purchase at POS Terminal'
                     ];
                     queueNotification($pdo, $data['guestEmail'], 'order_placed', $notif_payload);
+                }
+
+                // Guest SMS Notification
+                if (!empty($data['guestPhone'])) {
+                    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+                    $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
+                    $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
+                    $link = $baseUrl . '/' . $invoice_no;
+                    $sms_message = "Thanks for your order. Your Order Number is \"$invoice_no\" to see all details follow the link \"$link\"";
+                    $sms_result = send_sms_instantly($data['guestPhone'], $sms_message);
+                    if (!$sms_result['success']) {
+                        error_log("Failed to send SMS to guest " . $data['guestPhone'] . ": " . json_encode($sms_result));
+                    }
                 }
             }
 
@@ -465,6 +491,29 @@ try {
         $items = $stmt->fetchAll();
 
         echo json_encode(['success' => true, 'order' => $order, 'items' => $items]);
+    }
+    elseif ($action === 'resendSMS') {
+        $orderId = $_GET['id'] ?? '';
+        if (empty($orderId)) throw new Exception("Order ID is required.");
+
+        $stmt = $pdo->prepare("SELECT o.invoice_no, m.phone as member_phone, o.guest_phone FROM orders o LEFT JOIN members m ON o.member_id = m.id WHERE o.id = ?");
+        $stmt->execute([$orderId]);
+        $order = $stmt->fetch();
+
+        if (!$order) throw new Exception("Order not found.");
+
+        $phone = $order['member_phone'] ?: $order['guest_phone'];
+        if (empty($phone)) throw new Exception("No phone number found for this order.");
+
+        $invoice_no = $order['invoice_no'];
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+        $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
+        $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
+        $link = $baseUrl . '/' . $invoice_no;
+        $sms_message = "Thanks for your order. Your Order Number is \"$invoice_no\" to see all details follow the link \"$link\"";
+
+        $sms_result = send_sms_instantly($phone, $sms_message);
+        echo json_encode($sms_result);
     }
 }
 catch (Exception $e) {

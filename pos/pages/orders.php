@@ -756,6 +756,10 @@ renderUserUI(true); ?>
                 onclick="copyOrderLink(activeOrder.order.invoice_no)">
                 <i class="fa-solid fa-link"></i> Copy Link
             </button>
+            <button class="action-btn" style="background: #f0fdf4; color: #16a34a;"
+                onclick="sendSMS(activeOrder.order.id)">
+                <i class="fa-solid fa-comment-sms"></i> Send SMS
+            </button>
             <button class="action-btn btn-duplicate" id="duplicateBtn" onclick="duplicateOrder()">
                 <i class="fa-solid fa-copy"></i> Reorder
             </button>
@@ -1054,6 +1058,29 @@ renderUserUI(true); ?>
                 }
                 document.body.removeChild(textArea);
             });
+        }
+
+        async function sendSMS(orderId) {
+            const btn = event.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Sending...';
+
+            try {
+                const res = await fetch(`../../api/controllers/TerminalController.php?action=resendSMS&id=${orderId}`);
+                const data = await res.json();
+                if (data.success) {
+                    showToast("SMS sent successfully!");
+                } else {
+                    showToast("Failed to send SMS: " + (data.message || "Unknown error"));
+                }
+            } catch (e) {
+                console.error(e);
+                showToast("Error sending SMS.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
         }
 
         function duplicateOrder() {
