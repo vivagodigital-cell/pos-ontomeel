@@ -674,6 +674,7 @@
             box-sizing: border-box;
             background: white;
             color: black;
+            font-weight: 800;
             font-family: 'Inter', sans-serif;
             text-align: center;
         }
