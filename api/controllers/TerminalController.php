@@ -40,8 +40,8 @@ try {
     }
     elseif ($action === 'searchMembers') {
         $query = $_GET['q'] ?? '';
-        $stmt = $pdo->prepare("SELECT id, membership_id, full_name, acc_balance, email, phone, membership_plan, plan_expire_date FROM members WHERE full_name LIKE ? OR membership_id LIKE ? LIMIT 10");
-        $stmt->execute(["%$query%", "%$query%"]);
+        $stmt = $pdo->prepare("SELECT id, membership_id, full_name, acc_balance, email, phone, membership_plan, plan_expire_date FROM members WHERE full_name LIKE ? OR membership_id LIKE ? OR phone LIKE ? LIMIT 10");
+        $stmt->execute(["%$query%", "%$query%", "%$query%"]);
         $members = $stmt->fetchAll();
         echo json_encode($members);
     }
