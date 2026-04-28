@@ -666,7 +666,7 @@
         .barcode-label {
             width: 35mm;
             height: 25mm;
-            padding: 1mm;
+            padding: 0.5mm 1mm;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -675,13 +675,22 @@
             background: white;
             color: black;
             font-weight: 800;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             text-align: center;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            image-rendering: -webkit-optimize-contrast;
+            text-rendering: geometricPrecision;
         }
-        .barcode-brand { font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 1px; }
-        .barcode-name { font-size: 9px; font-weight: 700; line-height: 1.1; max-height: 20px; overflow: hidden; margin-bottom: 2px; }
-        .barcode-svg { width: 100% !important; height: auto !important; max-height: 12mm; }
-        .barcode-price { font-size: 16px; font-weight: 900; margin-top: 1px; }
+        .barcode-brand { font-size: 11px; font-weight: 900; text-transform: uppercase; margin: 0; line-height: 1; }
+        .barcode-name { font-size: 9px; font-weight: 700; line-height: 1.1; max-height: 20px; overflow: hidden; margin: 0; }
+        .barcode-svg { 
+            width: 100% !important; 
+            height: auto !important; 
+            max-height: 11mm; 
+            shape-rendering: crispEdges;
+        }
+        .barcode-price { font-size: 28px; font-weight: 900; margin: 0; line-height: 0.9; letter-spacing: -0.5px; }
 
         @media (max-width: 640px) {
             .bk-grid-2, .bk-grid-3, .bk-grid-4 { grid-template-columns: 1fr; }
@@ -1307,7 +1316,7 @@
             document.getElementById('printName').innerText = item.title;
             document.getElementById('printPrice').innerText = '৳' + parseFloat(item.sell_price).toFixed(0);
             JsBarcode("#barcodeCanvas", barcode, {
-                format: "CODE128", width: 2, height: 35, displayValue: true, fontSize: 26, margin: 0
+                format: "CODE128", width: 2, height: 45, displayValue: true, fontSize: 28, margin: 0
             });
             window.print();
         }
