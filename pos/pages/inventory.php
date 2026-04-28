@@ -678,10 +678,10 @@
             font-family: 'Inter', sans-serif;
             text-align: center;
         }
-        .barcode-brand { font-size: 10px; font-weight: 900; text-transform: uppercase; margin-bottom: 1px; }
-        .barcode-name { font-size: 10px; font-weight: 700; line-height: 1; max-height: 16px; overflow: hidden; margin-bottom: 1px; }
-        .barcode-svg { width: 100% !important; height: auto !important; max-height: 10mm; }
-        .barcode-price { font-size: 11px; font-weight: 900; margin-top: 1px; }
+        .barcode-brand { font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 1px; }
+        .barcode-name { font-size: 9px; font-weight: 700; line-height: 1.1; max-height: 20px; overflow: hidden; margin-bottom: 2px; }
+        .barcode-svg { width: 100% !important; height: auto !important; max-height: 12mm; }
+        .barcode-price { font-size: 16px; font-weight: 900; margin-top: 1px; }
 
         @media (max-width: 640px) {
             .bk-grid-2, .bk-grid-3, .bk-grid-4 { grid-template-columns: 1fr; }
@@ -1307,7 +1307,7 @@
             document.getElementById('printName').innerText = item.title;
             document.getElementById('printPrice').innerText = '৳' + parseFloat(item.sell_price).toFixed(0);
             JsBarcode("#barcodeCanvas", barcode, {
-                format: "CODE128", width: 2, height: 40, displayValue: true, fontSize: 14, margin: 0
+                format: "CODE128", width: 2, height: 35, displayValue: true, fontSize: 26, margin: 0
             });
             window.print();
         }
