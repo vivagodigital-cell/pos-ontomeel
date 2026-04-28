@@ -1314,9 +1314,9 @@
                 return;
             }
             document.getElementById('printName').innerText = item.title;
-            document.getElementById('printPrice').innerText = '৳' + parseFloat(item.sell_price).toFixed(0);
+            document.getElementById('printPrice').innerText = 'Price: ' + parseFloat(item.sell_price).toFixed(0);
             JsBarcode("#barcodeCanvas", barcode, {
-                format: "CODE128", width: 2, height: 45, displayValue: true, fontSize: 28, margin: 0
+                format: "CODE128", width: 2, height: 45, displayValue: true, fontSize: 24, margin: 0
             });
             window.print();
         }
