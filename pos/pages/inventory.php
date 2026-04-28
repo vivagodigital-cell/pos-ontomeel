@@ -666,7 +666,7 @@
         .barcode-label {
             width: 35mm;
             height: 25mm;
-            padding: 0.5mm 1mm;
+            padding: 1mm;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -690,7 +690,7 @@
             max-height: 11mm; 
             shape-rendering: crispEdges;
         }
-        .barcode-price { font-size: 21px; font-weight: 900; margin: 0; line-height: 1; letter-spacing: -0.5px; }
+        .barcode-price { font-size: 18px; font-weight: 900; margin: 0; line-height: 1; letter-spacing: -0.5px; }
 
         @media (max-width: 640px) {
             .bk-grid-2, .bk-grid-3, .bk-grid-4 { grid-template-columns: 1fr; }
