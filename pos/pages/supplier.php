@@ -30,27 +30,46 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+
+        .page-title h1 {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+
+        .page-title p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
         }
 
         .table-wrapper {
             overflow-x: auto;
         }
 
+
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
 
         th {
             text-align: left;
-            padding: 1rem;
+            padding: 1.2rem 1rem;
             color: var(--text-muted);
             font-weight: 700;
             text-transform: uppercase;
             font-size: 0.75rem;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
             border-bottom: 1px solid var(--border-light);
         }
+
 
         td {
             padding: 1.25rem 1rem;
@@ -72,18 +91,22 @@
             backdrop-filter: blur(8px);
             z-index: 1000;
             display: none;
-            align-items: center;
-            justify-content: center;
+            overflow-y: auto;
+            padding: 2rem 1rem;
         }
+
 
         .modal-content {
             background: white;
             width: 450px;
+            margin: 0 auto;
             border-radius: 28px;
             overflow: hidden;
             box-shadow: 0 25px 70px -10px rgba(15, 23, 42, 0.2);
             animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
         }
+
 
         .input-group {
             display: flex;
@@ -109,9 +132,9 @@
         }
 
         .status-badge {
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 30px;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: 800;
             text-transform: uppercase;
         }
@@ -137,7 +160,7 @@
         }
 
         .tab-btn {
-            padding: 10px 20px;
+            padding: 10px 18px;
             border-radius: 12px;
             cursor: pointer;
             font-weight: 700;
@@ -146,7 +169,63 @@
             color: var(--text-muted);
             border: none;
             background: transparent;
+            white-space: nowrap;
         }
+
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary-blue);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .tabs {
+                width: 100%;
+                overflow-x: auto;
+                justify-content: flex-start;
+            }
+            .data-card {
+                padding: 1rem;
+                border-radius: 16px;
+            }
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .card-header div:first-child {
+                white-space: normal !important;
+            }
+
+            .modal-content {
+                width: 95% !important;
+                margin: 10px;
+            }
+            .page-title h1 {
+                font-size: 1.3rem;
+            }
+            td, th {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            .modal-grid-3 {
+                grid-template-columns: 1fr !important;
+            }
+            .modal-grid-2-1 {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+            .modal-grid-2 {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+
+        #invoiceModal { z-index: 2000; }
+        #statementModal .modal-content { max-height: 95vh; }
+
 
         .tab-btn.active {
             background: white;
@@ -191,13 +270,12 @@
         <header>
             <div class="page-title">
                 <h1>Supplier & <span style="color: var(--primary-blue);">Inventory Source</span></h1>
-                <p>Track book procurement and external library loans</p>
+                <p>Track product procurement and external library loans</p>
             </div>
         </header>
 
         <div class="tabs">
             <button class="tab-btn active" onclick="showTab('suppliers')">Suppliers List</button>
-            <button class="tab-btn" onclick="showTab('suppliedBooks')">Supplied Books</button>
             <button class="tab-btn" onclick="showTab('purchaseRecords')">Purchase Records</button>
             <button class="tab-btn" onclick="showTab('externalBorrows')">External Borrows</button>
         </div>
@@ -206,9 +284,9 @@
         <div id="suppliersTab" class="tab-content">
             <div class="data-card">
                 <div class="card-header">
-                    <div style="font-weight: 800; font-size: 1.1rem;">Registered Suppliers</div>
+                    <div style="font-weight: 800; font-size: 1.1rem; white-space: nowrap;">Registered Suppliers</div>
                     <button class="nav-link active" onclick="openSupplierModal()"
-                        style="padding: 10px 20px; font-size: 0.85rem;">
+                        style="padding: 10px 22px; font-size: 0.85rem;">
                         <i class="fa-solid fa-plus"></i> ADD SUPPLIER
                     </button>
                 </div>
@@ -228,45 +306,26 @@
             </div>
         </div>
 
-        <!-- Supplied Books Tab -->
-        <div id="suppliedBooksTab" class="tab-content" style="display:none;">
-            <div class="data-card">
-                <div class="card-header">
-                    <div style="font-weight: 800; font-size: 1.1rem;">Procurement History</div>
-                </div>
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Supplier Name</th>
-                                <th>Total Titles</th>
-                                <th>Inventory Value</th>
-                                <th style="text-align:right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="procurementTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
 
-        </div>
 
         <!-- Purchase Records Tab -->
         <div id="purchaseRecordsTab" class="tab-content" style="display:none;">
             <div class="data-card">
-                <div class="card-header">
-                    <div style="font-weight: 800; font-size: 1.1rem;">Item Purchase Records</div>
-                    <div style="display: flex; gap: 10px;">
+                <div class="card-header" style="flex-wrap: nowrap; gap: 5px;">
+                    <div style="font-weight: 800; font-size: 1.05rem; white-space: nowrap; flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;">Item Purchase Records</div>
+                    <div style="display: flex; gap: 6px; flex-wrap: nowrap; flex-shrink: 0;">
                         <button class="nav-link" onclick="openCategoryModal()"
-                            style="padding: 10px 20px; font-size: 0.85rem; background: #f1f5f9; color: var(--text-muted); border: none;">
-                            <i class="fa-solid fa-tags"></i> CATEGORIES
+                            style="padding: 6px 12px; font-size: 0.75rem; background: #f1f5f9; color: var(--text-muted); border: none; white-space: nowrap;">
+                            <i class="fa-solid fa-tags"></i> CATS
                         </button>
                         <button class="nav-link active" onclick="openPurchaseModal()"
-                            style="padding: 10px 20px; font-size: 0.85rem;">
-                            <i class="fa-solid fa-plus"></i> ADD PURCHASE
+                            style="padding: 6px 12px; font-size: 0.75rem; white-space: nowrap;">
+                            <i class="fa-solid fa-plus"></i> PURCHASE
                         </button>
                     </div>
                 </div>
+
+
                 <div class="table-wrapper">
                     <table>
                         <thead>
@@ -282,6 +341,11 @@
                         </thead>
                         <tbody id="purchaseRecordsTableBody"></tbody>
                     </table>
+                </div>
+                <div id="purchasePagination" style="margin-top: 1.5rem; display: flex; justify-content: center;">
+                    <button onclick="loadAllPurchases()" id="btnLoadAllPurchases" class="nav-link" style="background: #f1f5f9; color: var(--text-header); border: none; padding: 10px 25px; font-size: 0.85rem; font-weight: 700; display: none; align-items: center; gap: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fa-solid fa-arrows-rotate"></i> LOAD ALL RECORDS
+                    </button>
                 </div>
             </div>
         </div>
@@ -378,48 +442,7 @@
         </div>
     </div>
 
-    <!-- Collect Books Modal -->
-    <div class="modal-overlay" id="collectModal">
-        <div class="modal-content" style="width: 500px;">
-            <div
-                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
-                <h2 style="margin:0; font-size:1.2rem;">Record Book Collection</h2>
-                <button onclick="closeModal('collectModal')"
-                    style="border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
-            </div>
-            <div style="padding: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="input-group" style="grid-column: span 2;">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-header);">BOOK TITLE *</label>
-                    <input type="text" id="collTitle" class="checkout-input">
-                </div>
-                <div class="input-group" style="grid-column: span 2;">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">AUTHOR</label>
-                    <input type="text" id="collAuthor" class="checkout-input">
-                </div>
-                <div class="input-group" style="grid-column: span 2;">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">ISBN / BARCODE</label>
-                    <input type="text" id="collIsbn" class="checkout-input" placeholder="Leave empty to auto-generate">
-                </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">QUANTITY *</label>
-                    <input type="number" id="collQty" class="checkout-input">
-                </div>
-                <div class="input-group">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">PURCHASE PRICE
-                        *</label>
-                    <input type="number" id="collCost" class="checkout-input">
-                </div>
-                <div class="input-group" style="grid-column: span 2;">
-                    <label style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted);">SELLING PRICE</label>
-                    <input type="number" id="collSale" class="checkout-input">
-                </div>
-                <button onclick="processCollection()" class="nav-link active"
-                    style="grid-column: span 2; justify-content:center; padding:12px; margin-top:0.5rem;">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> UPDATE INVENTORY
-                </button>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Purchase Record Modal -->
     <div class="modal-overlay" id="purchaseRecordModal">
@@ -433,7 +456,7 @@
             
             <div style="padding: 2rem;">
                 <input type="hidden" id="purId">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
+                <div class="modal-grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
                     <div class="input-group">
                         <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Supplier Name *</label>
                         <select id="purSupplier" class="checkout-input">
@@ -452,15 +475,16 @@
                     </div>
                 </div>
 
+
                 <div style="background: #f8fafc; border-radius: 20px; border: 1px solid var(--border-light); padding: 1.5rem; margin-bottom: 25px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
                         <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text-header); margin: 0;">Items List</h3>
                         <button type="button" onclick="addPurchaseItemRow()" class="nav-link" style="padding: 6px 12px; font-size: 0.75rem; border: 1px solid var(--primary-blue); color: var(--primary-blue); background: var(--primary-blue-soft);">
                             <i class="fa-solid fa-plus-circle"></i> Add More Item
                         </button>
                     </div>
-                    <div style="max-height: 250px; overflow-y: auto;">
-                        <table style="width: 100%;" id="purchaseItemsTable">
+                    <div style="max-height: 250px; overflow-y: auto; overflow-x: auto;">
+                        <table style="width: 100%; min-width: 600px;" id="purchaseItemsTable">
                             <thead>
                                 <tr style="text-align: left; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">
                                     <th style="padding: 10px; width: 35%;">Item Name / Title</th>
@@ -477,8 +501,10 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px; align-items: end;">
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+
+                <div class="modal-grid-2-1" style="display: grid; grid-template-columns: 2fr 1fr; gap: 40px; align-items: end;">
+                    <div class="modal-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+
                         <div class="input-group">
                             <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Payment Method</label>
                             <select id="purPayMethod" class="checkout-input">
@@ -508,9 +534,9 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 2rem; display: flex; gap: 15px;">
-                    <button type="button" onclick="closeModal('purchaseRecordModal')" class="nav-link" style="flex: 1; justify-content: center; background: #f1f5f9; color: var(--text-muted); border: none;">Discard</button>
-                    <button type="button" onclick="savePurchaseRecord()" id="btnSavePurchase" class="nav-link active" style="flex: 2; justify-content: center; padding: 12px; font-weight: 800;">
+                <div style="margin-top: 2rem; display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button type="button" onclick="closeModal('purchaseRecordModal')" class="nav-link" style="flex: 1; min-width: 120px; justify-content: center; background: #f1f5f9; color: var(--text-muted); border: none;">Discard</button>
+                    <button type="button" onclick="savePurchaseRecord()" id="btnSavePurchase" class="nav-link active" style="flex: 2; min-width: 200px; justify-content: center; padding: 12px; font-weight: 800;">
                         <i class="fa-solid fa-save"></i> Save Purchase Record
                     </button>
                 </div>
@@ -554,31 +580,131 @@
 
     <div id="toastContainer"></div>
 
-    <!-- View Books Modal -->
-    <div class="modal-overlay" id="viewBooksModal">
-        <div class="modal-content" style="width: 80%; max-width: 900px;">
-            <div
-                style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items:center;">
-                <h2 style="margin:0; font-size:1.2rem;"><i class="fa-solid fa-book"></i> Books from <span
-                        id="currentDetailSupplier" style="color:var(--primary-blue);"></span></h2>
-                <button onclick="closeModal('viewBooksModal')"
-                    style="border:none; background:#f1f5f9; cursor:pointer; font-size:1rem; padding: 10px 15px; border-radius: 50%;"><i
-                        class="fa-solid fa-times"></i></button>
+    <!-- View Invoice Modal -->
+    <div class="modal-overlay" id="invoiceModal">
+        <div class="modal-content" style="width: 80%; max-width: 800px; padding: 0; border-radius: 20px; overflow: hidden;">
+            <div style="background: #1e293b; color: white; padding: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin:0; font-size: 1.5rem; font-weight: 800;">Purchase Invoice</h2>
+                    <p id="invNumber" style="margin: 5px 0 0; color: #94a3b8; font-family: monospace; font-size: 0.85rem; font-weight: 600;"></p>
+                </div>
+                <button onclick="closeModal('invoiceModal')" style="background: rgba(255,255,255,0.1); border:none; color:white; width:40px; height:40px; border-radius:12px; cursor:pointer; font-size:1.2rem;">&times;</button>
             </div>
-            <div style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
-                <div class="table-wrapper">
-                    <table style="background:#f8fafc; border-radius:12px;">
-                        <thead>
+            
+            <div style="padding: 2rem; background: #fff;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <div>
+                        <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Supplier Information</div>
+                        <div id="invSupplierName" style="font-size: 1.1rem; font-weight: 800; color: var(--text-header);"></div>
+                        <div id="invSupplierContact" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;"></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Transaction Details</div>
+                        <div id="invDate" style="font-size: 1rem; font-weight: 700; color: var(--text-header);"></div>
+                        <div id="invStatus" style="display: inline-block; margin-top: 8px; font-size: 0.7rem; font-weight: 800; padding: 4px 12px; border-radius: 20px; text-transform: uppercase;"></div>
+                    </div>
+                </div>
+
+                <div class="table-wrapper" style="border: 1px solid #f1f5f9; border-radius: 12px; margin-bottom: 2rem;">
+                    <table style="background: transparent;">
+                        <thead style="background: #f8fafc;">
                             <tr>
-                                <th>Book Title</th>
-                                <th>Author</th>
-                                <th>Purchase Price</th>
-                                <th>Stock Qty</th>
-                                <th>Total Value</th>
+                                <th style="padding: 12px 15px;">Item Description</th>
+                                <th style="padding: 12px 15px;">ISBN/SKU</th>
+                                <th style="padding: 12px 15px; text-align: center;">Qty</th>
+                                <th style="padding: 12px 15px; text-align: right;">Unit Cost</th>
+                                <th style="padding: 12px 15px; text-align: right;">Total</th>
                             </tr>
                         </thead>
-                        <tbody id="supplierDetailTableBody"></tbody>
+                        <tbody id="invoiceItemsBody"></tbody>
                     </table>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end;">
+                    <div style="width: 250px; background: #f8fafc; padding: 1.5rem; border-radius: 16px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
+                            <span style="color: var(--text-muted);">Subtotal</span>
+                            <span id="invSubtotal" style="font-weight: 700;"></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: #16a34a;">
+                            <span>Paid Amount</span>
+                            <span id="invPaid" style="font-weight: 700;"></span>
+                        </div>
+                        <div style="border-top: 2px dashed #e2e8f0; margin: 10px 0; padding-top: 10px; display: flex; justify-content: space-between; font-size: 1.1rem;">
+                            <span style="font-weight: 800; color: var(--text-header);">Balance Due</span>
+                            <span id="invDue" style="font-weight: 900; color: #e11d48;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="padding: 1.5rem 2rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">
+                    Note: <span id="invNote"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supplier Statement Modal -->
+    <div class="modal-overlay" id="statementModal">
+        <div class="modal-content" style="width: 950px; max-width: 95%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; padding: 0;">
+            <div style="padding: 1.5rem 2rem; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin:0; font-size: 1.3rem; font-weight: 800;"><i class="fa-solid fa-file-invoice-dollar"></i> Supplier Statement</h2>
+                    <p id="statementSupplierName" style="margin: 5px 0 0; color: #94a3b8; font-size: 0.9rem; font-weight: 600;"></p>
+                </div>
+                <button onclick="closeModal('statementModal')" style="background: rgba(255,255,255,0.1); border:none; color:white; width:40px; height:40px; border-radius:12px; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+
+            <div style="padding: 2rem; overflow-y: auto; flex-grow: 1; background: #f8fafc;">
+                <!-- Purchase History Section -->
+                <div style="margin-bottom: 2.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin:0; font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                            <span style="width: 8px; height: 20px; background: #6366f1; border-radius: 4px;"></span>
+                            Purchase History
+                        </h3>
+                    </div>
+                    <div class="table-wrapper" style="border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Total Cost</th>
+                                    <th>Paid</th>
+                                    <th>Status</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statementPurchasesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Payment History Section -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin:0; font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                            <span style="width: 8px; height: 20px; background: #10b981; border-radius: 4px;"></span>
+                            Payment History
+                        </h3>
+                    </div>
+                    <div class="table-wrapper" style="border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Notes</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statementPaymentsBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -637,7 +763,7 @@
 
         function syncActiveTab() {
             if (activeTab === 'suppliers') fetchSuppliers();
-            if (activeTab === 'suppliedBooks') fetchSuppliedBooks();
+
             if (activeTab === 'purchaseRecords') {
                 fetchPurchaseRecords();
                 loadCategories();
@@ -764,12 +890,12 @@
                                 style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.1rem; margin-right:20px;" title="Delete Supplier">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
-                            <button onclick="openCollectModal('${s.id}', '${s.name.replace(/'/g, "\\'")}')" 
-                                style="padding: 8px 14px; font-size: 0.7rem; border:none; border-radius:10px; background:var(--primary-blue); color:white; font-weight:800; cursor:pointer; margin-right:5px; transition:0.3s;">
-                                <i class="fa-solid fa-box-archive"></i> COLLECT
+                            <button onclick="viewSupplierStatement(${s.id}, '${s.name.replace(/'/g, "\\'")}')" 
+                                style="padding: 8px 14px; font-size: 0.7rem; border:none; border-radius:10px; background:#6366f1; color:white; font-weight:800; cursor:pointer; margin-right:5px; transition:0.3s;" title="View Statement">
+                                <i class="fa-solid fa-eye"></i> STATEMENT
                             </button>
                             <button onclick="openPayModal('${s.id}', '${s.name.replace(/'/g, "\\'")}', ${s.total_due})" 
-                                style="padding: 8px 14px; font-size: 0.7rem; border:none; border-radius:10px; background:#10b981; color:white; font-weight:800; cursor:pointer; transition:0.3s;">
+                                style="padding: 8px 14px; font-size: 0.7rem; border:none; border-radius:10px; background:#10b981; color:white; font-weight:800; cursor:pointer; transition:0.3s;" title="Make Payment">
                                 <i class="fa-solid fa-receipt"></i> PAY
                             </button>
                         </td>
@@ -798,19 +924,7 @@
             }
         }
 
-        function openCollectModal(id, name) {
-            activeSupplierId = id;
-            openModal('collectModal');
-            document.querySelector('#collectModal h2').innerText = "Record Collection: " + name;
-        }
 
-        function openPayModal(id, name, due) {
-            activeSupplierId = id;
-            document.getElementById('payDueDisplay').innerText = "৳" + due;
-            document.getElementById('payAmount').value = due;
-            openModal('payModal');
-            document.querySelector('#payModal h2').innerText = "Payment to: " + name;
-        }
 
         async function processPayment() {
             const payload = {
@@ -828,93 +942,13 @@
                 closeModal('payModal');
                 // Refresh all tabs
                 fetchSuppliers();
-                fetchSuppliedBooks();
                 fetchPurchaseRecords();
             }
         }
 
-        async function processCollection() {
-            const payload = {
-                supplierId: activeSupplierId,
-                title: document.getElementById('collTitle').value,
-                author: document.getElementById('collAuthor').value,
-                isbn: document.getElementById('collIsbn').value,
-                qty: document.getElementById('collQty').value,
-                cost: document.getElementById('collCost').value,
-                sale: document.getElementById('collSale').value
-            };
-            if (!payload.title || !payload.qty) return alert("Title and Quantity are required.");
 
-            const res = await fetch('../../api/controllers/SupplierController.php?action=receiveInventory', {
-                method: 'POST', body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if (data.success) {
-                showToast("Inventory updated successfully!");
-                closeModal('collectModal');
-                // Refresh all tabs
-                fetchSuppliers();
-                fetchSuppliedBooks();
-                fetchPurchaseRecords();
 
-                // Clear inputs
-                document.getElementById('collTitle').value = '';
-                document.getElementById('collAuthor').value = '';
-                document.getElementById('collQty').value = '';
-                document.getElementById('collCost').value = '';
-                document.getElementById('collSale').value = '';
-            }
-        }
 
-        async function fetchSuppliedBooks() {
-            const res = await fetch('../../api/controllers/SupplierController.php?action=getSupplierBooks');
-            const data = await res.json();
-            if (data.success) {
-                if (data.data.length === 0) {
-                    document.getElementById('procurementTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">No procurement history found.</td></tr>';
-                    return;
-                }
-                document.getElementById('procurementTableBody').innerHTML = data.data.map(d => `
-                    <tr>
-                        <td style="font-weight:700;">${d.supplier_name}</td>
-                        <td>${d.book_count}</td>
-                        <td style="color:var(--primary-blue); font-weight:700;">৳${(parseFloat(d.inventory_value) || 0).toLocaleString()}</td>
-                        <td style="text-align:right;">
-                            <button class="nav-link active" onclick="viewSupplierBooks('${d.supplier_name.replace(/'/g, "\\'")}')" style="padding: 6px 12px; font-size: 0.75rem; display:inline-flex;">
-                                <i class="fa-solid fa-eye"></i> VIEW BOOKS
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        async function viewSupplierBooks(name) {
-            document.getElementById('currentDetailSupplier').innerText = name;
-            openModal('viewBooksModal');
-
-            // Show loading state
-            document.getElementById('supplierDetailTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading books...</td></tr>';
-
-            const res = await fetch(`../../api/controllers/SupplierController.php?action=getBooksBySupplier&name=${encodeURIComponent(name)}`);
-            const data = await res.json();
-
-            if (data.success) {
-                if (data.books.length > 0) {
-                    document.getElementById('supplierDetailTableBody').innerHTML = data.books.map(b => `
-                        <tr>
-                            <td style="font-weight:700;">${b.title}</td>
-                            <td>${b.author || '<span style="color:#cbd5e1">Unknown</span>'}</td>
-                            <td>৳${parseFloat(b.purchase_price || 0).toLocaleString()}</td>
-                            <td>${b.stock_qty || 0}</td>
-                            <td style="font-weight:700; color:var(--primary-blue);">৳${(parseFloat(b.total_value) || 0).toLocaleString()}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    document.getElementById('supplierDetailTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No books found for this supplier.</td></tr>';
-                }
-            }
-        }
 
         async function fetchExternalBorrows() {
             const res = await fetch('../../api/controllers/SupplierController.php?action=listExternalBorrows');
@@ -932,40 +966,130 @@
             }
         }
 
-        async function fetchPurchaseRecords() {
-            // Setup table first (temporary for UI check)
-            // await fetch('../../api/controllers/SupplierController.php?action=setupPurchaseTable');
+        function openPayModal(id, name, due) {
+            activeSupplierId = id;
+            document.getElementById('payDueDisplay').innerText = "৳" + due;
+            document.getElementById('payAmount').value = due;
+            openModal('payModal');
+            document.querySelector('#payModal h2').innerText = "Payment to: " + name;
+        }
 
+        async function viewSupplierStatement(id, name) {
+            document.getElementById('statementSupplierName').innerText = name;
+            openModal('statementModal');
+            
+            // Fetch Purchases
+            const resP = await fetch(`../../api/controllers/SupplierController.php?action=listPurchaseRecords&supplier_id=${id}`);
+            const dataP = await resP.json();
+            if (dataP.success) {
+                const records = dataP.records || [];
+                document.getElementById('statementPurchasesBody').innerHTML = records.map(r => {
+                    let statusClass = r.payment_status === 'Paid' ? 'status-active' : 'status-overdue';
+                    return `
+                        <tr>
+                            <td>${r.purchase_date}</td>
+                            <td>${r.category}</td>
+                            <td style="font-weight:700;">৳${parseFloat(r.total_amount).toLocaleString()}</td>
+                            <td style="color:#10b981;">৳${parseFloat(r.paid_amount).toLocaleString()}</td>
+                            <td><span class="status-badge ${statusClass}">${r.payment_status}</span></td>
+                            <td style="text-align:right;">
+                                <button class="btn-fund" style="background:#f1f5f9; color:var(--text-header); padding:6px 10px; border:none; border-radius:8px; cursor:pointer;" onclick="viewInvoice(${r.id})">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('') || '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">No purchases found.</td></tr>';
+            }
+
+            // Fetch Payments
+            const resPay = await fetch(`../../api/controllers/SupplierController.php?action=listSupplierPayments&supplier_id=${id}`);
+            const dataPay = await resPay.json();
+            if (dataPay.success) {
+                const payments = dataPay.payments || [];
+                document.getElementById('statementPaymentsBody').innerHTML = payments.map(p => `
+                    <tr>
+                        <td>${new Date(p.payment_date).toLocaleDateString()}</td>
+                        <td style="font-weight:700; color:#10b981;">৳${parseFloat(p.amount).toLocaleString()}</td>
+                        <td>${p.method}</td>
+                        <td style="font-size:0.8rem; color:var(--text-muted);">${p.notes || '-'}</td>
+                        <td style="text-align:right;">
+                            <button class="btn-fund" style="background:#fff1f2; color:#ef4444; padding:6px 10px; border:none; border-radius:8px; cursor:pointer;" onclick="deletePayment(${p.id}, ${id}, '${name.replace(/'/g, "\\'")}')">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('') || '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No payments found.</td></tr>';
+            }
+        }
+
+        async function deletePayment(id, supplierId, name) {
+            if (!confirm("Are you sure you want to delete this payment record? This will increase the supplier due.")) return;
+            const res = await fetch(`../../api/controllers/SupplierController.php?action=deletePayment&id=${id}`);
+            if ((await res.json()).success) {
+                showToast("Payment record deleted.");
+                viewSupplierStatement(supplierId, name);
+                fetchSuppliers();
+            }
+        }
+
+        let allPurchaseRecords = [];
+        let purchaseDisplayLimit = 25;
+
+        async function fetchPurchaseRecords() {
             const res = await fetch('../../api/controllers/SupplierController.php?action=listPurchaseRecords');
             const data = await res.json();
             if (data.success) {
-                const records = data.records || [];
-                if (records.length > 0) {
-                    document.getElementById('purchaseRecordsTableBody').innerHTML = records.map(r => {
-                        let statusClass = r.payment_status === 'Paid' ? 'status-active' : (r.payment_status === 'Partial' ? 'status-overdue' : 'status-overdue');
-                        return `
-                            <tr>
-                                <td>${r.purchase_date}</td>
-                                <td style="font-weight:700;">${r.category || 'General'}</td>
-                                <td style="font-weight:700;">৳${parseFloat(r.total_amount).toLocaleString()}</td>
-                                <td style="color:#10b981;">৳${parseFloat(r.paid_amount).toLocaleString()}</td>
-                                <td><span class="status-badge ${statusClass}">${r.payment_status}</span></td>
-                                <td>${r.supplier_name || 'N/A'}</td>
-                                <td style="text-align:right; white-space:nowrap;">
-                                    <button class="btn-fund" style="background:#f1f5f9; color:var(--text-header); padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; cursor:pointer;" onclick="editPurchase(${r.id})">
-                                        <i class="fa-solid fa-edit"></i>
-                                    </button>
-                                    <button class="btn-fund" style="background:#fff1f2; color:#ef4444; padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; cursor:pointer; margin-left:5px;" onclick="deletePurchase(${r.id})">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
-                } else {
-                    document.getElementById('purchaseRecordsTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px; color: var(--text-muted);">No records found. Click "Add Purchase" to create one.</td></tr>';
-                }
+                allPurchaseRecords = data.records || [];
+                renderPurchaseRecords();
             }
+        }
+
+        function renderPurchaseRecords() {
+            const records = allPurchaseRecords.slice(0, purchaseDisplayLimit);
+            const container = document.getElementById('purchaseRecordsTableBody');
+            
+            if (records.length > 0) {
+                container.innerHTML = records.map(r => {
+                    let statusClass = r.payment_status === 'Paid' ? 'status-active' : 'status-overdue';
+                    return `
+                        <tr>
+                            <td style="white-space: nowrap;">${r.purchase_date}</td>
+                            <td style="font-weight:700;">${r.category || 'General'}</td>
+                            <td style="font-weight:700;">৳${parseFloat(r.total_amount).toLocaleString()}</td>
+                            <td style="color:#10b981;">৳${parseFloat(r.paid_amount).toLocaleString()}</td>
+                            <td><span class="status-badge ${statusClass}">${r.payment_status}</span></td>
+                            <td>${r.supplier_name || 'N/A'}</td>
+                            <td style="text-align:right; white-space:nowrap; display:flex; gap:5px; justify-content:flex-end;">
+                                <button class="btn-fund" style="background:#6366f1; color:white; padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; cursor:pointer;" onclick="viewInvoice(${r.id})">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                                <button class="btn-fund" style="background:#f1f5f9; color:var(--text-header); padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; cursor:pointer;" onclick="editPurchase(${r.id})">
+                                    <i class="fa-solid fa-edit"></i>
+                                </button>
+                                <button class="btn-fund" style="background:#fff1f2; color:#ef4444; padding:6px 10px; font-size:0.75rem; border:none; border-radius:8px; cursor:pointer;" onclick="deletePurchase(${r.id})">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const btnLoadAll = document.getElementById('btnLoadAllPurchases');
+                if (allPurchaseRecords.length > purchaseDisplayLimit) {
+                    btnLoadAll.style.display = 'flex';
+                } else {
+                    btnLoadAll.style.display = 'none';
+                }
+            } else {
+                container.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px; color: var(--text-muted);">No records found. Click "Add Purchase" to create one.</td></tr>';
+                document.getElementById('btnLoadAllPurchases').style.display = 'none';
+            }
+        }
+
+        function loadAllPurchases() {
+            purchaseDisplayLimit = allPurchaseRecords.length;
+            renderPurchaseRecords();
         }
 
         async function loadSuppliersForPurchase() {
@@ -1086,7 +1210,6 @@
                 showToast(payload.id ? "Purchase record updated!" : "Purchase record saved!");
                 closeModal('purchaseRecordModal');
                 fetchPurchaseRecords();
-                fetchSuppliedBooks();
                 fetchSuppliers(); // Refresh balance
             } else {
                 alert(data.error || "Failed to save record.");
@@ -1108,6 +1231,46 @@
             addPurchaseItemRow();
             calculatePurchaseTotal();
             openModal('purchaseRecordModal');
+        }
+
+        async function viewInvoice(id) {
+            const res = await fetch(`../../api/controllers/SupplierController.php?action=getPurchaseDetails&id=${id}`);
+            const data = await res.json();
+            if (data.success) {
+                const p = data.purchase;
+                const items = data.items;
+
+                document.getElementById('invNumber').innerText = `INV #${p.id.toString().padStart(5, '0')}`;
+                document.getElementById('invSupplierName').innerText = p.supplier_name || 'N/A';
+                document.getElementById('invSupplierContact').innerText = p.supplier_contact || '';
+                document.getElementById('invDate').innerText = new Date(p.purchase_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                
+                const statusEl = document.getElementById('invStatus');
+                statusEl.innerText = p.payment_status;
+                statusEl.style.background = p.payment_status === 'Paid' ? '#f0fdf4' : '#fff1f2';
+                statusEl.style.color = p.payment_status === 'Paid' ? '#16a34a' : '#e11d48';
+
+                document.getElementById('invoiceItemsBody').innerHTML = items.map(item => `
+                    <tr>
+                        <td style="padding: 12px 15px; font-weight: 700; color: var(--text-header);">${item.item_name}</td>
+                        <td style="padding: 12px 15px; color: var(--text-muted); font-family: monospace;">${item.isbn || '-'}</td>
+                        <td style="padding: 12px 15px; text-align: center; font-weight: 700;">${item.quantity}</td>
+                        <td style="padding: 12px 15px; text-align: right;">৳${parseFloat(item.unit_cost).toLocaleString()}</td>
+                        <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: var(--primary-blue);">৳${parseFloat(item.total_item_cost).toLocaleString()}</td>
+                    </tr>
+                `).join('');
+
+                const total = parseFloat(p.total_amount);
+                const paid = parseFloat(p.paid_amount);
+                const due = total - paid;
+
+                document.getElementById('invSubtotal').innerText = `৳${total.toLocaleString()}`;
+                document.getElementById('invPaid').innerText = `৳${paid.toLocaleString()}`;
+                document.getElementById('invDue').innerText = `৳${due.toLocaleString()}`;
+                document.getElementById('invNote').innerText = p.note || 'No additional notes provided.';
+
+                openModal('invoiceModal');
+            }
         }
 
         async function editPurchase(id) {
@@ -1185,7 +1348,6 @@
                 
                 // Refresh all tabs
                 fetchSuppliers();
-                fetchSuppliedBooks();
                 fetchPurchaseRecords();
             }
         }
