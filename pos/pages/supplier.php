@@ -492,9 +492,13 @@
                             <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Paid Amount</label>
                             <input type="number" id="purPaid" class="checkout-input" value="0">
                         </div>
-                        <div class="input-group" style="grid-column: span 2;">
+                        <div class="input-group" style="grid-column: span 1;">
                             <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Observation / Note</label>
                             <input type="text" id="purNote" class="checkout-input" placeholder="Any order details or reference numbers...">
+                        </div>
+                        <div class="input-group" style="grid-column: span 1; flex-direction: row; align-items: center; gap: 10px; padding-top: 25px;">
+                            <input type="checkbox" id="purUpdateStock" checked style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="purUpdateStock" style="font-size: 0.85rem; font-weight: 700; color: var(--text-header); cursor: pointer;">Update Inventory Stock</label>
                         </div>
                     </div>
 
@@ -987,13 +991,40 @@
             const row = `
                 <tr id="${rowId}">
                     <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-name" placeholder="Item/Book Name" style="padding: 8px 12px; font-size: 0.85rem;"></td>
-                    <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-isbn" placeholder="123456" style="padding: 8px 12px; font-size: 0.85rem;"></td>
+                    <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-isbn" oninput="findItemBySku(this)" placeholder="123456" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-cost" onkeyup="calculatePurchaseTotal()" placeholder="0.00" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-qty" onkeyup="calculatePurchaseTotal()" value="1" min="1" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px; text-align: center;"><button type="button" onclick="removePurchaseItemRow('${rowId}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button></td>
                 </tr>
             `;
             body.insertAdjacentHTML('beforeend', row);
+        }
+
+        async function findItemBySku(input) {
+            const sku = input.value.trim();
+            const row = input.closest('tr');
+            const nameField = row.querySelector('.pur-item-name');
+            const costField = row.querySelector('.pur-item-cost');
+
+            if (sku.length < 3) {
+                nameField.disabled = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(`../../api/controllers/SupplierController.php?action=findItemBySku&sku=${encodeURIComponent(sku)}`);
+                const data = await res.json();
+                if (data.success && data.item) {
+                    nameField.value = data.item.name;
+                    nameField.disabled = true;
+                    if (!costField.value || costField.value == 0) costField.value = data.item.cost;
+                    calculatePurchaseTotal();
+                } else {
+                    nameField.disabled = false;
+                }
+            } catch (e) {
+                nameField.disabled = false;
+            }
         }
 
         function removePurchaseItemRow(id) {
@@ -1042,6 +1073,7 @@
                 payment_method: document.getElementById('purPayMethod').value,
                 paid_amount: parseFloat(document.getElementById('purPaid').value) || 0,
                 note: document.getElementById('purNote').value,
+                update_stock: document.getElementById('purUpdateStock').checked,
                 items: items
             };
 
@@ -1069,6 +1101,7 @@
             document.getElementById('purPayMethod').value = 'Cash';
             document.getElementById('purPaid').value = '0';
             document.getElementById('purNote').value = '';
+            document.getElementById('purUpdateStock').checked = true;
             document.getElementById('purchaseItemsBody').innerHTML = '';
             document.getElementById('purModalTitle').innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Purchase Record';
             document.getElementById('btnSavePurchase').innerHTML = '<i class="fa-solid fa-save"></i> Save Purchase Record';
@@ -1096,10 +1129,17 @@
                 items.forEach(item => {
                     addPurchaseItemRow();
                     const lastRow = document.querySelector('#purchaseItemsBody tr:last-child');
-                    lastRow.querySelector('.pur-item-name').value = item.item_name;
-                    lastRow.querySelector('.pur-item-isbn').value = item.isbn || '';
+                    const nameInp = lastRow.querySelector('.pur-item-name');
+                    const isbnInp = lastRow.querySelector('.pur-item-isbn');
+                    
+                    nameInp.value = item.item_name;
+                    isbnInp.value = item.isbn || '';
                     lastRow.querySelector('.pur-item-cost').value = item.unit_cost;
                     lastRow.querySelector('.pur-item-qty').value = item.quantity;
+
+                    if (item.isbn) {
+                        nameInp.disabled = true;
+                    }
                 });
 
                 document.getElementById('purModalTitle').innerHTML = '<i class="fa-solid fa-edit"></i> Edit Purchase Record';

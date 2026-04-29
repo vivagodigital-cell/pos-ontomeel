@@ -352,83 +352,89 @@ try {
                 $purchaseId = $pdo->lastInsertId();
             }
 
-            // 5. Insert Items into purchase_items and update books table
-            foreach ($items as $item) {
+            // 5. Process Items
+            foreach ($items as $index => $item) {
                 $p_name = trim($item['name'] ?? '');
                 $p_isbn = trim($item['isbn'] ?? '');
                 
                 // Auto-generate SKU/Barcode if empty
                 if (empty($p_isbn)) {
                     $p_isbn = date('ymd') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                    // Update the item object so step 7 uses the same ISBN
+                    $items[$index]['isbn'] = $p_isbn; 
                 }
+                
                 $p_cost = floatval($item['unit_cost'] ?? 0);
                 $p_qty = intval($item['quantity'] ?? 1);
                 $p_total = $p_cost * $p_qty;
-
                 if (empty($p_name)) continue;
 
                 // A. Insert into purchase_items
                 $stmt = $pdo->prepare("INSERT INTO purchase_items (purchase_id, item_name, isbn, unit_cost, quantity, total_item_cost) VALUES (?,?,?,?,?,?)");
                 $stmt->execute([$purchaseId, $p_name, $p_isbn, $p_cost, $p_qty, $p_total]);
-
-                // B. Sync with inventory management (Preventing Duplicates)
-                // First, find or create the category ID for consistent migration
-                // Use the main 'categories' table to avoid foreign key conflicts with 'books' table
-                $getCat = $pdo->prepare("SELECT id FROM categories WHERE name = ?");
-                $getCat->execute([$category]);
-                $category_id = $getCat->fetchColumn();
-                if (!$category_id) {
-                    $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $category)));
-                    $insCat = $pdo->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
-                    $insCat->execute([$category, $slug]);
-                    $category_id = $pdo->lastInsertId();
-                }
-
-                $catLower = strtolower($category);
-                if ($catLower === 'book' || $catLower === 'books' || str_contains($catLower, 'book')) {
-                    $existing = null;
-                    if (!empty($p_isbn)) {
-                        $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE isbn = ?");
-                        $check->execute([$p_isbn]);
-                        $existing = $check->fetch();
-                    }
-
-                    if (!$existing && !empty($p_name)) {
-                        $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND (isbn IS NULL OR isbn = '')");
-                        $check->execute([$p_name]);
-                        $existing = $check->fetch();
-                    }
-
-                    if ($existing) {
-                        // Update existing inventory
-                        $newQty = $existing['stock_qty'] + $p_qty;
-                        $upd = $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ?, category_id = ? WHERE id = ?");
-                        $upd->execute([$newQty, $p_cost, $supplierName, $category, $category_id, $existing['id']]);
-                    } else {
-                        // Insert new item into books table
-                        $ins = $pdo->prepare("INSERT INTO books (title, isbn, item_type, category_id, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $ins->execute([$p_name, $p_isbn, $category, $category_id, $p_qty, $p_cost, $p_cost, $supplierName]);
-                    }
-                } else {
-                    $check = $pdo->prepare("SELECT id, quantity FROM inventory_items WHERE item_name = ?");
-                    $check->execute([$p_name]);
-                    $existing = $check->fetch();
-
-                    if ($existing) {
-                        $newQty = $existing['quantity'] + $p_qty;
-                        $upd = $pdo->prepare("UPDATE inventory_items SET quantity = ?, unit_cost = ?, supplier_id = ?, supplier_name = ?, item_type = ? WHERE id = ?");
-                        $upd->execute([$newQty, $p_cost, $supplierId, $supplierName, $category_id, $existing['id']]);
-                    } else {
-                        $ins = $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_id, supplier_name, barcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $ins->execute([$p_name, $category_id, $p_qty, $p_cost, $p_cost, $supplierId, $supplierName, $p_isbn]);
-                    }
-                }
             }
 
             // 6. Update Supplier Due if balance exists
             if ($supplierId && $grandTotal > $paidAmount) {
                 $due = $grandTotal - $paidAmount;
                 $pdo->prepare("UPDATE suppliers SET total_due = total_due + ? WHERE id = ?")->execute([$due, $supplierId]);
+            }
+
+            // 7. Update Stock if enabled
+            $updateStock = (bool)($data['update_stock'] ?? true);
+            if ($updateStock) {
+                foreach ($items as $item) {
+                    $p_name = trim($item['name'] ?? '');
+                    $p_isbn = trim($item['isbn'] ?? ''); // This will now be the generated one if it was empty
+                    $p_cost = floatval($item['unit_cost'] ?? 0);
+                    $p_qty = intval($item['quantity'] ?? 1);
+
+                    // Re-resolve category ID for stock update
+                    $getCat = $pdo->prepare("SELECT id FROM categories WHERE name = ?");
+                    $getCat->execute([$category]);
+                    $category_id = $getCat->fetchColumn();
+                    if (!$category_id) {
+                        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $category)));
+                        $insCat = $pdo->prepare("INSERT INTO categories (name, slug) VALUES (?, ?)");
+                        $insCat->execute([$category, $slug]);
+                        $category_id = $pdo->lastInsertId();
+                    }
+
+                    $catLower = strtolower($category);
+                    if ($catLower === 'book' || $catLower === 'books' || str_contains($catLower, 'book')) {
+                        $existing = null;
+                        if (!empty($p_isbn)) {
+                            $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE isbn = ?");
+                            $check->execute([$p_isbn]);
+                            $existing = $check->fetch();
+                        }
+                        if (!$existing && !empty($p_name)) {
+                            $check = $pdo->prepare("SELECT id, stock_qty FROM books WHERE title = ? AND (isbn IS NULL OR isbn = '')");
+                            $check->execute([$p_name]);
+                            $existing = $check->fetch();
+                        }
+                        if ($existing) {
+                            $newQty = $existing['stock_qty'] + $p_qty;
+                            $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ?, category_id = ? WHERE id = ?")
+                                ->execute([$newQty, $p_cost, $supplierName, $category, $category_id, $existing['id']]);
+                        } else {
+                            $pdo->prepare("INSERT INTO books (title, isbn, item_type, category_id, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                                ->execute([$p_name, $p_isbn, $category, $category_id, $p_qty, $p_cost, $p_cost, $supplierName]);
+                        }
+                    } else {
+                        $check = $pdo->prepare("SELECT id, quantity FROM inventory_items WHERE item_name = ?");
+                        $check->execute([$p_name]);
+                        $existing = $check->fetch();
+                        if ($existing) {
+                            $newQty = $existing['quantity'] + $p_qty;
+                            $pdo->prepare("UPDATE inventory_items SET quantity = ?, unit_cost = ?, supplier_id = ?, supplier_name = ?, item_type = ? WHERE id = ?")
+                                ->execute([$newQty, $p_cost, $supplierId, $supplierName, $category_id, $existing['id']]);
+                        } else {
+                            $pdo->prepare("INSERT INTO inventory_items (item_name, item_type, quantity, unit_cost, sell_price, supplier_id, supplier_name, barcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                                ->execute([$p_name, $category_id, $p_qty, $p_cost, $p_cost, $supplierId, $supplierName, $p_isbn]);
+                        }
+                    }
+                }
             }
 
             $pdo->commit();
@@ -511,6 +517,28 @@ try {
         } catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
+        }
+    }
+    elseif ($action === 'findItemBySku') {
+        $sku = $_GET['sku'] ?? '';
+        if (empty($sku)) throw new Exception("SKU required.");
+
+        // Check books
+        $stmt = $pdo->prepare("SELECT title as name, purchase_price as cost, 'book' as type FROM books WHERE isbn = ? LIMIT 1");
+        $stmt->execute([$sku]);
+        $item = $stmt->fetch();
+
+        if (!$item) {
+            // Check inventory_items
+            $stmt = $pdo->prepare("SELECT item_name as name, unit_cost as cost, 'general' as type FROM inventory_items WHERE barcode = ? LIMIT 1");
+            $stmt->execute([$sku]);
+            $item = $stmt->fetch();
+        }
+
+        if ($item) {
+            echo json_encode(['success' => true, 'item' => $item]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Item not found']);
         }
     }
 }
