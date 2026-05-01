@@ -690,7 +690,7 @@
             max-height: 11mm; 
             shape-rendering: crispEdges;
         }
-        .barcode-price { font-size: 18px; font-weight: 900; margin: 0; line-height: 1; letter-spacing: -0.5px; }
+        .barcode-price { font-size: 14px; font-weight: 900; margin: 0; line-height: 1; letter-spacing: -0.5px; }
 
         @media (max-width: 640px) {
             .bk-grid-2, .bk-grid-3, .bk-grid-4 { grid-template-columns: 1fr; }
