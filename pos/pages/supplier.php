@@ -149,6 +149,27 @@
             color: #ef4444;
         }
 
+        .stock-badge {
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        .stock-in {
+            background: #ecfdf5;
+            color: #10b981;
+        }
+        .stock-low {
+            background: #fff7ed;
+            color: #f97316;
+        }
+        .stock-out {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
         .tabs {
             display: flex;
             gap: 1rem;
@@ -741,6 +762,49 @@
         </div>
     </div>
 
+    <!-- Supplier Books & Stock Modal -->
+    <div class="modal-overlay" id="supplierBooksModal">
+        <div class="modal-content" style="width: 900px; max-width: 95%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; padding: 0;">
+            <div style="padding: 1.5rem 2rem; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 style="margin:0; font-size: 1.3rem; font-weight: 800;"><i class="fa-solid fa-book-open"></i> Procured Books & Inventory</h2>
+                    <p id="supBooksSupplierName" style="margin: 5px 0 0; color: #94a3b8; font-size: 0.9rem; font-weight: 600;"></p>
+                </div>
+                <button onclick="closeModal('supplierBooksModal')" style="background: rgba(255,255,255,0.1); border:none; color:white; width:40px; height:40px; border-radius:12px; cursor:pointer; font-size:1.2rem;">&times;</button>
+            </div>
+
+            <div style="padding: 1.25rem 2rem; background: white; border-bottom: 1px solid #f1f5f9; display: flex; gap: 15px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div style="position: relative; flex-grow: 1; max-width: 400px;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                    <input type="text" id="supBooksSearch" oninput="filterSupplierBooks()" class="checkout-input" placeholder="Search by title, author, or category..." style="padding-left: 40px; margin-bottom: 0;">
+                </div>
+                <div id="supBooksCountDisplay" style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">
+                    Showing 0 items
+                </div>
+            </div>
+
+            <div style="padding: 2rem; overflow-y: auto; flex-grow: 1; background: #f8fafc;">
+                <div class="table-wrapper" style="border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="padding: 1.2rem 1rem;">Title / Item</th>
+                                <th style="padding: 1.2rem 1rem;">Author</th>
+                                <th style="padding: 1.2rem 1rem;">Category</th>
+                                <th style="padding: 1.2rem 1rem; text-align: right;">Purchase Cost</th>
+                                <th style="padding: 1.2rem 1rem; text-align: center;">Total Procured</th>
+                                <th style="padding: 1.2rem 1rem; text-align: center;">Current Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplierBooksBody">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let activeTab = 'suppliers';
         function showTab(tab) {
@@ -875,7 +939,16 @@
             if (data.success) {
                 document.getElementById('supplierTableBody').innerHTML = data.suppliers.map(s => `
                     <tr>
-                        <td style="font-weight:700;">${s.name}</td>
+                        <td style="font-weight:700;">
+                            <span onclick="viewSupplierBooks('${s.name.replace(/'/g, "\\'")}')" 
+                                  style="color: var(--primary-blue); cursor: pointer; border-bottom: 1px dashed var(--primary-blue); padding-bottom: 2px; transition: color 0.2s, border-color 0.2s; display: inline-flex; align-items: center; gap: 6px;" 
+                                  title="Click to view procured books & stock"
+                                  onmouseover="this.style.color='#1d4ed8'; this.style.borderBottomColor='#1d4ed8';"
+                                  onmouseout="this.style.color='var(--primary-blue)'; this.style.borderBottomColor='var(--primary-blue)';"
+                            >
+                                ${s.name} <i class="fa-solid fa-book-open" style="font-size: 0.8rem; opacity: 0.7;"></i>
+                            </span>
+                        </td>
                         <td>
                             <div style="font-size:0.85rem;">${s.contact || 'N/A'}</div>
                             <div style="font-size:0.75rem; color:var(--text-muted);">${s.address || ''}</div>
@@ -972,6 +1045,83 @@
             document.getElementById('payAmount').value = due;
             openModal('payModal');
             document.querySelector('#payModal h2').innerText = "Payment to: " + name;
+        }
+
+        let supplierBooksList = [];
+        async function viewSupplierBooks(name) {
+            document.getElementById('supBooksSupplierName').innerText = name;
+            document.getElementById('supBooksSearch').value = '';
+            document.getElementById('supplierBooksBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-blue);"></i> Loading procured items...</td></tr>';
+            openModal('supplierBooksModal');
+            
+            try {
+                const res = await fetch(`../../api/controllers/SupplierController.php?action=getBooksBySupplier&name=${encodeURIComponent(name)}`);
+                const data = await res.json();
+                if (data.success) {
+                    supplierBooksList = data.books || [];
+                    renderSupplierBooks(supplierBooksList);
+                } else {
+                    document.getElementById('supplierBooksBody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#ef4444;">Error: ${data.error || 'Failed to load books'}</td></tr>`;
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('supplierBooksBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#ef4444;">Failed to retrieve books from server.</td></tr>';
+            }
+        }
+
+        function renderSupplierBooks(books) {
+            const tbody = document.getElementById('supplierBooksBody');
+            document.getElementById('supBooksCountDisplay').innerText = `Showing ${books.length} item${books.length === 1 ? '' : 's'}`;
+            
+            if (books.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-circle-info" style="font-size: 1.2rem; margin-bottom: 5px;"></i><br>No items or books found for this supplier.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = books.map(b => {
+                const stock = parseInt(b.stock_qty) || 0;
+                let badgeClass = 'stock-in';
+                let badgeText = 'In Stock';
+                if (stock === 0) {
+                    badgeClass = 'stock-out';
+                    badgeText = 'Out of Stock';
+                } else if (stock <= 5) {
+                    badgeClass = 'stock-low';
+                    badgeText = 'Low Stock';
+                }
+
+                const price = parseFloat(b.purchase_price) || 0;
+                const author = b.author ? b.author : '-';
+                const procured = b.purchased_qty ? parseInt(b.purchased_qty) : '-';
+
+                return `
+                    <tr>
+                        <td style="font-weight:700; color:var(--text-header);">${b.title}</td>
+                        <td>${author}</td>
+                        <td><span style="background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">${b.category_name || 'General'}</span></td>
+                        <td style="text-align:right; font-weight:700; color: var(--primary-blue);">৳${price.toFixed(2)}</td>
+                        <td style="text-align:center; font-weight:600;">${procured}</td>
+                        <td style="text-align:center;">
+                            <span class="stock-badge ${badgeClass}">${badgeText} (${stock})</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterSupplierBooks() {
+            const query = document.getElementById('supBooksSearch').value.toLowerCase().trim();
+            if (!query) {
+                renderSupplierBooks(supplierBooksList);
+                return;
+            }
+
+            const filtered = supplierBooksList.filter(b => 
+                (b.title && b.title.toLowerCase().includes(query)) ||
+                (b.author && b.author.toLowerCase().includes(query)) ||
+                (b.category_name && b.category_name.toLowerCase().includes(query))
+            );
+            renderSupplierBooks(filtered);
         }
 
         async function viewSupplierStatement(id, name) {

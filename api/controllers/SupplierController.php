@@ -107,43 +107,64 @@ try {
         if (empty($name))
             throw new Exception("Supplier name is required.");
 
-        $sql = "SELECT title, author, category_name, purchase_price, stock_qty, total_value FROM (
+        $sql = "SELECT title, author, category_name, purchase_price, purchased_qty, stock_qty, total_value FROM (
                     -- 1. Items from Purchase History
-                    SELECT pi.item_name as title, COALESCE(b.author, '') as author, COALESCE(c.name, cat_master.name, 'General') as category_name, pi.unit_cost as purchase_price, SUM(pi.quantity) as stock_qty, SUM(pi.total_item_cost) as total_value 
+                    SELECT 
+                        (pi.item_name COLLATE utf8mb4_unicode_ci) as title, 
+                        (COALESCE(b.author, '') COLLATE utf8mb4_unicode_ci) as author, 
+                        (COALESCE(c.name, p.category, 'General') COLLATE utf8mb4_unicode_ci) as category_name, 
+                        pi.unit_cost as purchase_price, 
+                        SUM(pi.quantity) as purchased_qty,
+                        COALESCE(b.stock_qty, i.quantity, 0) as stock_qty,
+                        SUM(pi.total_item_cost) as total_value 
                     FROM purchase_items pi
                     JOIN purchases p ON pi.purchase_id = p.id
-                    LEFT JOIN books b ON (pi.isbn = b.isbn AND pi.isbn != '') OR (pi.item_name = b.title AND (pi.isbn IS NULL OR pi.isbn = ''))
+                    LEFT JOIN books b ON ((pi.isbn COLLATE utf8mb4_unicode_ci = b.isbn COLLATE utf8mb4_unicode_ci AND pi.isbn != '') OR (pi.item_name COLLATE utf8mb4_unicode_ci = b.title COLLATE utf8mb4_unicode_ci AND (pi.isbn IS NULL OR pi.isbn = '')))
                     LEFT JOIN categories c ON b.category_id = c.id
-                    LEFT JOIN categories cat_master ON p.category_id = cat_master.id
+                    LEFT JOIN inventory_items i ON (pi.item_name COLLATE utf8mb4_unicode_ci = i.item_name COLLATE utf8mb4_unicode_ci AND (pi.isbn COLLATE utf8mb4_unicode_ci = i.barcode COLLATE utf8mb4_unicode_ci OR pi.isbn IS NULL OR pi.isbn = ''))
                     WHERE p.supplier_name = ?
-                    GROUP BY pi.item_name, pi.isbn, b.author, c.name, cat_master.name
+                    GROUP BY pi.item_name, pi.isbn, b.author, c.name, p.category, b.stock_qty, i.quantity, pi.unit_cost
                     
                     UNION ALL
 
                     -- 2. Legacy items from Books not in purchases
-                    SELECT b.title, b.author, COALESCE(c.name, 'Books') as category_name, COALESCE(b.purchase_price, 0) as purchase_price, COALESCE(b.stock_qty, 0) as stock_qty, (COALESCE(b.purchase_price, 0) * COALESCE(b.stock_qty, 0)) as total_value 
+                    SELECT 
+                        (b.title COLLATE utf8mb4_unicode_ci) as title, 
+                        (b.author COLLATE utf8mb4_unicode_ci) as author, 
+                        (COALESCE(c.name, 'Books') COLLATE utf8mb4_unicode_ci) as category_name, 
+                        COALESCE(b.purchase_price, 0) as purchase_price, 
+                        0 as purchased_qty,
+                        COALESCE(b.stock_qty, 0) as stock_qty, 
+                        (COALESCE(b.purchase_price, 0) * COALESCE(b.stock_qty, 0)) as total_value 
                     FROM books b
                     LEFT JOIN categories c ON b.category_id = c.id
                     WHERE b.supplier_name = ?
                     AND NOT EXISTS (
                         SELECT 1 FROM purchase_items pi 
                         JOIN purchases p ON pi.purchase_id = p.id 
-                        WHERE p.supplier_name = b.supplier_name 
-                        AND (pi.isbn = b.isbn OR pi.item_name = b.title)
+                        WHERE p.supplier_name COLLATE utf8mb4_unicode_ci = b.supplier_name COLLATE utf8mb4_unicode_ci 
+                        AND (pi.isbn COLLATE utf8mb4_unicode_ci = b.isbn COLLATE utf8mb4_unicode_ci OR pi.item_name COLLATE utf8mb4_unicode_ci = b.title COLLATE utf8mb4_unicode_ci)
                     )
 
                     UNION ALL
 
                     -- 3. Legacy items from Inventory Items
-                    SELECT i.item_name as title, '' as author, COALESCE(c.name, 'General') as category_name, COALESCE(i.unit_cost, 0) as purchase_price, COALESCE(i.quantity, 0) as stock_qty, (COALESCE(i.unit_cost, 0) * COALESCE(i.quantity, 0)) as total_value 
+                    SELECT 
+                        (i.item_name COLLATE utf8mb4_unicode_ci) as title, 
+                        ('' COLLATE utf8mb4_unicode_ci) as author, 
+                        (COALESCE(c.name, 'General') COLLATE utf8mb4_unicode_ci) as category_name, 
+                        COALESCE(i.unit_cost, 0) as purchase_price, 
+                        0 as purchased_qty,
+                        COALESCE(i.quantity, 0) as stock_qty, 
+                        (COALESCE(i.unit_cost, 0) * COALESCE(i.quantity, 0)) as total_value 
                     FROM inventory_items i 
                     LEFT JOIN categories c ON i.item_type = c.id
                     WHERE i.supplier_name = ?
                     AND NOT EXISTS (
                         SELECT 1 FROM purchase_items pi 
                         JOIN purchases p ON pi.purchase_id = p.id 
-                        WHERE p.supplier_name = i.supplier_name 
-                        AND pi.item_name = i.item_name
+                        WHERE p.supplier_name COLLATE utf8mb4_unicode_ci = i.supplier_name COLLATE utf8mb4_unicode_ci 
+                        AND pi.item_name COLLATE utf8mb4_unicode_ci = i.item_name COLLATE utf8mb4_unicode_ci
                     )
                 ) as combined 
                 ORDER BY title ASC";
