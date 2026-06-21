@@ -486,7 +486,7 @@
                     </div>
                     <div class="input-group">
                         <label style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Purchase Category</label>
-                        <select id="purCategory" class="checkout-input">
+                        <select id="purCategory" class="checkout-input" onchange="handleCategoryChange()">
                             <option value="">Loading...</option>
                         </select>
                     </div>
@@ -508,10 +508,11 @@
                         <table style="width: 100%; min-width: 600px;" id="purchaseItemsTable">
                             <thead>
                                 <tr style="text-align: left; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">
-                                    <th style="padding: 10px; width: 35%;">Item Name / Title</th>
-                                    <th style="padding: 10px; width: 25%;">ISBN/SKU/Barcode</th>
-                                    <th style="padding: 10px; width: 15%;">Unit Cost</th>
-                                    <th style="padding: 10px; width: 15%;">Qty</th>
+                                    <th style="padding: 10px; width: 30%;">Item Name / Title</th>
+                                    <th id="authorHeader" style="padding: 10px; width: 20%; display: none;">Author</th>
+                                    <th style="padding: 10px; width: 20%;">ISBN/SKU/Barcode</th>
+                                    <th style="padding: 10px; width: 10%;">Unit Cost</th>
+                                    <th style="padding: 10px; width: 10%;">Qty</th>
                                     <th style="padding: 10px; width: 10%;"></th>
                                 </tr>
                             </thead>
@@ -825,12 +826,14 @@
             syncActiveTab();
         }
 
-        function syncActiveTab() {
+        function syncActiveTab(isPeriodic = false) {
             if (activeTab === 'suppliers') fetchSuppliers();
 
             if (activeTab === 'purchaseRecords') {
                 fetchPurchaseRecords();
-                loadCategories();
+                if (!isPeriodic) {
+                    loadCategories();
+                }
             }
             if (activeTab === 'externalBorrows') fetchExternalBorrows();
         }
@@ -847,7 +850,9 @@
                     categories = data.categories;
                     const select = document.getElementById('purCategory');
                     if (select) {
-                        select.innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                        const currentValue = select.value;
+                        select.innerHTML = '<option value="" disabled' + (!currentValue ? ' selected' : '') + '>Select Category</option>' + 
+                            categories.map(c => `<option value="${c.name}"` + (c.name === currentValue ? ' selected' : '') + `>${c.name}</option>`).join('');
                     }
                     renderCategoryList();
                 }
@@ -1258,13 +1263,39 @@
             }
         }
 
+        function isBookCategory(categoryName) {
+            if (!categoryName) return false;
+            const catLower = categoryName.toLowerCase();
+            return catLower === 'book' || catLower === 'books' || catLower.includes('book');
+        }
+
+        function handleCategoryChange() {
+            const category = document.getElementById('purCategory').value;
+            const showAuthor = isBookCategory(category);
+            
+            // Toggle header
+            const header = document.getElementById('authorHeader');
+            if (header) {
+                header.style.display = showAuthor ? '' : 'none';
+            }
+            
+            // Toggle cells
+            const cells = document.querySelectorAll('#purchaseItemsBody .author-cell');
+            cells.forEach(cell => {
+                cell.style.display = showAuthor ? '' : 'none';
+            });
+        }
+
         let purchaseItemRowCount = 0;
         function addPurchaseItemRow() {
             const body = document.getElementById('purchaseItemsBody');
             const rowId = `item-row-${purchaseItemRowCount++}`;
+            const showAuthor = isBookCategory(document.getElementById('purCategory')?.value);
+            const authorStyle = showAuthor ? '' : 'display: none;';
             const row = `
                 <tr id="${rowId}">
                     <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-name" placeholder="Item/Book Name" style="padding: 8px 12px; font-size: 0.85rem;"></td>
+                    <td class="author-cell" style="padding: 5px; ${authorStyle}"><input type="text" class="checkout-input pur-item-author" placeholder="Author Name" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px;"><input type="text" class="checkout-input pur-item-isbn" oninput="findItemBySku(this)" placeholder="123456" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-cost" onkeyup="calculatePurchaseTotal()" placeholder="0.00" style="padding: 8px 12px; font-size: 0.85rem;"></td>
                     <td style="padding: 5px;"><input type="number" class="checkout-input pur-item-qty" onkeyup="calculatePurchaseTotal()" value="1" min="1" style="padding: 8px 12px; font-size: 0.85rem;"></td>
@@ -1322,12 +1353,20 @@
         async function savePurchaseRecord() {
             const rows = document.querySelectorAll('#purchaseItemsBody tr');
             const items = [];
+            const category = document.getElementById('purCategory').value;
+            if (!category) {
+                alert("Please select a category.");
+                return;
+            }
+            const isBook = isBookCategory(category);
             rows.forEach(row => {
                 const name = row.querySelector('.pur-item-name').value;
                 if (name) {
+                    const authorInp = row.querySelector('.pur-item-author');
                     items.push({
                         name: name,
                         isbn: row.querySelector('.pur-item-isbn').value,
+                        author: (isBook && authorInp) ? authorInp.value : '',
                         unit_cost: parseFloat(row.querySelector('.pur-item-cost').value) || 0,
                         quantity: parseInt(row.querySelector('.pur-item-qty').value) || 0
                     });
@@ -1369,7 +1408,7 @@
         function openPurchaseModal() {
             document.getElementById('purId').value = '';
             document.getElementById('purSupplier').value = '';
-            document.getElementById('purCategory').value = 'General';
+            document.getElementById('purCategory').value = '';
             document.getElementById('purDate').valueAsDate = new Date();
             document.getElementById('purPayMethod').value = 'Cash';
             document.getElementById('purPaid').value = '0';
@@ -1378,6 +1417,7 @@
             document.getElementById('purchaseItemsBody').innerHTML = '';
             document.getElementById('purModalTitle').innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Purchase Record';
             document.getElementById('btnSavePurchase').innerHTML = '<i class="fa-solid fa-save"></i> Save Purchase Record';
+            handleCategoryChange();
             addPurchaseItemRow();
             calculatePurchaseTotal();
             openModal('purchaseRecordModal');
@@ -1400,15 +1440,18 @@
                 statusEl.style.background = p.payment_status === 'Paid' ? '#f0fdf4' : '#fff1f2';
                 statusEl.style.color = p.payment_status === 'Paid' ? '#16a34a' : '#e11d48';
 
-                document.getElementById('invoiceItemsBody').innerHTML = items.map(item => `
-                    <tr>
-                        <td style="padding: 12px 15px; font-weight: 700; color: var(--text-header);">${item.item_name}</td>
-                        <td style="padding: 12px 15px; color: var(--text-muted); font-family: monospace;">${item.isbn || '-'}</td>
-                        <td style="padding: 12px 15px; text-align: center; font-weight: 700;">${item.quantity}</td>
-                        <td style="padding: 12px 15px; text-align: right;">৳${parseFloat(item.unit_cost).toLocaleString()}</td>
-                        <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: var(--primary-blue);">৳${parseFloat(item.total_item_cost).toLocaleString()}</td>
-                    </tr>
-                `).join('');
+                document.getElementById('invoiceItemsBody').innerHTML = items.map(item => {
+                    const authorText = item.author ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">by ${item.author}</div>` : '';
+                    return `
+                        <tr>
+                            <td style="padding: 12px 15px; font-weight: 700; color: var(--text-header);">${item.item_name}${authorText}</td>
+                            <td style="padding: 12px 15px; color: var(--text-muted); font-family: monospace;">${item.isbn || '-'}</td>
+                            <td style="padding: 12px 15px; text-align: center; font-weight: 700;">${item.quantity}</td>
+                            <td style="padding: 12px 15px; text-align: right;">৳${parseFloat(item.unit_cost).toLocaleString()}</td>
+                            <td style="padding: 12px 15px; text-align: right; font-weight: 700; color: var(--primary-blue);">৳${parseFloat(item.total_item_cost).toLocaleString()}</td>
+                        </tr>
+                    `;
+                }).join('');
 
                 const total = parseFloat(p.total_amount);
                 const paid = parseFloat(p.paid_amount);
@@ -1433,6 +1476,7 @@
                 document.getElementById('purId').value = p.id;
                 document.getElementById('purSupplier').value = p.supplier_id || '';
                 document.getElementById('purCategory').value = p.category;
+                handleCategoryChange();
                 document.getElementById('purDate').value = p.purchase_date;
                 document.getElementById('purPayMethod').value = p.payment_method;
                 document.getElementById('purPaid').value = p.paid_amount;
@@ -1444,9 +1488,13 @@
                     const lastRow = document.querySelector('#purchaseItemsBody tr:last-child');
                     const nameInp = lastRow.querySelector('.pur-item-name');
                     const isbnInp = lastRow.querySelector('.pur-item-isbn');
+                    const authorInp = lastRow.querySelector('.pur-item-author');
                     
                     nameInp.value = item.item_name;
                     isbnInp.value = item.isbn || '';
+                    if (authorInp) {
+                        authorInp.value = item.author || '';
+                    }
                     lastRow.querySelector('.pur-item-cost').value = item.unit_cost;
                     lastRow.querySelector('.pur-item-qty').value = item.quantity;
 
@@ -1544,7 +1592,7 @@
             }
 
             // Background sync - refresh active tab every 15 seconds
-            setInterval(syncActiveTab, 15000);
+            setInterval(() => syncActiveTab(true), 15000);
         };
     </script>
 </body>

@@ -2,6 +2,20 @@
 // api/controllers/SupplierController.php
 require_once __DIR__ . '/../config/database.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+        ini_set('session.cookie_secure', 1);
+    }
+    session_start();
+}
+if (!isset($_SESSION['admin_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Unauthorized access. Please log in.']);
+    exit;
+}
+
 header('Content-Type: application/json');
 
 $action = $_GET['action'] ?? '';
@@ -459,6 +473,7 @@ try {
             foreach ($items as $index => $item) {
                 $p_name = trim($item['name'] ?? '');
                 $p_isbn = trim($item['isbn'] ?? '');
+                $p_author = trim($item['author'] ?? '');
                 
                 // Auto-generate SKU/Barcode if empty
                 if (empty($p_isbn)) {
@@ -473,8 +488,8 @@ try {
                 if (empty($p_name)) continue;
 
                 // A. Insert into purchase_items
-                $stmt = $pdo->prepare("INSERT INTO purchase_items (purchase_id, item_name, isbn, unit_cost, quantity, total_item_cost) VALUES (?,?,?,?,?,?)");
-                $stmt->execute([$purchaseId, $p_name, $p_isbn, $p_cost, $p_qty, $p_total]);
+                $stmt = $pdo->prepare("INSERT INTO purchase_items (purchase_id, item_name, author, isbn, unit_cost, quantity, total_item_cost) VALUES (?,?,?,?,?,?,?)");
+                $stmt->execute([$purchaseId, $p_name, $p_author, $p_isbn, $p_cost, $p_qty, $p_total]);
             }
 
             // 6. Update Supplier Due if balance exists
@@ -489,6 +504,7 @@ try {
                 foreach ($items as $item) {
                     $p_name = trim($item['name'] ?? '');
                     $p_isbn = trim($item['isbn'] ?? ''); // This will now be the generated one if it was empty
+                    $p_author = trim($item['author'] ?? '');
                     $p_cost = floatval($item['unit_cost'] ?? 0);
                     $p_qty = intval($item['quantity'] ?? 1);
 
@@ -518,11 +534,16 @@ try {
                         }
                         if ($existing) {
                             $newQty = $existing['stock_qty'] + $p_qty;
-                            $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ?, category_id = ? WHERE id = ?")
-                                ->execute([$newQty, $p_cost, $supplierName, $category, $category_id, $existing['id']]);
+                            if (!empty($p_author)) {
+                                $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, author = ?, supplier_name = ?, item_type = ?, category_id = ? WHERE id = ?")
+                                    ->execute([$newQty, $p_cost, $p_author, $supplierName, $category, $category_id, $existing['id']]);
+                            } else {
+                                $pdo->prepare("UPDATE books SET stock_qty = ?, purchase_price = ?, supplier_name = ?, item_type = ?, category_id = ? WHERE id = ?")
+                                    ->execute([$newQty, $p_cost, $supplierName, $category, $category_id, $existing['id']]);
+                            }
                         } else {
-                            $pdo->prepare("INSERT INTO books (title, isbn, item_type, category_id, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-                                ->execute([$p_name, $p_isbn, $category, $category_id, $p_qty, $p_cost, $p_cost, $supplierName]);
+                            $pdo->prepare("INSERT INTO books (title, author, isbn, item_type, category_id, stock_qty, purchase_price, sell_price, supplier_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                                ->execute([$p_name, $p_author ?: null, $p_isbn, $category, $category_id, $p_qty, $p_cost, $p_cost, $supplierName]);
                         }
                     } else {
                         $check = $pdo->prepare("SELECT id, quantity FROM inventory_items WHERE item_name = ?");
