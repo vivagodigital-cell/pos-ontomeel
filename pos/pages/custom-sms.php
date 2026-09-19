@@ -78,7 +78,7 @@ renderUserUI(true);
             font-weight: 500;
         }
 
-        /* Stats Grid */
+        /* Stats Grid (5 Cards) */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -193,7 +193,7 @@ renderUserUI(true);
         /* Filter Section */
         .filter-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
             gap: 1rem;
             margin-bottom: 1.5rem;
             background: #f8fafc;
@@ -353,12 +353,10 @@ renderUserUI(true);
             text-transform: uppercase;
         }
 
-        .badge-member { background: #eff6ff; color: #2563eb; }
-        .badge-guest { background: #fdf4ff; color: #c026d3; }
-        .badge-general { background: #ecfdf5; color: #059669; }
-        .badge-booklover { background: #eff6ff; color: #2563eb; }
-        .badge-collector { background: #fdf2f8; color: #db2777; }
-        .badge-none { background: #f1f5f9; color: #64748b; }
+        .badge-pos { background: #eff6ff; color: #2563eb; }
+        .badge-web { background: #fdf4ff; color: #c026d3; }
+        .badge-member { background: #ecfdf5; color: #059669; }
+        .badge-guest { background: #fffbeb; color: #d97706; }
         
         .valid-pill {
             display: inline-flex;
@@ -694,8 +692,8 @@ renderUserUI(true);
         <!-- Page Header -->
         <div class="page-header">
             <div class="page-title">
-                <h1><i class="fa-solid fa-comment-sms" style="color: #2563eb;"></i> Send Custom SMS</h1>
-                <p>Filter, personalize, and broadcast custom SMS campaigns with live cost estimation & balance tracker.</p>
+                <h1><i class="fa-solid fa-comment-sms" style="color: #2563eb;"></i> Send Custom SMS to Buyers</h1>
+                <p>Target actual customers & buyers from POS transactions, website orders, or specific book purchases.</p>
             </div>
             <div style="display: flex; gap: 0.75rem;">
                 <button class="btn btn-outline" onclick="loadRecipients()">
@@ -711,10 +709,10 @@ renderUserUI(true);
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon icon-blue">
-                    <i class="fa-solid fa-users"></i>
+                    <i class="fa-solid fa-bag-shopping"></i>
                 </div>
                 <div class="stat-info">
-                    <h3>Filtered Contacts</h3>
+                    <h3>Filtered Buyers</h3>
                     <p class="stat-value" id="statTotalContacts">0</p>
                     <span style="font-size: 0.75rem; color: #64748b;" id="statValidContacts">0 valid numbers</span>
                 </div>
@@ -772,47 +770,54 @@ renderUserUI(true);
             <!-- Left: Audience Filtering & Selection Table -->
             <div class="panel-card">
                 <div class="panel-header">
-                    <h2><i class="fa-solid fa-filter" style="color: #2563eb;"></i> 1. Filter Audience & Select Recipients</h2>
-                    <span id="listBadge" class="badge badge-member">All Contacts</span>
+                    <h2><i class="fa-solid fa-filter" style="color: #2563eb;"></i> 1. Select Buyer Channel & Filters</h2>
+                    <span id="listBadge" class="badge badge-pos">POS In-Store Buyers</span>
                 </div>
 
                 <!-- Filters -->
                 <div class="filter-grid">
                     <div class="filter-item">
-                        <label>Audience Group</label>
+                        <label>Target Audience Channel</label>
                         <select id="filterAudience" class="form-control" onchange="onAudienceChange()">
-                            <option value="all">All Contacts (Members + Buyers)</option>
-                            <option value="members">Members & Readers Only</option>
-                            <option value="guests">Guest Buyers Only</option>
+                            <option value="pos_buyers" selected>🎯 POS / In-Store Transaction Buyers</option>
+                            <option value="web_buyers">🌐 Website / Pre-Order Buyers</option>
+                            <option value="all_buyers">🛍️ All Actual Order Buyers (POS + Web)</option>
+                            <option value="book_buyers">📚 Buyers of Specific Book / Item</option>
+                            <option value="members">👥 All Registered Members (Directory)</option>
                         </select>
                     </div>
 
-                    <div class="filter-item" id="filterPlanWrapper">
-                        <label>Membership Plan</label>
-                        <select id="filterPlan" class="form-control" onchange="loadRecipients()">
-                            <option value="all">All Plans</option>
-                            <option value="General">General</option>
-                            <option value="BookLover">BookLover</option>
-                            <option value="Collector">Collector</option>
-                            <option value="None">None (Standard)</option>
+                    <div class="filter-item" id="filterBuyerTypeWrapper">
+                        <label>Buyer Type</label>
+                        <select id="filterBuyerType" class="form-control" onchange="loadRecipients()">
+                            <option value="all">All (Walk-ins + Member Buyers)</option>
+                            <option value="guest">Walk-in / Guest Buyers Only</option>
+                            <option value="member">Registered Member Buyers Only</option>
                         </select>
                     </div>
 
-                    <div class="filter-item" id="filterMemberStatusWrapper">
-                        <label>Member Status</label>
-                        <select id="filterMemberStatus" class="form-control" onchange="loadRecipients()">
-                            <option value="all">All Statuses</option>
-                            <option value="1">Active Only</option>
-                            <option value="0">Inactive</option>
+                    <div class="filter-item" id="filterBookWrapper" style="display: none; grid-column: span 2;">
+                        <label>Purchased Book / Pre-Order</label>
+                        <select id="filterBookId" class="form-control" onchange="loadRecipients()">
+                            <option value="">-- Select a Book or Pre-Order Title --</option>
                         </select>
                     </div>
 
-                    <div class="filter-item" id="filterDateFromWrapper" style="display: none;">
+                    <div class="filter-item" id="filterCriteriaWrapper">
+                        <label>Purchase Criteria</label>
+                        <select id="filterOrderCount" class="form-control" onchange="loadRecipients()">
+                            <option value="0">All Buyers (1+ Orders)</option>
+                            <option value="2">Repeat Buyers (2+ Orders)</option>
+                            <option value="3">Loyal Buyers (3+ Orders)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-item" id="filterDateFromWrapper">
                         <label>Order Date From</label>
                         <input type="date" id="filterDateFrom" class="form-control" onchange="loadRecipients()">
                     </div>
 
-                    <div class="filter-item" id="filterDateToWrapper" style="display: none;">
+                    <div class="filter-item" id="filterDateToWrapper">
                         <label>Order Date To</label>
                         <input type="date" id="filterDateTo" class="form-control" onchange="loadRecipients()">
                     </div>
@@ -833,7 +838,7 @@ renderUserUI(true);
                     </div>
 
                     <div class="toolbar-right">
-                        <input type="text" id="tableSearch" class="form-control" style="width: 170px; padding: 0.4rem 0.75rem; font-size: 0.8rem;" placeholder="Search name/phone..." onkeyup="filterLocalTable()">
+                        <input type="text" id="tableSearch" class="form-control" style="width: 170px; padding: 0.4rem 0.75rem; font-size: 0.8rem;" placeholder="Search buyer/phone/invoice..." onkeyup="filterLocalTable()">
                         <button class="btn btn-outline btn-sm" onclick="copyNumbersToClipboard()" title="Copy comma separated numbers">
                             <i class="fa-solid fa-copy"></i> Copy
                         </button>
@@ -851,17 +856,17 @@ renderUserUI(true);
                                 <th style="width: 40px; text-align: center;">
                                     <input type="checkbox" id="masterCheckbox" onchange="toggleMasterCheckbox(this.checked)" checked>
                                 </th>
-                                <th>Name</th>
+                                <th>Buyer Name</th>
                                 <th>Phone</th>
-                                <th>Category / Plan</th>
-                                <th>Status</th>
+                                <th>Order History</th>
+                                <th>Channel / Type</th>
                             </tr>
                         </thead>
                         <tbody id="recipientsTableBody">
                             <tr>
                                 <td colspan="5" style="text-align: center; padding: 3rem; color: #64748b;">
                                     <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: #2563eb;"></i>
-                                    <p style="margin-top: 0.75rem; font-weight: 600;">Loading recipients...</p>
+                                    <p style="margin-top: 0.75rem; font-weight: 600;">Loading real buyers from transactions...</p>
                                 </td>
                             </tr>
                         </tbody>
@@ -882,11 +887,11 @@ renderUserUI(true);
                     </label>
                     <select id="templatePicker" class="form-control" onchange="applyTemplate(this.value)">
                         <option value="">-- Choose a Quick Preset --</option>
-                        <option value="new_arrivals">📚 New Book Arrivals Announcement</option>
-                        <option value="special_discount">🎉 Special Discount & Offers</option>
+                        <option value="thank_you">🙏 Thank You For Your Recent Purchase</option>
+                        <option value="new_arrivals">📚 New Book Arrivals at Ontomeel</option>
+                        <option value="special_discount">🎉 Exclusive Discount for Buyers</option>
                         <option value="borrow_reminder">⏳ Library Book Return Reminder</option>
                         <option value="membership_renewal">💳 Membership Renewal Notice</option>
-                        <option value="thank_you">🙏 Thank You For Shopping</option>
                     </select>
                 </div>
 
@@ -895,14 +900,14 @@ renderUserUI(true);
                     <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
                         Insert Dynamic Tags:
                     </span>
-                    <span class="tag-pill" onclick="insertTag('{name}')" title="Insert customer/member name">
+                    <span class="tag-pill" onclick="insertTag('{name}')" title="Insert customer/buyer name">
                         <i class="fa-solid fa-user-tag"></i> {name}
                     </span>
                 </div>
 
                 <!-- SMS Textarea -->
                 <div class="textarea-wrapper">
-                    <textarea id="smsMessage" class="sms-textarea" placeholder="Type your custom SMS message here... Use {name} for personalized greetings." oninput="updateSMSCounters()"></textarea>
+                    <textarea id="smsMessage" class="sms-textarea" placeholder="Type your custom SMS message here... Use {name} for personalized buyer greetings." oninput="updateSMSCounters()"></textarea>
                 </div>
 
                 <!-- SMS Counter Bar -->
@@ -939,7 +944,7 @@ renderUserUI(true);
 
                     <div class="cost-breakdown-grid">
                         <div class="cost-breakdown-item">
-                            <span>Selected Receivers:</span>
+                            <span>Selected Buyers:</span>
                             <strong id="calcReceivers">0</strong>
                         </div>
                         <div class="cost-breakdown-item">
@@ -975,7 +980,7 @@ renderUserUI(true);
                 <!-- Broadcast CTA -->
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <button class="btn btn-primary" style="padding: 0.95rem; font-size: 0.95rem; width: 100%;" onclick="confirmBroadcast()">
-                        <i class="fa-solid fa-paper-plane"></i> Broadcast to <span id="btnSelectedCount">0</span> Contacts (<span id="btnEstimatedCost">৳0.00</span>)
+                        <i class="fa-solid fa-paper-plane"></i> Broadcast to <span id="btnSelectedCount">0</span> Buyers (<span id="btnEstimatedCost">৳0.00</span>)
                     </button>
                     <button class="btn btn-outline" style="width: 100%;" onclick="openTestModal()">
                         <i class="fa-solid fa-vial"></i> Send Single Test SMS
@@ -1070,20 +1075,22 @@ renderUserUI(true);
         let allRecipients = [];
         let selectedRecipientsMap = new Set();
         let currentSmsBalance = null;
+        let booksListLoaded = false;
 
         const templates = {
-            new_arrivals: "Hello {name}, exciting news! Fresh new book titles have just arrived at Ontomeel Library & Bookshop. Visit us today or browse our latest catalog!",
+            thank_you: "Dear {name}, thank you for your recent purchase at Ontomeel Bookshop! We hope you love your books. Explore our latest arrivals anytime at Ontomeel!",
+            new_arrivals: "Hello {name}, exciting news! Fresh new book titles have just arrived at Ontomeel Library & Bookshop. Visit our POS desk or catalog to grab yours!",
             special_discount: "Dear {name}, enjoy an exclusive 15% discount on all books and stationery this week at Ontomeel! Use code SPECIAL15 at checkout.",
-            borrow_reminder: "Hi {name}, this is a gentle reminder regarding your borrowed library book from Ontomeel. Please ensure return or renewal on time to avoid late fines. Thank you!",
-            membership_renewal: "Hello {name}, your Ontomeel Library membership is up for renewal. Renew now to enjoy uninterrupted book borrowing & exclusive perks!",
-            thank_you: "Thank you {name} for your recent purchase at Ontomeel! We hope you enjoy reading your books. Have a wonderful day!"
+            borrow_reminder: "Hi {name}, this is a gentle reminder regarding your borrowed library book from Ontomeel. Please ensure return or renewal on time. Thank you!",
+            membership_renewal: "Hello {name}, your Ontomeel Library membership is up for renewal. Renew now to enjoy uninterrupted book borrowing & exclusive perks!"
         };
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchSMSBalance();
+            loadBooksList();
             loadRecipients();
             // Default message
-            document.getElementById('smsMessage').value = templates.new_arrivals;
+            document.getElementById('smsMessage').value = templates.thank_you;
             updateSMSCounters();
         });
 
@@ -1115,35 +1122,62 @@ renderUserUI(true);
             updateSMSCounters();
         }
 
+        // Load Books List for Specific Book Filter
+        async function loadBooksList() {
+            try {
+                const res = await fetch('../../api/controllers/CustomSMSController.php?action=getBooksList');
+                const data = await res.json();
+                if (data.success && data.books) {
+                    const select = document.getElementById('filterBookId');
+                    select.innerHTML = '<option value="">-- All Books / Pre-Orders --</option>';
+                    data.books.forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.id;
+                        opt.textContent = b.title;
+                        select.appendChild(opt);
+                    });
+                    booksListLoaded = true;
+                }
+            } catch (e) {}
+        }
+
         function onAudienceChange() {
             const aud = document.getElementById('filterAudience').value;
-            const planWrapper = document.getElementById('filterPlanWrapper');
-            const memberStatusWrapper = document.getElementById('filterMemberStatusWrapper');
-            const dateFromWrapper = document.getElementById('filterDateFromWrapper');
-            const dateToWrapper = document.getElementById('filterDateToWrapper');
+            const buyerTypeWrapper = document.getElementById('filterBuyerTypeWrapper');
+            const bookWrapper = document.getElementById('filterBookWrapper');
+            const criteriaWrapper = document.getElementById('filterCriteriaWrapper');
             const badge = document.getElementById('listBadge');
 
-            if (aud === 'members') {
-                planWrapper.style.display = 'flex';
-                memberStatusWrapper.style.display = 'flex';
-                dateFromWrapper.style.display = 'none';
-                dateToWrapper.style.display = 'none';
-                badge.innerText = 'Members & Readers';
+            if (aud === 'pos_buyers') {
+                buyerTypeWrapper.style.display = 'flex';
+                bookWrapper.style.display = 'none';
+                criteriaWrapper.style.display = 'flex';
+                badge.innerText = 'POS In-Store Buyers';
+                badge.className = 'badge badge-pos';
+            } else if (aud === 'web_buyers') {
+                buyerTypeWrapper.style.display = 'flex';
+                bookWrapper.style.display = 'none';
+                criteriaWrapper.style.display = 'flex';
+                badge.innerText = 'Website / Pre-Order Buyers';
+                badge.className = 'badge badge-web';
+            } else if (aud === 'book_buyers') {
+                buyerTypeWrapper.style.display = 'flex';
+                bookWrapper.style.display = 'flex';
+                criteriaWrapper.style.display = 'flex';
+                badge.innerText = 'Specific Book Buyers';
+                badge.className = 'badge badge-pos';
+            } else if (aud === 'members') {
+                buyerTypeWrapper.style.display = 'none';
+                bookWrapper.style.display = 'none';
+                criteriaWrapper.style.display = 'none';
+                badge.innerText = 'Member Directory';
                 badge.className = 'badge badge-member';
-            } else if (aud === 'guests') {
-                planWrapper.style.display = 'none';
-                memberStatusWrapper.style.display = 'none';
-                dateFromWrapper.style.display = 'flex';
-                dateToWrapper.style.display = 'flex';
-                badge.innerText = 'Guest Buyers';
-                badge.className = 'badge badge-guest';
             } else {
-                planWrapper.style.display = 'flex';
-                memberStatusWrapper.style.display = 'flex';
-                dateFromWrapper.style.display = 'none';
-                dateToWrapper.style.display = 'none';
-                badge.innerText = 'All Contacts';
-                badge.className = 'badge badge-member';
+                buyerTypeWrapper.style.display = 'flex';
+                bookWrapper.style.display = 'none';
+                criteriaWrapper.style.display = 'flex';
+                badge.innerText = 'All Order Buyers (POS + Web)';
+                badge.className = 'badge badge-pos';
             }
 
             loadRecipients();
@@ -1152,8 +1186,9 @@ renderUserUI(true);
         // Load Recipients from API
         async function loadRecipients() {
             const audience = document.getElementById('filterAudience').value;
-            const plan = document.getElementById('filterPlan').value;
-            const memberStatus = document.getElementById('filterMemberStatus').value;
+            const buyerType = document.getElementById('filterBuyerType').value;
+            const bookId = document.getElementById('filterBookId') ? document.getElementById('filterBookId').value : '';
+            const orderCountMin = document.getElementById('filterOrderCount').value;
             const dateFrom = document.getElementById('filterDateFrom').value;
             const dateTo = document.getElementById('filterDateTo').value;
 
@@ -1162,7 +1197,7 @@ renderUserUI(true);
                 <tr>
                     <td colspan="5" style="text-align: center; padding: 3rem; color: #64748b;">
                         <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: #2563eb;"></i>
-                        <p style="margin-top: 0.75rem; font-weight: 600;">Loading filtered contacts...</p>
+                        <p style="margin-top: 0.75rem; font-weight: 600;">Loading filtered buyers from orders...</p>
                     </td>
                 </tr>
             `;
@@ -1171,8 +1206,9 @@ renderUserUI(true);
                 const params = new URLSearchParams({
                     action: 'getRecipients',
                     audience,
-                    plan,
-                    member_status: memberStatus,
+                    buyer_type: buyerType,
+                    book_id: bookId,
+                    order_count_min: orderCountMin,
                     date_from: dateFrom,
                     date_to: dateTo
                 });
@@ -1197,7 +1233,7 @@ renderUserUI(true);
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="5" style="text-align: center; padding: 2rem; color: #ef4444;">
-                                <i class="fa-solid fa-triangle-exclamation"></i> ${data.error || 'Failed to fetch contacts'}
+                                <i class="fa-solid fa-triangle-exclamation"></i> ${data.error || 'Failed to fetch buyers'}
                             </td>
                         </tr>
                     `;
@@ -1206,7 +1242,7 @@ renderUserUI(true);
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="5" style="text-align: center; padding: 2rem; color: #ef4444;">
-                            <i class="fa-solid fa-triangle-exclamation"></i> Network error loading contacts.
+                            <i class="fa-solid fa-triangle-exclamation"></i> Network error loading buyers.
                         </td>
                     </tr>
                 `;
@@ -1221,6 +1257,7 @@ renderUserUI(true);
                 if (!search) return true;
                 return (r.name && r.name.toLowerCase().includes(search)) ||
                        (r.phone && r.phone.includes(search)) ||
+                       (r.recent_invoices && r.recent_invoices.toLowerCase().includes(search)) ||
                        (r.sub_category && r.sub_category.toLowerCase().includes(search));
             });
 
@@ -1229,7 +1266,7 @@ renderUserUI(true);
                     <tr>
                         <td colspan="5" style="text-align: center; padding: 2.5rem; color: #64748b;">
                             <i class="fa-regular fa-folder-open fa-2x" style="margin-bottom: 0.5rem; color: #cbd5e1;"></i>
-                            <p style="margin: 0; font-weight: 600;">No matching contacts found.</p>
+                            <p style="margin: 0; font-weight: 600;">No matching buyers found for these filters.</p>
                         </td>
                     </tr>
                 `;
@@ -1239,15 +1276,9 @@ renderUserUI(true);
             let html = '';
             filtered.forEach(r => {
                 const isChecked = selectedRecipientsMap.has(r.id);
-                let badgeClass = 'badge-none';
-                if (r.category === 'Member') {
-                    const planLower = (r.plan || '').toLowerCase();
-                    badgeClass = planLower === 'general' ? 'badge-general' : 
-                                 planLower === 'booklover' ? 'badge-booklover' : 
-                                 planLower === 'collector' ? 'badge-collector' : 'badge-none';
-                } else {
-                    badgeClass = 'badge-guest';
-                }
+                const isPos = r.category.includes('POS');
+                const badgeClass = isPos ? 'badge-pos' : (r.category.includes('Website') ? 'badge-web' : 'badge-member');
+                const buyerTypeClass = r.buyer_type === 'Member Buyer' ? 'badge-member' : 'badge-guest';
 
                 html += `
                     <tr class="${isChecked ? 'selected' : ''}" onclick="toggleRowCheckbox('${r.id}', event)">
@@ -1256,16 +1287,20 @@ renderUserUI(true);
                         </td>
                         <td>
                             <div style="font-weight: 700; color: #0f172a;">${escapeHtml(r.name)}</div>
+                            <div style="font-size: 0.75rem; color: #64748b;">Last: ${r.last_order_date ? r.last_order_date.slice(0, 10) : 'N/A'}</div>
                         </td>
                         <td>
                             <div style="font-weight: 600; font-family: monospace;">${escapeHtml(r.phone)}</div>
                             ${r.is_valid ? '<span class="valid-pill"><i class="fa-solid fa-circle-check"></i> Valid BD Phone</span>' : '<span class="invalid-pill"><i class="fa-solid fa-circle-xmark"></i> Non-standard</span>'}
                         </td>
                         <td>
-                            <span class="badge ${badgeClass}">${escapeHtml(r.sub_category || r.category)}</span>
+                            <span style="font-weight: 700; color: #0f172a;">${escapeHtml(r.sub_category || '1 Order')}</span>
                         </td>
                         <td>
-                            <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">${escapeHtml(r.status)}</span>
+                            <div style="display: flex; flex-direction: column; gap: 3px; align-items: flex-start;">
+                                <span class="badge ${badgeClass}">${escapeHtml(r.category)}</span>
+                                <span class="badge ${buyerTypeClass}">${escapeHtml(r.buyer_type || 'Buyer')}</span>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -1411,14 +1446,12 @@ renderUserUI(true);
 
             let parts = 1;
             if (unicode) {
-                // Unicode (e.g. Bengali): 70 chars per 1 part, 67 chars per part for multipart
                 if (charCount > 70) {
                     parts = Math.ceil(charCount / 67);
                 }
                 document.getElementById('encodingBadge').innerText = "Unicode (70 chars/part)";
                 document.getElementById('encodingBadge').style.color = "#d97706";
             } else {
-                // GSM 7-bit (English): 160 chars per 1 part, 153 chars per part for multipart
                 if (charCount > 160) {
                     parts = Math.ceil(charCount / 153);
                 }
@@ -1471,7 +1504,7 @@ renderUserUI(true);
 
             // Update live preview
             const sampleName = allRecipients.length > 0 ? (allRecipients[0].name || 'John Doe') : 'John Doe';
-            document.getElementById('previewRecipientName').innerText = `Recipient: ${sampleName}`;
+            document.getElementById('previewRecipientName').innerText = `Buyer: ${sampleName}`;
             
             const previewText = msg.replace(/{name}/gi, sampleName);
             document.getElementById('smsPreviewContent').innerText = previewText || "Type a message above to see how it will appear on customer's phone...";
@@ -1481,7 +1514,7 @@ renderUserUI(true);
         function copyNumbersToClipboard() {
             const selectedList = allRecipients.filter(r => selectedRecipientsMap.has(r.id));
             if (selectedList.length === 0) {
-                showToast("No recipients selected to copy.", "error");
+                showToast("No buyers selected to copy.", "error");
                 return;
             }
             const numbers = selectedList.map(r => r.phone).join(', ');
@@ -1493,23 +1526,26 @@ renderUserUI(true);
         function exportToCSV() {
             const selectedList = allRecipients.filter(r => selectedRecipientsMap.has(r.id));
             if (selectedList.length === 0) {
-                showToast("No recipients selected for export.", "error");
+                showToast("No buyers selected for export.", "error");
                 return;
             }
 
-            let csvContent = "data:text/csv;charset=utf-8,Name,Phone,Category,Status\n";
+            let csvContent = "data:text/csv;charset=utf-8,Name,Phone,Channel,BuyerType,TotalOrders,TotalSpent,LastOrderDate\n";
             selectedList.forEach(r => {
                 const name = `"${(r.name || '').replace(/"/g, '""')}"`;
                 const phone = `"${r.phone}"`;
-                const cat = `"${r.sub_category || r.category}"`;
-                const status = `"${r.status}"`;
-                csvContent += `${name},${phone},${cat},${status}\n`;
+                const cat = `"${r.category}"`;
+                const type = `"${r.buyer_type}"`;
+                const orders = `"${r.total_orders}"`;
+                const spent = `"${r.total_spent}"`;
+                const lastDate = `"${r.last_order_date || ''}"`;
+                csvContent += `${name},${phone},${cat},${type},${orders},${spent},${lastDate}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `ontomeel_sms_contacts_${new Date().toISOString().slice(0,10)}.csv`);
+            link.setAttribute("download", `ontomeel_buyers_sms_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1519,7 +1555,7 @@ renderUserUI(true);
         // Test Modal
         function openTestModal() {
             const msg = document.getElementById('smsMessage').value;
-            const testName = document.getElementById('testRecipientName').value || 'Test User';
+            const testName = document.getElementById('testRecipientName').value || 'Test Buyer';
             document.getElementById('testMessagePreview').innerText = msg.replace(/{name}/gi, testName);
             document.getElementById('testModal').classList.add('active');
         }
@@ -1587,7 +1623,7 @@ renderUserUI(true);
             const totalCost = totalDispatches * rate;
 
             if (selectedList.length === 0) {
-                showToast("Please select at least one recipient.", "error");
+                showToast("Please select at least one buyer.", "error");
                 return;
             }
             if (!msg) {
@@ -1596,7 +1632,7 @@ renderUserUI(true);
             }
 
             const confirmMsg = `Broadcasting Campaign Summary:
-• Recipients: ${selectedList.length}
+• Target Buyers: ${selectedList.length}
 • SMS Parts: ${parts} (${unicode ? 'Unicode/Bengali' : 'GSM English'})
 • Total SMS Dispatches: ${totalDispatches}
 • Estimated Cost: ৳${totalCost.toFixed(2)} BDT (@ ৳${rate.toFixed(2)}/SMS)
@@ -1619,7 +1655,7 @@ Do you want to proceed with broadcasting?`;
 
             modal.classList.add('active');
             pBar.style.width = '0%';
-            logBox.innerHTML = `[${new Date().toLocaleTimeString()}] Starting SMS broadcast to ${selectedList.length} contacts (Est. Cost: ৳${totalCost.toFixed(2)})...<br>`;
+            logBox.innerHTML = `[${new Date().toLocaleTimeString()}] Starting SMS broadcast to ${selectedList.length} buyers (Est. Cost: ৳${totalCost.toFixed(2)})...<br>`;
             document.getElementById('broadcastTotalCount').innerText = selectedList.length;
             document.getElementById('broadcastSuccessCount').innerText = '0';
             document.getElementById('broadcastFailedCount').innerText = '0';
