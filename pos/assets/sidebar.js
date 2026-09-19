@@ -1,11 +1,11 @@
 // pos/assets/sidebar.js
-(function() {
+(function () {
     function initSidebar() {
         const isSubPage = window.location.pathname.includes('/pages/');
         const basePath = isSubPage ? '../' : '';
         const pagesPath = isSubPage ? '' : 'pages/';
         const dashboardPath = isSubPage ? '../index.php' : 'index.php';
-        
+
         // Detailed current page detection
         const pathSegments = window.location.pathname.split('/');
         const currentFile = pathSegments[pathSegments.length - 1] || 'index.php';
