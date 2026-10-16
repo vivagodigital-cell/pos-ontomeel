@@ -6,8 +6,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier & External Inventory | Ontomeel POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         .supplier-grid {
@@ -1573,7 +1577,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
-        window.onload = function () {
+        function initSupplierPage() {
             fetchSuppliers();
             loadSuppliersForPurchase();
             
@@ -1588,9 +1592,17 @@
                 addPurchaseItemRow();
             }
 
-            // Background sync - refresh active tab every 15 seconds
-            setInterval(() => syncActiveTab(true), 15000);
-        };
+            // Background sync - refresh active tab every 15 seconds when visible
+            setInterval(() => {
+                if (!document.hidden) syncActiveTab(true);
+            }, 15000);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSupplierPage);
+        } else {
+            initSupplierPage();
+        }
     </script>
 </body>
 

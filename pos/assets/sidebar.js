@@ -116,7 +116,7 @@
         // Speculative prefetching during browser idle time for instant page switching
         if ('requestIdleCallback' in window) {
             requestIdleCallback(() => {
-                [`${pagesPath}terminal.php`, `${pagesPath}inventory.php`].forEach(url => {
+                [`${pagesPath}terminal.php`, `${pagesPath}inventory.php`, `${pagesPath}member.php`].forEach(url => {
                     const l = document.createElement('link');
                     l.rel = 'prefetch';
                     l.href = url;
@@ -124,6 +124,30 @@
                 });
             });
         }
+
+        // Modern W3C Speculation Rules API: Prerenders destination pages in memory for 0ms transitions
+        try {
+            if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
+                const specRules = document.createElement('script');
+                specRules.type = 'speculationrules';
+                specRules.textContent = JSON.stringify({
+                    prerender: [{
+                        source: "list",
+                        urls: [
+                            dashboardPath,
+                            `${pagesPath}terminal.php`,
+                            `${pagesPath}inventory.php`,
+                            `${pagesPath}member.php`,
+                            `${pagesPath}orders.php`,
+                            `${pagesPath}report.php`,
+                            `${pagesPath}supplier.php`
+                        ],
+                        eagerness: "moderate"
+                    }]
+                });
+                document.head.appendChild(specRules);
+            }
+        } catch (e) {}
     }
 
     // Run when DOM is ready

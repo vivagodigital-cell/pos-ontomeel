@@ -10,9 +10,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js" defer></script>
     
     <style>
         /* Modern Glassmorphism & Refined UI */
@@ -1384,11 +1385,31 @@
         let lastDiscountType = 'amount';
 
         async function init() {
-            renderSkeletons();
+            // Stale-While-Revalidate: Instant 0ms paint if cached in browser memory
+            let hasCachedData = false;
+            try {
+                const cached = sessionStorage.getItem('pos_terminal_catalog');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        allItems = parsed;
+                        hasCachedData = true;
+                        applyFilter(); // Instant render
+                    }
+                }
+            } catch(e) {}
+
+            if (!hasCachedData) {
+                renderSkeletons();
+            }
+
             loadTerminalCategories();
             try {
                 const response = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
                 allItems = await response.json();
+                try {
+                    sessionStorage.setItem('pos_terminal_catalog', JSON.stringify(allItems));
+                } catch(e) {}
                 applyFilter();
                 updateParkedUI();
 
@@ -2562,7 +2583,11 @@
             }
         }
 
-        window.onload = init;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
     </script>
 </body>
 

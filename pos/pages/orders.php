@@ -12,10 +12,11 @@ renderUserUI(true); ?>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.1">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js" defer></script>
 
     <style>
         :root {
@@ -799,8 +800,29 @@ renderUserUI(true); ?>
             const dateStart = document.getElementById('dateStart').value;
             const dateEnd = document.getElementById('dateEnd').value;
 
+            const isDefaultQuery = !search && !status && !dateStart && !dateEnd;
             const tbody = document.getElementById('orderTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i> Loading orders...</td></tr>';
+
+            if (isDefaultQuery) {
+                const cached = sessionStorage.getItem('pos_orders_recent_cache');
+                if (cached && (!currentOrders || currentOrders.length === 0)) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            currentOrders = parsed;
+                            renderOrders();
+                        } else {
+                            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i> Loading orders...</td></tr>';
+                        }
+                    } catch(e) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i> Loading orders...</td></tr>';
+                    }
+                } else if (!currentOrders || currentOrders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i> Loading orders...</td></tr>';
+                }
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i> Loading orders...</td></tr>';
+            }
 
             const url = `../../api/controllers/TerminalController.php?action=getOrders&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&dateStart=${encodeURIComponent(dateStart)}&dateEnd=${encodeURIComponent(dateEnd)}`;
 
@@ -810,6 +832,11 @@ renderUserUI(true); ?>
                 if (data.success) {
                     currentOrders = data.orders;
                     renderOrders();
+                    if (isDefaultQuery) {
+                        try {
+                            sessionStorage.setItem('pos_orders_recent_cache', JSON.stringify(data.orders));
+                        } catch(e) {}
+                    }
                 }
             } catch (e) {
                 if (e.name !== 'AbortError') {
@@ -1219,19 +1246,25 @@ renderUserUI(true); ?>
             }, 100);
         }
 
-        window.onload = () => {
+        function initOrders() {
             setDefaultDates();
             fetchOrders();
 
             let searchTimer = null;
             document.getElementById('searchInput')?.addEventListener('input', () => {
                 clearTimeout(searchTimer);
-                searchTimer = setTimeout(fetchOrders, 300);
+                searchTimer = setTimeout(fetchOrders, 250);
             });
             document.getElementById('statusFilter')?.addEventListener('change', fetchOrders);
             document.getElementById('dateStart')?.addEventListener('change', fetchOrders);
             document.getElementById('dateEnd')?.addEventListener('change', fetchOrders);
-        };
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initOrders);
+        } else {
+            initOrders();
+        }
     </script>
 </body>
 

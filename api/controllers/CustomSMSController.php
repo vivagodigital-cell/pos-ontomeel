@@ -292,6 +292,13 @@ try {
         echo json_encode(['success' => true, 'books' => $list]);
     }
     elseif ($action === 'getBalance') {
+        $force = !empty($_GET['force']);
+        $now = time();
+        if (!$force && isset($_SESSION['sms_balance_cache']) && ($now - $_SESSION['sms_balance_cache']['time'] < 60)) {
+            echo json_encode($_SESSION['sms_balance_cache']['data']);
+            exit;
+        }
+
         $api_key = getenv('BULKSMS_API_KEY') ?: ($_ENV['BULKSMS_API_KEY'] ?? '');
         if (empty($api_key)) {
             echo json_encode(['success' => false, 'error' => 'BulkSMS API Key not configured in .env']);
@@ -312,11 +319,16 @@ try {
 
         $res = json_decode($response, true);
         if ($res && isset($res['balance'])) {
-            echo json_encode([
+            $payload = [
                 'success' => true,
                 'balance' => $res['balance'],
                 'raw' => $res
-            ]);
+            ];
+            $_SESSION['sms_balance_cache'] = [
+                'time' => $now,
+                'data' => $payload
+            ];
+            echo json_encode($payload);
         } else {
             echo json_encode([
                 'success' => false,
@@ -344,6 +356,7 @@ try {
         $finalMessage = str_ireplace('{name}', $testName, $message);
 
         $result = send_sms_instantly($phone, $finalMessage);
+        unset($_SESSION['sms_balance_cache']);
         echo json_encode($result);
     }
     elseif ($action === 'sendBulk') {
@@ -405,6 +418,7 @@ try {
             usleep(50000); // 50ms
         }
 
+        unset($_SESSION['sms_balance_cache']);
         echo json_encode([
             'success' => true,
             'total' => count($recipients),

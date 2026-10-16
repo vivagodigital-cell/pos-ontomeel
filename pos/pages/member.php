@@ -10,7 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         .member-container {
@@ -988,28 +989,54 @@
                 .replace(/'/g, '&#039;');
         }
 
+        // --- Invalidate Cache Helper ---
+        function invalidateMemberCache() {
+            try { sessionStorage.removeItem('pos_members_cache'); } catch(e) {}
+        }
+
         // --- Fetch & Render Members ---
         async function fetchMembers(isLoadMore = false) {
             if (!isLoadMore) {
                 currentOffset = 0;
-                renderSkeletons();
                 isSearchActive = false;
+
+                // Stale-While-Revalidate: Instant 0ms render from session cache
+                const cached = sessionStorage.getItem('pos_members_cache');
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            allMembers = parsed;
+                            renderMembers(allMembers);
+                            currentOffset = allMembers.length;
+                        } else {
+                            renderSkeletons();
+                        }
+                    } catch(e) {
+                        renderSkeletons();
+                    }
+                } else {
+                    renderSkeletons();
+                }
             }
 
             try {
-                const response = await fetch(`../../api/controllers/MemberController.php?action=list&limit=${limit}&offset=${currentOffset}`);
+                const response = await fetch(`../../api/controllers/MemberController.php?action=list&limit=${limit}&offset=${isLoadMore ? currentOffset : 0}`);
                 const data = await response.json();
                 
                 if (data.success) {
                     if (isLoadMore) {
                         allMembers = [...allMembers, ...data.members];
                         appendMembers(data.members);
+                        currentOffset += data.members.length;
                     } else {
                         allMembers = data.members;
                         renderMembers(allMembers);
+                        currentOffset = data.members.length;
+                        try {
+                            sessionStorage.setItem('pos_members_cache', JSON.stringify(data.members));
+                        } catch(e) {}
                     }
-                    
-                    currentOffset += data.members.length;
                     
                     document.getElementById('loadMoreContainer').style.display = data.members.length < limit ? 'none' : 'flex';
                     if (!isLoadMore) {
@@ -1516,6 +1543,7 @@
                 if (data.success) {
                     showToast('Member Registered Successfully!', 'success');
                     closeModals();
+                    invalidateMemberCache();
                     fetchMembers();
                 } else {
                     showToast(data.error || 'Registration failed!', 'error');
@@ -1555,6 +1583,7 @@
                         document.getElementById('detailHeaderBalance').innerText = '৳' + currentDetailMember.acc_balance;
                     }
 
+                    invalidateMemberCache();
                     fetchMembers();
                 } else {
                     showToast(data.error || 'Fund update failed!', 'error');
@@ -1632,7 +1661,11 @@
             }, 3200);
         }
 
-        window.onload = fetchMembers;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => fetchMembers());
+        } else {
+            fetchMembers();
+        }
     </script>
 </body>
 

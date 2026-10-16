@@ -6,11 +6,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ontomeel POS | Library Dashboard</title>
-    <link rel="stylesheet" href="assets/pos-styles.css?v=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="assets/pos-styles.css?v=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
@@ -372,19 +373,40 @@
                     toDate = today;
                 }
 
-                // Fetch Stats (Dashboard stats always for today/current)
-                const response = await fetch('../api/controllers/DashboardController.php');
-                const data = await response.json();
+                // Stale-While-Revalidate for instant 0ms stats paint
+                const cachedDashboard = sessionStorage.getItem('pos_dash_stats_cache');
+                if (cachedDashboard) {
+                    try {
+                        const cd = JSON.parse(cachedDashboard);
+                        if (cd.active_borrows !== undefined) {
+                            document.querySelector('.stat-card:nth-child(1) .stat-value').innerText = cd.active_borrows;
+                            document.querySelector('.stat-card:nth-child(2) .stat-value').innerText = '৳' + cd.today_sales;
+                            document.querySelector('.stat-card:nth-child(3) .stat-value').innerText = cd.total_members;
+                            document.querySelector('.stat-card:nth-child(4) .stat-value').innerText = cd.overdue_books;
+                        }
+                    } catch(e) {}
+                }
+
+                // Parallel fetch for stats and daily report summary
+                const [statsRes, sumRes] = await Promise.all([
+                    fetch('../api/controllers/DashboardController.php'),
+                    fetch(`../api/controllers/ReportController.php?action=getTodayReportData&from_date=${fromDate}&to_date=${toDate}`)
+                ]);
+
+                const [data, sumData] = await Promise.all([
+                    statsRes.json(),
+                    sumRes.json()
+                ]);
+
                 if (data.active_borrows !== undefined) {
                     document.querySelector('.stat-card:nth-child(1) .stat-value').innerText = data.active_borrows;
                     document.querySelector('.stat-card:nth-child(2) .stat-value').innerText = '৳' + data.today_sales;
                     document.querySelector('.stat-card:nth-child(3) .stat-value').innerText = data.total_members;
                     document.querySelector('.stat-card:nth-child(4) .stat-value').innerText = data.overdue_books;
+                    try {
+                        sessionStorage.setItem('pos_dash_stats_cache', JSON.stringify(data));
+                    } catch(e) {}
                 }
-
-                // Fetch Daily Summary detailed info with date range
-                const sumRes = await fetch(`../api/controllers/ReportController.php?action=getTodayReportData&from_date=${fromDate}&to_date=${toDate}`);
-                const sumData = await sumRes.json();
                 
                 if (sumData.success) {
                     const s = sumData.data;
