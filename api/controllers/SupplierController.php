@@ -28,17 +28,29 @@ try {
     elseif ($action === 'saveSupplier') {
         $data = json_decode(file_get_contents('php://input'), true);
         $id = $data['id'] ?? null;
-        $name = $data['name'] ?? '';
-        $contact = $data['contact'] ?? '';
-        $email = $data['email'] ?? '';
-        $address = $data['address'] ?? '';
+        $name = trim($data['name'] ?? '');
+        $contact = trim($data['contact'] ?? '');
+        $email = trim($data['email'] ?? '');
+        $address = trim($data['address'] ?? '');
 
         if (empty($name))
             throw new Exception("Supplier name is required.");
 
         if ($id) {
+            $oldStmt = $pdo->prepare("SELECT name FROM suppliers WHERE id = ?");
+            $oldStmt->execute([$id]);
+            $oldName = $oldStmt->fetchColumn();
+
             $stmt = $pdo->prepare("UPDATE suppliers SET name = ?, contact = ?, email = ?, address = ? WHERE id = ?");
             $stmt->execute([$name, $contact, $email, $address, $id]);
+
+            // Keep purchases, books, and inventory in sync
+            $pdo->prepare("UPDATE purchases SET supplier_name = ? WHERE supplier_id = ?")->execute([$name, $id]);
+            if (!empty($oldName) && $oldName !== $name) {
+                $pdo->prepare("UPDATE purchases SET supplier_name = ? WHERE supplier_name = ?")->execute([$name, $oldName]);
+                $pdo->prepare("UPDATE books SET supplier_name = ? WHERE supplier_name = ?")->execute([$name, $oldName]);
+                $pdo->prepare("UPDATE inventory_items SET supplier_name = ? WHERE supplier_name = ?")->execute([$name, $oldName]);
+            }
         } else {
             $stmt = $pdo->prepare("INSERT INTO suppliers (name, contact, email, address) VALUES (?, ?, ?, ?)");
             $stmt->execute([$name, $contact, $email, $address]);
@@ -76,23 +88,24 @@ try {
         $sql = "SELECT supplier_name, SUM(item_count) as item_count, SUM(total_value) as inventory_value
                 FROM (
                     -- 1. From Purchase Records (The primary source of procurement history)
-                    SELECT p.supplier_name, COUNT(DISTINCT pi.item_name) as item_count, SUM(pi.total_item_cost) as total_value
+                    SELECT COALESCE(s.name, p.supplier_name) as supplier_name, COUNT(DISTINCT pi.item_name) as item_count, SUM(pi.total_item_cost) as total_value
                     FROM purchase_items pi
                     JOIN purchases p ON pi.purchase_id = p.id
-                    WHERE p.supplier_name IS NOT NULL AND p.supplier_name != ''
-                    GROUP BY p.supplier_name
+                    LEFT JOIN suppliers s ON p.supplier_id = s.id
+                    WHERE (p.supplier_name IS NOT NULL AND p.supplier_name != '') OR p.supplier_id IS NOT NULL
+                    GROUP BY COALESCE(s.name, p.supplier_name)
 
                     UNION ALL
 
                     -- 2. From Books table (To catch legacy data or items added via other means not in purchases)
-                    -- We only take books that don't seem to have a corresponding purchase record to avoid double counting
                     SELECT b.supplier_name, COUNT(*) as item_count, SUM(COALESCE(b.purchase_price, 0) * COALESCE(b.stock_qty, 0)) as total_value 
                     FROM books b
                     WHERE b.supplier_name IS NOT NULL AND b.supplier_name != '' 
                     AND NOT EXISTS (
                         SELECT 1 FROM purchase_items pi 
                         JOIN purchases p ON pi.purchase_id = p.id 
-                        WHERE p.supplier_name = b.supplier_name 
+                        LEFT JOIN suppliers s ON p.supplier_id = s.id
+                        WHERE (p.supplier_name = b.supplier_name OR s.name = b.supplier_name)
                         AND (pi.isbn = b.isbn OR pi.item_name = b.title)
                     )
                     GROUP BY b.supplier_name
@@ -106,7 +119,8 @@ try {
                     AND NOT EXISTS (
                         SELECT 1 FROM purchase_items pi 
                         JOIN purchases p ON pi.purchase_id = p.id 
-                        WHERE p.supplier_name = supplier_name 
+                        LEFT JOIN suppliers s ON p.supplier_id = s.id
+                        WHERE (p.supplier_name = supplier_name OR s.name = supplier_name)
                         AND pi.item_name = item_name
                     )
                     GROUP BY supplier_name
@@ -117,27 +131,89 @@ try {
         echo json_encode(['success' => true, 'data' => $stmt->fetchAll()]);
     }
     elseif ($action === 'getBooksBySupplier') {
-        $name = $_GET['name'] ?? '';
-        if (empty($name))
-            throw new Exception("Supplier name is required.");
+        $id = !empty($_GET['id']) ? intval($_GET['id']) : null;
+        $name = trim($_GET['name'] ?? '');
+
+        if (empty($name) && empty($id))
+            throw new Exception("Supplier identifier is required.");
+
+        $allNames = [];
+        if (!empty($name)) {
+            $allNames[] = $name;
+        }
+
+        $officialName = null;
+        if ($id) {
+            $supStmt = $pdo->prepare("SELECT name FROM suppliers WHERE id = ?");
+            $supStmt->execute([$id]);
+            $officialName = $supStmt->fetchColumn();
+            if ($officialName) {
+                $allNames[] = $officialName;
+            }
+            $pNameStmt = $pdo->prepare("SELECT DISTINCT supplier_name FROM purchases WHERE supplier_id = ? AND supplier_name IS NOT NULL AND supplier_name != ''");
+            $pNameStmt->execute([$id]);
+            $histNames = $pNameStmt->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($histNames as $hn) {
+                $allNames[] = $hn;
+            }
+        } elseif (!empty($name)) {
+            $sIdStmt = $pdo->prepare("SELECT id, name FROM suppliers WHERE name = ? OR TRIM(name) = ? OR name LIKE ?");
+            $sIdStmt->execute([$name, $name, '%' . $name . '%']);
+            $sRow = $sIdStmt->fetch();
+            if ($sRow) {
+                $id = $sRow['id'];
+                $officialName = $sRow['name'];
+                $allNames[] = $officialName;
+                $pNameStmt = $pdo->prepare("SELECT DISTINCT supplier_name FROM purchases WHERE supplier_id = ? AND supplier_name IS NOT NULL AND supplier_name != ''");
+                $pNameStmt->execute([$id]);
+                $histNames = $pNameStmt->fetchAll(PDO::FETCH_COLUMN);
+                foreach ($histNames as $hn) {
+                    $allNames[] = $hn;
+                }
+            }
+        }
+
+        $allNames = array_values(array_unique(array_filter(array_map('trim', $allNames))));
+        if (empty($allNames) && !empty($name)) {
+            $allNames[] = $name;
+        }
+
+        // Auto-heal purchases supplier_name if official name is known
+        if ($id && !empty($officialName)) {
+            $pdo->prepare("UPDATE purchases SET supplier_name = ? WHERE supplier_id = ? AND (supplier_name != ? OR supplier_name IS NULL)")
+                ->execute([$officialName, $id, $officialName]);
+        }
+
+        $namePlaceholders = implode(',', array_fill(0, count($allNames), '?'));
+        
+        if ($id) {
+            $purchaseWhere = "(p.supplier_id = ? OR p.supplier_name IN ($namePlaceholders))";
+            $purchaseParams = array_merge([$id], $allNames);
+        } else {
+            $purchaseWhere = "p.supplier_name IN ($namePlaceholders)";
+            $purchaseParams = $allNames;
+        }
+
+        $booksWhere = "b.supplier_name IN ($namePlaceholders)";
+        $invWhere = "i.supplier_name IN ($namePlaceholders)";
 
         $sql = "SELECT title, author, category_name, purchase_price, purchased_qty, stock_qty, total_value FROM (
                     -- 1. Items from Purchase History
                     SELECT 
                         (pi.item_name COLLATE utf8mb4_unicode_ci) as title, 
-                        (COALESCE(b.author, '') COLLATE utf8mb4_unicode_ci) as author, 
-                        (COALESCE(c.name, p.category, 'General') COLLATE utf8mb4_unicode_ci) as category_name, 
-                        pi.unit_cost as purchase_price, 
+                        COALESCE(MAX(b.author), '') as author, 
+                        COALESCE(MAX(c.name), MAX(p.category), 'General') as category_name, 
+                        ROUND(AVG(pi.unit_cost), 2) as purchase_price, 
                         SUM(pi.quantity) as purchased_qty,
-                        COALESCE(b.stock_qty, i.quantity, 0) as stock_qty,
+                        COALESCE(MAX(b.stock_qty), MAX(i.quantity), 0) as stock_qty,
                         SUM(pi.total_item_cost) as total_value 
                     FROM purchase_items pi
                     JOIN purchases p ON pi.purchase_id = p.id
                     LEFT JOIN books b ON ((pi.isbn COLLATE utf8mb4_unicode_ci = b.isbn COLLATE utf8mb4_unicode_ci AND pi.isbn != '') OR (pi.item_name COLLATE utf8mb4_unicode_ci = b.title COLLATE utf8mb4_unicode_ci AND (pi.isbn IS NULL OR pi.isbn = '')))
                     LEFT JOIN categories c ON b.category_id = c.id
                     LEFT JOIN inventory_items i ON (pi.item_name COLLATE utf8mb4_unicode_ci = i.item_name COLLATE utf8mb4_unicode_ci AND (pi.isbn COLLATE utf8mb4_unicode_ci = i.barcode COLLATE utf8mb4_unicode_ci OR pi.isbn IS NULL OR pi.isbn = ''))
-                    WHERE p.supplier_name = ?
-                    GROUP BY pi.item_name, pi.isbn, b.author, c.name, p.category, b.stock_qty, i.quantity, pi.unit_cost
+                    WHERE $purchaseWhere
+                    GROUP BY pi.item_name
                     
                     UNION ALL
 
@@ -152,11 +228,11 @@ try {
                         (COALESCE(b.purchase_price, 0) * COALESCE(b.stock_qty, 0)) as total_value 
                     FROM books b
                     LEFT JOIN categories c ON b.category_id = c.id
-                    WHERE b.supplier_name = ?
+                    WHERE $booksWhere
                     AND NOT EXISTS (
                         SELECT 1 FROM purchase_items pi 
                         JOIN purchases p ON pi.purchase_id = p.id 
-                        WHERE p.supplier_name COLLATE utf8mb4_unicode_ci = b.supplier_name COLLATE utf8mb4_unicode_ci 
+                        WHERE $purchaseWhere
                         AND (pi.isbn COLLATE utf8mb4_unicode_ci = b.isbn COLLATE utf8mb4_unicode_ci OR pi.item_name COLLATE utf8mb4_unicode_ci = b.title COLLATE utf8mb4_unicode_ci)
                     )
 
@@ -173,18 +249,26 @@ try {
                         (COALESCE(i.unit_cost, 0) * COALESCE(i.quantity, 0)) as total_value 
                     FROM inventory_items i 
                     LEFT JOIN categories c ON i.item_type = c.id
-                    WHERE i.supplier_name = ?
+                    WHERE $invWhere
                     AND NOT EXISTS (
                         SELECT 1 FROM purchase_items pi 
                         JOIN purchases p ON pi.purchase_id = p.id 
-                        WHERE p.supplier_name COLLATE utf8mb4_unicode_ci = i.supplier_name COLLATE utf8mb4_unicode_ci 
+                        WHERE $purchaseWhere 
                         AND pi.item_name COLLATE utf8mb4_unicode_ci = i.item_name COLLATE utf8mb4_unicode_ci
                     )
                 ) as combined 
                 ORDER BY title ASC";
         
+        $params = array_merge(
+            $purchaseParams,
+            $allNames,
+            $purchaseParams,
+            $allNames,
+            $purchaseParams
+        );
+
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$name, $name, $name]);
+        $stmt->execute($params);
         echo json_encode(['success' => true, 'books' => $stmt->fetchAll()]);
     }
     elseif ($action === 'receiveInventory') {

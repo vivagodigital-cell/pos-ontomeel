@@ -946,7 +946,7 @@
                 document.getElementById('supplierTableBody').innerHTML = data.suppliers.map(s => `
                     <tr>
                         <td style="font-weight:700;">
-                            <span onclick="viewSupplierBooks('${s.name.replace(/'/g, "\\'")}')" 
+                            <span onclick="viewSupplierBooks(${s.id}, '${s.name.replace(/'/g, "\\'")}')" 
                                   style="color: var(--primary-blue); cursor: pointer; border-bottom: 1px dashed var(--primary-blue); padding-bottom: 2px; transition: color 0.2s, border-color 0.2s; display: inline-flex; align-items: center; gap: 6px;" 
                                   title="Click to view procured books & stock"
                                   onmouseover="this.style.color='#1d4ed8'; this.style.borderBottomColor='#1d4ed8';"
@@ -1054,14 +1054,19 @@
         }
 
         let supplierBooksList = [];
-        async function viewSupplierBooks(name) {
-            document.getElementById('supBooksSupplierName').innerText = name;
+        async function viewSupplierBooks(id, name) {
+            if (typeof id === 'string' && name === undefined) {
+                name = id;
+                id = null;
+            }
+            document.getElementById('supBooksSupplierName').innerText = name || 'Supplier';
             document.getElementById('supBooksSearch').value = '';
             document.getElementById('supplierBooksBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-blue);"></i> Loading procured items...</td></tr>';
             openModal('supplierBooksModal');
             
             try {
-                const res = await fetch(`../../api/controllers/SupplierController.php?action=getBooksBySupplier&name=${encodeURIComponent(name)}`);
+                const url = `../../api/controllers/SupplierController.php?action=getBooksBySupplier&id=${id || ''}&name=${encodeURIComponent(name || '')}`;
+                const res = await fetch(url);
                 const data = await res.json();
                 if (data.success) {
                     supplierBooksList = data.books || [];
