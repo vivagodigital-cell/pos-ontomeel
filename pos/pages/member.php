@@ -6,6 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Member Directory | Ontomeel POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1009,7 +1012,9 @@
                     currentOffset += data.members.length;
                     
                     document.getElementById('loadMoreContainer').style.display = data.members.length < limit ? 'none' : 'flex';
-                    updateStats();
+                    if (!isLoadMore) {
+                        updateStats();
+                    }
                 }
             } catch (e) {
                 console.error("Error fetching members:", e);
@@ -1410,30 +1415,45 @@
             if (member && member.id) selectFundMember(member);
         }
 
-        async function searchForFund() {
-            const q = document.getElementById('fundSearch').value;
+        let fundSearchTimer = null;
+        let fundSearchController = null;
+        function searchForFund() {
+            clearTimeout(fundSearchTimer);
+            if (fundSearchController) fundSearchController.abort();
+
+            const q = document.getElementById('fundSearch').value.trim();
             if (q.length < 2) {
                 document.getElementById('fundSearchResults').style.display = 'none';
                 return;
             }
-            const res = await fetch(`../../api/controllers/MemberController.php?action=search&q=${encodeURIComponent(q)}`);
-            const data = await res.json();
-            const results = document.getElementById('fundSearchResults');
-            if (data.members && data.members.length > 0) {
-                results.innerHTML = data.members.map(m => `
-                    <div style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;" onclick='selectFundMemberById(${m.id})'>
-                        <div>
-                            <div style="font-weight:700; font-size:0.85rem;">${escapeHtml(m.full_name)}</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(m.membership_id)} • ${escapeHtml(m.phone)}</div>
-                        </div>
-                        <div style="font-weight:700; color:#16a34a; font-size:0.85rem;">৳${parseFloat(m.acc_balance).toFixed(2)}</div>
-                    </div>
-                `).join('');
-                results.style.display = 'block';
-            } else {
-                results.innerHTML = `<div style="padding:10px; color:var(--text-muted); font-size:0.85rem; text-align:center;">No members found</div>`;
-                results.style.display = 'block';
-            }
+
+            fundSearchTimer = setTimeout(async () => {
+                fundSearchController = new AbortController();
+                try {
+                    const res = await fetch(`../../api/controllers/MemberController.php?action=search&q=${encodeURIComponent(q)}`, {
+                        signal: fundSearchController.signal
+                    });
+                    const data = await res.json();
+                    const results = document.getElementById('fundSearchResults');
+                    if (data.members && data.members.length > 0) {
+                        results.innerHTML = data.members.map(m => `
+                            <div style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;" onclick='selectFundMemberById(${m.id})'>
+                                <div>
+                                    <div style="font-weight:700; font-size:0.85rem;">${escapeHtml(m.full_name)}</div>
+                                    <div style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(m.membership_id)} • ${escapeHtml(m.phone)}</div>
+                                </div>
+                                <div style="font-weight:700; color:#16a34a; font-size:0.85rem;">৳${parseFloat(m.acc_balance).toFixed(2)}</div>
+                            </div>
+                        `).join('');
+                        results.style.display = 'block';
+                    } else {
+                        results.innerHTML = `<div style="padding:10px; color:var(--text-muted); font-size:0.85rem; text-align:center;">No members found</div>`;
+                        results.style.display = 'block';
+                    }
+                } catch (e) {
+                    if (e.name !== 'AbortError') console.error('Fund search error:', e);
+                }
+            }, 250);
         }
 
         function selectFundMemberById(id) {
@@ -1548,8 +1568,11 @@
         }
 
         // --- Filter / Search Logic ---
+        let memberSearchController = null;
         function filterTable() {
             clearTimeout(window.searchTimer);
+            if (memberSearchController) memberSearchController.abort();
+
             window.searchTimer = setTimeout(async () => {
                 const query = document.getElementById('memberFilter').value.trim();
                 if (query.length === 0) {
@@ -1561,17 +1584,20 @@
                 isSearchActive = true;
                 document.getElementById('loadMoreContainer').style.display = 'none';
                 
+                memberSearchController = new AbortController();
                 try {
-                    const res = await fetch(`../../api/controllers/MemberController.php?action=search&q=${encodeURIComponent(query)}`);
+                    const res = await fetch(`../../api/controllers/MemberController.php?action=search&q=${encodeURIComponent(query)}`, {
+                        signal: memberSearchController.signal
+                    });
                     const data = await res.json();
                     if (data.success) {
                         allMembers = data.members;
                         renderMembers(data.members);
                     }
                 } catch (e) {
-                    console.error("Search error:", e);
+                    if (e.name !== 'AbortError') console.error("Search error:", e);
                 }
-            }, 300);
+            }, 250);
         }
 
         // --- Stats Aggregator ---

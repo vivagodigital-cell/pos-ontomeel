@@ -8,6 +8,9 @@ renderUserUI(true); ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Management | Ontomeel POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
@@ -785,24 +788,34 @@ renderUserUI(true); ?>
     <script>
         let currentOrders = [];
         let activeOrder = null;
+        let ordersAbortController = null;
 
         async function fetchOrders() {
-            const search = document.getElementById('searchInput').value;
+            if (ordersAbortController) ordersAbortController.abort();
+            ordersAbortController = new AbortController();
+
+            const search = document.getElementById('searchInput').value.trim();
             const status = document.getElementById('statusFilter').value;
             const dateStart = document.getElementById('dateStart').value;
             const dateEnd = document.getElementById('dateEnd').value;
 
-            const url = `../../api/controllers/TerminalController.php?action=getOrders&search=${search}&status=${status}&dateStart=${dateStart}&dateEnd=${dateEnd}`;
+            const tbody = document.getElementById('orderTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 3rem; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i> Loading orders...</td></tr>';
+
+            const url = `../../api/controllers/TerminalController.php?action=getOrders&search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&dateStart=${encodeURIComponent(dateStart)}&dateEnd=${encodeURIComponent(dateEnd)}`;
 
             try {
-                const res = await fetch(url);
+                const res = await fetch(url, { signal: ordersAbortController.signal });
                 const data = await res.json();
                 if (data.success) {
                     currentOrders = data.orders;
                     renderOrders();
                 }
             } catch (e) {
-                console.error("Order fetch error:", e);
+                if (e.name !== 'AbortError') {
+                    console.error("Order fetch error:", e);
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem; color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Failed to load orders.</td></tr>';
+                }
             }
         }
 
@@ -1209,6 +1222,15 @@ renderUserUI(true); ?>
         window.onload = () => {
             setDefaultDates();
             fetchOrders();
+
+            let searchTimer = null;
+            document.getElementById('searchInput')?.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(fetchOrders, 300);
+            });
+            document.getElementById('statusFilter')?.addEventListener('change', fetchOrders);
+            document.getElementById('dateStart')?.addEventListener('change', fetchOrders);
+            document.getElementById('dateEnd')?.addEventListener('change', fetchOrders);
         };
     </script>
 </body>

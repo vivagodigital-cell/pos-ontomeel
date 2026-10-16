@@ -16,6 +16,21 @@ RewriteEngine On
 RewriteRule ^(OTM-[0-9]{8}-[A-Z0-9]{4})$ pos/pages/view_order.php?invoice=$1 [L,NC,QSA]
 
 # Cache control for assets
-<FilesMatch "\.(css|js|webp|png|jpg|jpeg|svg|ico)$">
-    Header set Cache-Control "max-age=604800, public"
-</FilesMatch>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|webp|png|jpg|jpeg|svg|ico|woff2?|ttf|eot)$">
+        Header set Cache-Control "max-age=604800, public"
+    </FilesMatch>
+</IfModule>
+
+# Gzip / Deflate compression for JSON, CSS, JS, HTML
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>

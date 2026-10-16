@@ -841,9 +841,6 @@
         let categories = [];
         async function loadCategories() {
             try {
-                // Ensure table exists (internal check in controller)
-                await fetch('../../api/controllers/SupplierController.php?action=setupPurchaseTable');
-                
                 const res = await fetch('../../api/controllers/SupplierController.php?action=listCategories');
                 const data = await res.json();
                 if (data.success) {

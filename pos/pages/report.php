@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Library Intelligence | Ontomeel POS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -248,9 +251,21 @@
 
         async function initDashboard() {
             try {
-                // Fetch Summary
-                const sumRes = await fetch('../../api/controllers/ReportController.php?action=getSummary');
-                const sumData = await sumRes.json();
+                // Fetch all 4 analytics datasets concurrently to eliminate sequential network waterfalls
+                const [sumRes, salesRes, popRes, planRes] = await Promise.all([
+                    fetch('../../api/controllers/ReportController.php?action=getSummary'),
+                    fetch('../../api/controllers/ReportController.php?action=getSalesData'),
+                    fetch('../../api/controllers/ReportController.php?action=getPopularBooks'),
+                    fetch('../../api/controllers/ReportController.php?action=getMemberStats')
+                ]);
+
+                const [sumData, salesData, popData, planData] = await Promise.all([
+                    sumRes.json(),
+                    salesRes.json(),
+                    popRes.json(),
+                    planRes.json()
+                ]);
+
                 if (sumData.success) {
                     reportData.summary = sumData.summary;
                     document.getElementById('valTotalSales').innerText = '৳' + sumData.summary.total_sales;
@@ -259,31 +274,21 @@
                     document.getElementById('valActiveBorrows').innerText = sumData.summary.active_borrows;
                 }
 
-                // Sales Chart
-                const salesRes = await fetch('../../api/controllers/ReportController.php?action=getSalesData');
-                const salesData = await salesRes.json();
                 if (salesData.success) {
                     reportData.sales = salesData.data;
                     renderSalesChart(salesData.data);
                 }
 
-                // Popular Books
-                const popRes = await fetch('../../api/controllers/ReportController.php?action=getPopularBooks');
-                const popData = await popRes.json();
                 if (popData.success) {
                     reportData.popular = popData.data;
                     renderPopularChart(popData.data);
                 }
 
-                // Plan Distribution
-                const planRes = await fetch('../../api/controllers/ReportController.php?action=getMemberStats');
-                const planData = await planRes.json();
                 if (planData.success) {
                     reportData.plans = planData.data;
                     renderPlanChart(planData.data);
                 }
-
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error('Dashboard init error:', e); }
         }
 
         function renderSalesChart(data) {

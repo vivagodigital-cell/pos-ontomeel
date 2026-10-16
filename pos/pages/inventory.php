@@ -6,6 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>General Inventory | Ontomeel POS System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -1079,7 +1082,7 @@
                 <div class="inv-card">
                     <div class="card-header">
                         <div class="type-icon-wrap" style="background:${bg}; overflow:hidden; border:1px solid rgba(0,0,0,0.05);">
-                            ${imgSrc ? `<img src="${imgSrc}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid fa-${ico}" style="color:${col};"></i>`}
+                            ${imgSrc ? `<img src="${imgSrc}" loading="lazy" decoding="async" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\\'fa-solid fa-${ico}\\\' style=\\\'color:${col};\\\'></i>';" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid fa-${ico}" style="color:${col};"></i>`}
                         </div>
                         <span class="type-pill" style="background:${bg}; color:${col};">${item.item_type}</span>
                     </div>
@@ -1143,11 +1146,19 @@
             if (!isSilent && allItems.length === 0) renderSkeletons();
             
             try {
-                const res = await fetch('../../api/controllers/InventoryController.php?action=getItems');
+                const res = await fetch('../../api/controllers/InventoryController.php?action=getItems', {
+                    priority: isSilent ? 'low' : 'high'
+                });
                 const data = await res.json();
                 if (data.success) {
                     allItems = data.items;
-                    localStorage.setItem('pos_inventory_cache', JSON.stringify(allItems));
+                    try {
+                        // Store lightweight cache without heavy descriptions to avoid browser QuotaExceededError
+                        const lightweight = allItems.slice(0, 100).map(i => ({
+                            id: i.id, title: i.title, author: i.author, isbn: i.isbn, stock_qty: i.stock_qty, sell_price: i.sell_price, item_type: i.item_type, source_table: i.source_table
+                        }));
+                        localStorage.setItem('pos_inventory_cache', JSON.stringify(lightweight));
+                    } catch (storageErr) {}
                     updateStats(allItems);
                     filterItems();
                 }
@@ -1365,7 +1376,9 @@
         window.onload = function () {
             loadInventoryCategories();
             fetchInventory();
-            setInterval(() => fetchInventory(true), 15000);
+            setInterval(() => {
+                if (!document.hidden) fetchInventory(true);
+            }, 25000);
             toggleBookFields();
         };
     </script>

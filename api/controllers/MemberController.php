@@ -34,27 +34,28 @@ try {
         echo json_encode(['success' => true, 'members' => $members]);
     } 
     elseif ($action === 'stats') {
-        // Total Members
-        $total = $pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
-        
-        // Active & Inactive Members
-        $active_count = $pdo->query("SELECT COUNT(*) FROM members WHERE is_active = 1")->fetchColumn();
-        $inactive_count = $pdo->query("SELECT COUNT(*) FROM members WHERE is_active = 0")->fetchColumn();
+        // Consolidated aggregate query: gets total, active, inactive, and balance in a single round-trip
+        $stmt = $pdo->query("
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive,
+                COALESCE(SUM(acc_balance), 0) as total_balance
+            FROM members
+        ");
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Plan Distribution
         $plans = $pdo->query("SELECT membership_plan, COUNT(*) as count FROM members GROUP BY membership_plan")->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Total Balance
-        $total_balance = $pdo->query("SELECT SUM(acc_balance) FROM members")->fetchColumn() ?: 0;
 
         echo json_encode([
             'success' => true,
             'stats' => [
-                'total' => $total,
-                'active' => $active_count,
-                'inactive' => $inactive_count,
+                'total' => (int)($stats['total'] ?? 0),
+                'active' => (int)($stats['active'] ?? 0),
+                'inactive' => (int)($stats['inactive'] ?? 0),
                 'plans' => $plans,
-                'total_balance' => number_format($total_balance, 2)
+                'total_balance' => number_format((float)($stats['total_balance'] ?? 0), 2)
             ]
         ]);
     }

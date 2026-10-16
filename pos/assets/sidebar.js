@@ -92,8 +92,14 @@
         // Traditional fallback: Insert it before the main content
         document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
 
+        // Ensure role-based visibility is immediately enforced regardless of DOMContentLoaded execution order
+        const roleLower = (window.posUserRole || '').toLowerCase().trim();
+        if (roleLower === 'super admin' || roleLower === 'superadmin') {
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+        }
+
         // --- PREFETCH LOGIC FOR FASTER TRANSITIONS ---
-        // Pre-fetch the next pages when hovering over sidebar links
+        // Pre-fetch next pages on hover
         const navLinks = document.querySelectorAll('.nav-link');
         navLinks.forEach(link => {
             const url = link.getAttribute('href');
@@ -103,9 +109,21 @@
                     prefetchLink.rel = 'prefetch';
                     prefetchLink.href = url;
                     document.head.appendChild(prefetchLink);
-                }, { once: true }); // Only prefetch once per link
+                }, { once: true });
             }
         });
+
+        // Speculative prefetching during browser idle time for instant page switching
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => {
+                [`${pagesPath}terminal.php`, `${pagesPath}inventory.php`].forEach(url => {
+                    const l = document.createElement('link');
+                    l.rel = 'prefetch';
+                    l.href = url;
+                    document.head.appendChild(l);
+                });
+            });
+        }
     }
 
     // Run when DOM is ready

@@ -6,6 +6,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS Terminal | Ontomeel Library</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="../assets/pos-styles.css?v=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1427,25 +1430,41 @@
             }
         }
 
-        // Sync stock periodically
+        // Sync stock periodically with lightweight delta endpoint
         setInterval(async () => {
+            if (document.hidden) return; // Skip polling when browser tab is inactive/hidden
             try {
-                const res = await fetch('../../api/controllers/TerminalController.php?action=getBooks');
-                const latest = await res.json();
-                
-                // Update local storage/cache silently
-                allItems = latest;
-                
-                // Update stock badges on screen without re-rendering everything
-                latest.forEach(item => {
-                    const badges = document.querySelectorAll(`[data-item-id="${item.id}"]`);
-                    badges.forEach(badge => {
-                        badge.innerText = item.stock_qty > 0 ? `${item.stock_qty} in stock` : 'Out of stock';
-                        badge.style.color = item.stock_qty > 5 ? 'var(--accent-mint)' : '#ef4444';
-                    });
+                const res = await fetch('../../api/controllers/TerminalController.php?action=getStockDeltas', {
+                    priority: 'low'
+                });
+                const deltaData = await res.json();
+                if (!deltaData.success) return;
+
+                const stockMap = new Map();
+                (deltaData.books || []).forEach(b => stockMap.set(`book_${b.id}`, parseInt(b.stock_qty)));
+                (deltaData.items || []).forEach(i => stockMap.set(`item_${i.id}`, parseInt(i.stock_qty)));
+
+                // Update in-memory allItems
+                allItems.forEach(item => {
+                    const key = (item._isInventory || item.item_type === 'Inventory') ? `item_${item.id}` : `book_${item.id}`;
+                    if (stockMap.has(key)) {
+                        item.stock_qty = stockMap.get(key);
+                    }
+                });
+
+                // Update stock badges visible on screen
+                document.querySelectorAll('.stock-badge[data-item-id]').forEach(badge => {
+                    const id = badge.getAttribute('data-item-id');
+                    const isInv = badge.getAttribute('data-is-inventory') === '1';
+                    const key = isInv ? `item_${id}` : `book_${id}`;
+                    if (stockMap.has(key)) {
+                        const qty = stockMap.get(key);
+                        badge.innerText = qty > 0 ? `${qty} in stock` : 'Out of stock';
+                        badge.style.color = qty > 5 ? 'var(--accent-mint)' : '#ef4444';
+                    }
                 });
             } catch(e) {}
-        }, 15000);
+        }, 20000);
 
         function switchCustomerTab(type) {
             customerType = type;

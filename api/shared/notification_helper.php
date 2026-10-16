@@ -167,6 +167,10 @@ function send_sms_instantly($number, $message) {
     $api_key = getenv('BULKSMS_API_KEY') ?: ($_ENV['BULKSMS_API_KEY'] ?? '');
     $senderid = getenv('BULKSMS_SENDER_ID') ?: ($_ENV['BULKSMS_SENDER_ID'] ?? '');
  
+    if (empty($api_key)) {
+        return ['success' => false, 'message' => 'BulkSMS API Key not configured'];
+    }
+
     $data = [
         "api_key" => $api_key,
         "senderid" => $senderid,
@@ -182,8 +186,16 @@ function send_sms_instantly($number, $message) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2); // Max 2 seconds to establish connection
+        curl_setopt($ch, CURLOPT_TIMEOUT, 3);        // Max 3 seconds for entire execution
         $response = curl_exec($ch);
+        $curlError = curl_error($ch);
         curl_close($ch);
+
+        if ($curlError) {
+            error_log("SMS cURL Timeout/Error: " . $curlError);
+            return ['success' => false, 'message' => $curlError];
+        }
         
         $res = json_decode($response, true);
         if ($res && isset($res['response_code']) && $res['response_code'] == 202) {

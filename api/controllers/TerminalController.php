@@ -52,12 +52,46 @@ try {
 
         echo json_encode(array_values($grouped));
     }
+    elseif ($action === 'getStockDeltas') {
+        // High-performance lightweight endpoint for periodic POS terminal stock badge updates
+        // Avoids re-fetching titles, authors, categories, base images on every polling tick
+        $stmt_b = $pdo->query("SELECT id, stock_qty, 0 as _isInventory FROM books WHERE is_active = 1");
+        $books = $stmt_b->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt_i = $pdo->query("SELECT id, quantity as stock_qty, 1 as _isInventory FROM inventory_items WHERE is_active = 1");
+        $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'success' => true,
+            'books' => $books,
+            'items' => $items
+        ]);
+    }
     elseif ($action === 'searchMembers') {
         $query = $_GET['q'] ?? '';
         $stmt = $pdo->prepare("SELECT id, membership_id, full_name, acc_balance, email, phone, membership_plan, plan_expire_date FROM members WHERE full_name LIKE ? OR membership_id LIKE ? OR phone LIKE ? LIMIT 10");
         $stmt->execute(["%$query%", "%$query%", "%$query%"]);
         $members = $stmt->fetchAll();
         echo json_encode($members);
+    }
+    elseif ($action === 'searchBooks') {
+        $q = trim($_GET['q'] ?? '');
+        if (strlen($q) < 2) {
+            echo json_encode([]);
+            exit;
+        }
+        $stmt = $pdo->prepare("
+            SELECT id, title, author, isbn, stock_qty, sell_price 
+            FROM books 
+            WHERE is_active = 1 
+              AND is_borrowable = 1 
+              AND (title LIKE ? OR isbn LIKE ? OR author LIKE ?) 
+            ORDER BY stock_qty DESC, title ASC 
+            LIMIT 15
+        ");
+        $sh = "%$q%";
+        $stmt->execute([$sh, $sh, $sh]);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     }
     elseif ($action === 'saveOrder') {
         $data = json_decode(file_get_contents('php://input'), true);
@@ -165,19 +199,14 @@ try {
                     queueNotification($pdo, $member['email'], 'order_placed', $notif_payload);
                 }
 
-                // Send SMS Notification for Members
+                // Prepare SMS Notification details for Member
                 if ($member && !empty($member['phone'])) {
                     $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
                     $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
                     $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
                     $link = $baseUrl . '/' . $invoice_no;
-                    
+                    $sms_phone = $member['phone'];
                     $sms_message = "Thanks for your order. From Ontomeel. Click this link to see your invoice: $link";
-                    
-                    $sms_result = send_sms_instantly($member['phone'], $sms_message);
-                    if (!$sms_result['success']) {
-                        error_log("Failed to send SMS to member " . $member['phone'] . ": " . json_encode($sms_result));
-                    }
                 }
             }
             else {
@@ -192,23 +221,32 @@ try {
                     queueNotification($pdo, $data['guestEmail'], 'order_placed', $notif_payload);
                 }
 
-                // Guest SMS Notification
+                // Prepare Guest SMS Notification details
                 if (!empty($data['guestPhone'])) {
                     $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
                     $host = $_SERVER['HTTP_HOST'] ?? 'ontomeel.com';
                     $baseUrl = getenv('BULKSMS_BASE_URL') ?: "$protocol://$host";
                     $link = $baseUrl . '/' . $invoice_no;
-
+                    $sms_phone = $data['guestPhone'];
                     $sms_message = "Thanks for your order. Click this link to see your invoice: $link";
-
-                    $sms_result = send_sms_instantly($data['guestPhone'], $sms_message);
-                    if (!$sms_result['success']) {
-                        error_log("Failed to send SMS to guest " . $data['guestPhone'] . ": " . json_encode($sms_result));
-                    }
                 }
             }
 
+            // CRITICAL OPTIMIZATION: Commit DB transaction first so locks are released immediately (<5ms)
             $pdo->commit();
+
+            // Send SMS post-commit so any network latency or external gateway jitter never holds DB locks
+            if (!empty($sms_phone) && !empty($sms_message)) {
+                try {
+                    $sms_result = send_sms_instantly($sms_phone, $sms_message);
+                    if (!$sms_result['success']) {
+                        error_log("Failed to send SMS to " . $sms_phone . ": " . json_encode($sms_result));
+                    }
+                } catch (\Throwable $ex) {
+                    error_log("SMS Send Exception: " . $ex->getMessage());
+                }
+            }
+
             echo json_encode(['success' => true, 'invoice_no' => $invoice_no]);
 
         }

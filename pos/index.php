@@ -442,14 +442,17 @@
 
         // Run on load
         updateDashboard();
-        // Refresh every 15 seconds
-        setInterval(updateDashboard, 15000);
+        // Refresh periodically (skip when tab is backgrounded to save network & battery)
+        setInterval(() => {
+            if (!document.hidden) updateDashboard();
+        }, 20000);
 
         // --- Quick Action Logics ---
         let currentMode = ''; // 'issue' or 'return'
         let selectedMember = null;
         let selectedBooks = [];
         let searchTimeout = null;
+        let bookSearchController = null;
 
         function openQuickAction(mode) {
             currentMode = mode;
@@ -484,23 +487,33 @@
             renderSelectedBooks();
         }
 
+        let memberSearchCtrl = null;
         async function searchMember() {
-            const q = document.getElementById('memberSearchInput').value;
+            const q = document.getElementById('memberSearchInput').value.trim();
             if (q.length < 2) return;
 
             clearTimeout(searchTimeout);
+            if (memberSearchCtrl) memberSearchCtrl.abort();
+
             searchTimeout = setTimeout(async () => {
-                const res = await fetch(`../api/controllers/TerminalController.php?action=searchMembers&q=${encodeURIComponent(q)}`);
-                const members = await res.json();
-                const resultsBox = document.getElementById('memberResults');
-                resultsBox.innerHTML = members.map(m => `
-                    <div class="result-item" onclick="selectMember(${JSON.stringify(m).replace(/"/g, '&quot;')})">
-                        <strong>${m.full_name}</strong> (${m.membership_id})<br>
-                        <small>${m.phone}</small>
-                    </div>
-                `).join('');
-                resultsBox.style.display = 'block';
-            }, 300);
+                memberSearchCtrl = new AbortController();
+                try {
+                    const res = await fetch(`../api/controllers/TerminalController.php?action=searchMembers&q=${encodeURIComponent(q)}`, {
+                        signal: memberSearchCtrl.signal
+                    });
+                    const members = await res.json();
+                    const resultsBox = document.getElementById('memberResults');
+                    resultsBox.innerHTML = members.map(m => `
+                        <div class="result-item" onclick="selectMember(${JSON.stringify(m).replace(/"/g, '&quot;')})">
+                            <strong>${m.full_name}</strong> (${m.membership_id})<br>
+                            <small>${m.phone}</small>
+                        </div>
+                    `).join('');
+                    resultsBox.style.display = 'block';
+                } catch (e) {
+                    if (e.name !== 'AbortError') console.error('Member search error:', e);
+                }
+            }, 250);
         }
 
         function selectMember(m) {
@@ -526,24 +539,39 @@
         }
 
         async function searchBook() {
-            const q = document.getElementById('bookSearchInput').value;
-            if (q.length < 2) return;
+            const q = document.getElementById('bookSearchInput').value.trim();
+            if (q.length < 2) {
+                document.getElementById('bookResults').style.display = 'none';
+                return;
+            }
 
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(async () => {
-                const res = await fetch(`../api/controllers/TerminalController.php?action=getBooks`);
-                const allBooks = await res.json();
-                const filtered = allBooks.filter(b => b.title.toLowerCase().includes(q.toLowerCase()) || (b.isbn && b.isbn.includes(q)));
+            if (bookSearchController) bookSearchController.abort();
 
-                const resultsBox = document.getElementById('bookResults');
-                resultsBox.innerHTML = filtered.map(b => `
-                    <div class="result-item" onclick="selectBook(${JSON.stringify(b).replace(/"/g, '&quot;')})">
-                        <strong>${b.title}</strong><br>
-                        <small>${b.author} • In Stock: ${b.stock_qty}</small>
-                    </div>
-                `).join('');
-                resultsBox.style.display = 'block';
-            }, 300);
+            searchTimeout = setTimeout(async () => {
+                bookSearchController = new AbortController();
+                try {
+                    const res = await fetch(`../api/controllers/TerminalController.php?action=searchBooks&q=${encodeURIComponent(q)}`, {
+                        signal: bookSearchController.signal
+                    });
+                    const books = await res.json();
+
+                    const resultsBox = document.getElementById('bookResults');
+                    if (books.length === 0) {
+                        resultsBox.innerHTML = '<div style="padding:10px; color:#64748b; font-size:0.85rem; text-align:center;">No books found</div>';
+                    } else {
+                        resultsBox.innerHTML = books.map(b => `
+                            <div class="result-item" onclick="selectBook(${JSON.stringify(b).replace(/"/g, '&quot;')})">
+                                <strong>${b.title}</strong><br>
+                                <small>${b.author || 'Author N/A'} • In Stock: ${b.stock_qty}</small>
+                            </div>
+                        `).join('');
+                    }
+                    resultsBox.style.display = 'block';
+                } catch (e) {
+                    if (e.name !== 'AbortError') console.error('Book search error:', e);
+                }
+            }, 250);
         }
 
         function selectBook(b) {

@@ -19,27 +19,33 @@ if (!isset($_SESSION['admin_id'])) {
 header('Content-Type: application/json');
 
 try {
-    // Get Active Borrows
-    $stmt = $pdo->query("SELECT COUNT(*) FROM borrows WHERE status NOT IN ('Returned', 'Cancelled')");
-    $active_borrows = $stmt->fetchColumn();
+    // 1. Borrows: Combine Active & Overdue into a single fast query
+    $stmtBorrow = $pdo->query("
+        SELECT 
+            COUNT(CASE WHEN status NOT IN ('Returned', 'Cancelled') THEN 1 END) as active_borrows,
+            COUNT(CASE WHEN due_date < CURDATE() AND status NOT IN ('Returned', 'Cancelled') THEN 1 END) as overdue_books
+        FROM borrows
+    ");
+    $borrowMetrics = $stmtBorrow->fetch(PDO::FETCH_ASSOC);
 
-    // Get Today's Sales (Only Paid)
-    $stmt = $pdo->query("SELECT SUM(total_amount) FROM orders WHERE DATE(order_date) = CURDATE() AND payment_status = 'Paid'");
-    $today_sales = $stmt->fetchColumn() ?: 0;
+    // 2. Today's Sales: Index-friendly range condition (order_date >= CURDATE() AND < CURDATE() + INTERVAL 1 DAY)
+    $stmtSales = $pdo->query("
+        SELECT COALESCE(SUM(total_amount), 0) 
+        FROM orders 
+        WHERE order_date >= CURDATE() 
+          AND order_date < CURDATE() + INTERVAL 1 DAY 
+          AND payment_status = 'Paid'
+    ");
+    $today_sales = (float)$stmtSales->fetchColumn();
 
-    // Get Total Members
-    $stmt = $pdo->query("SELECT COUNT(*) FROM members");
-    $total_members = $stmt->fetchColumn();
-
-    // Get Overdue Books
-    $stmt = $pdo->query("SELECT COUNT(*) FROM borrows WHERE due_date < CURDATE() AND status NOT IN ('Returned', 'Cancelled')");
-    $overdue_books = $stmt->fetchColumn();
+    // 3. Total Members
+    $total_members = (int)$pdo->query("SELECT COUNT(*) FROM members")->fetchColumn();
 
     echo json_encode([
-        'active_borrows' => $active_borrows,
+        'active_borrows' => (int)($borrowMetrics['active_borrows'] ?? 0),
         'today_sales' => number_format($today_sales, 2),
         'total_members' => $total_members,
-        'overdue_books' => $overdue_books
+        'overdue_books' => (int)($borrowMetrics['overdue_books'] ?? 0)
     ]);
 
 } catch (Exception $e) {

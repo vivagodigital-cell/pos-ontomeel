@@ -80,7 +80,7 @@ try {
                         END as buyer_type,
                         m.membership_plan,
                         COUNT(DISTINCT o.id) as total_orders,
-                        SUM(o.total_amount) as total_spent,
+                        COALESCE(SUM(oi.total_price), 0) as total_spent,
                         MAX(o.order_date) as last_order_date,
                         GROUP_CONCAT(DISTINCT o.invoice_no ORDER BY o.order_date DESC SEPARATOR ', ') as recent_invoices,
                         MAX(CASE 
@@ -303,7 +303,8 @@ try {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

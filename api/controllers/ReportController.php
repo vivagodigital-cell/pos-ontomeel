@@ -117,17 +117,19 @@ try {
     elseif ($action === 'getTodayReportData') {
         $from = $_GET['from_date'] ?? date('Y-m-d');
         $to = $_GET['to_date'] ?? date('Y-m-d');
+        $fromDateTime = $from . ' 00:00:00';
+        $toDateTime = $to . ' 23:59:59';
         
-        // 1. Books sold today (POS vs Website)
-        $posBooks = $pdo->prepare("SELECT SUM(oi.quantity) FROM orders o JOIN order_items oi ON o.id = oi.order_id WHERE DATE(o.order_date) BETWEEN ? AND ? AND (o.guest_email IS NULL OR o.guest_email = '') AND o.payment_status = 'Paid'");
-        $posBooks->execute([$from, $to]);
-        $posCount = $posBooks->fetchColumn() ?: 0;
+        // 1. Items sold today (POS vs Website) - Uses index range on order_date
+        $posBooks = $pdo->prepare("SELECT COALESCE(SUM(oi.quantity), 0) FROM orders o JOIN order_items oi ON o.id = oi.order_id WHERE o.order_date >= ? AND o.order_date <= ? AND (o.guest_email IS NULL OR o.guest_email = '') AND o.payment_status = 'Paid'");
+        $posBooks->execute([$fromDateTime, $toDateTime]);
+        $posCount = (int)$posBooks->fetchColumn();
 
-        $webBooks = $pdo->prepare("SELECT SUM(oi.quantity) FROM orders o JOIN order_items oi ON o.id = oi.order_id WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.guest_email IS NOT NULL AND o.guest_email != '' AND o.payment_status = 'Paid'");
-        $webBooks->execute([$from, $to]);
-        $webCount = $webBooks->fetchColumn() ?: 0;
+        $webBooks = $pdo->prepare("SELECT COALESCE(SUM(oi.quantity), 0) FROM orders o JOIN order_items oi ON o.id = oi.order_id WHERE o.order_date >= ? AND o.order_date <= ? AND o.guest_email IS NOT NULL AND o.guest_email != '' AND o.payment_status = 'Paid'");
+        $webBooks->execute([$fromDateTime, $toDateTime]);
+        $webCount = (int)$webBooks->fetchColumn();
 
-        // 2. Which customer bought which books (Aggregated by book for each customer)
+        // 2. Which customer bought which books (Aggregated by item for each customer)
         $customerPurchases = $pdo->prepare("
             SELECT 
                 customer_name,
@@ -137,23 +139,24 @@ try {
                 SELECT 
                     COALESCE(m.full_name, o.guest_name, 'Unknown Customer') as customer_name,
                     COALESCE(m.phone, o.guest_phone, 'N/A') as customer_phone,
-                    b.title as book_title,
+                    COALESCE(b.title, inv.item_name, 'Product') as book_title,
                     SUM(oi.quantity) as total_qty,
                     o.member_id, o.guest_email, o.guest_name
                 FROM orders o
                 JOIN order_items oi ON o.id = oi.order_id
-                JOIN books b ON oi.book_id = b.id
+                LEFT JOIN books b ON oi.book_id = b.id AND (oi.item_type = 'Book' OR oi.item_type IS NULL)
+                LEFT JOIN inventory_items inv ON oi.book_id = inv.id AND oi.item_type != 'Book'
                 LEFT JOIN members m ON o.member_id = m.id
-                WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.payment_status = 'Paid'
-                GROUP BY o.member_id, o.guest_email, o.guest_name, b.id
+                WHERE o.order_date >= ? AND o.order_date <= ? AND o.payment_status = 'Paid'
+                GROUP BY o.member_id, o.guest_email, o.guest_name, oi.book_id, oi.item_type
             ) AS sub
             GROUP BY member_id, guest_email, guest_name
             ORDER BY customer_name ASC
         ");
-        $customerPurchases->execute([$from, $to]);
+        $customerPurchases->execute([$fromDateTime, $toDateTime]);
         $purchases = $customerPurchases->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. Which customer bought most books
+        // 3. Which customer bought most items
         $topCustomer = $pdo->prepare("
             SELECT 
                 COALESCE(m.full_name, o.guest_name, 'Guest') as customer_name,
@@ -161,24 +164,25 @@ try {
             FROM orders o
             JOIN order_items oi ON o.id = oi.order_id
             LEFT JOIN members m ON o.member_id = m.id
-            WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.payment_status = 'Paid'
+            WHERE o.order_date >= ? AND o.order_date <= ? AND o.payment_status = 'Paid'
             GROUP BY o.member_id, o.guest_email, o.guest_name
             ORDER BY total_qty DESC
             LIMIT 1
         ");
-        $topCustomer->execute([$from, $to]);
+        $topCustomer->execute([$fromDateTime, $toDateTime]);
         $topCust = $topCustomer->fetch(PDO::FETCH_ASSOC);
 
-        // 4. Which books sold (qty)
+        // 4. Which items sold (qty)
         $bookStats = $pdo->prepare("
-            SELECT b.title, SUM(oi.quantity) as qty
+            SELECT COALESCE(b.title, inv.item_name, 'Product') as title, SUM(oi.quantity) as qty
             FROM order_items oi
-            JOIN books b ON oi.book_id = b.id
             JOIN orders o ON oi.order_id = o.id
-            WHERE DATE(o.order_date) BETWEEN ? AND ? AND o.payment_status = 'Paid'
-            GROUP BY b.id
+            LEFT JOIN books b ON oi.book_id = b.id AND (oi.item_type = 'Book' OR oi.item_type IS NULL)
+            LEFT JOIN inventory_items inv ON oi.book_id = inv.id AND oi.item_type != 'Book'
+            WHERE o.order_date >= ? AND o.order_date <= ? AND o.payment_status = 'Paid'
+            GROUP BY oi.book_id, oi.item_type
         ");
-        $bookStats->execute([$from, $to]);
+        $bookStats->execute([$fromDateTime, $toDateTime]);
         $booksSold = $bookStats->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode([
